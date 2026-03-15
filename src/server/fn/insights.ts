@@ -93,25 +93,25 @@ export const getTopMerchants = createServerFn()
       lt(transactions.amount, 0),
     ]
 
+    const payee = sql<string>`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}, 'Unknown')`
+
     const rows = await db
       .select({
-        creditorName: transactions.creditorName,
+        payee,
         total: sql<number>`SUM(${transactions.amount})`,
         count: sql<number>`COUNT(*)`,
       })
       .from(transactions)
       .where(and(...conditions))
-      .groupBy(transactions.creditorName)
+      .groupBy(payee)
       .orderBy(sql`SUM(${transactions.amount})`)
       .limit(filters.limit)
 
-    return rows
-      .filter((r) => r.creditorName)
-      .map((r) => ({
-        name: r.creditorName!,
-        total: Math.abs(r.total),
-        count: r.count,
-      }))
+    return rows.map((r) => ({
+      name: r.payee,
+      total: Math.abs(r.total),
+      count: r.count,
+    }))
   })
 
 export const getIncomeVsExpenses = createServerFn()

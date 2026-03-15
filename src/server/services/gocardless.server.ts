@@ -70,10 +70,10 @@ export async function createRequisition(
   let agreement: any
   try {
     agreement = await nordigen.agreement.createAgreement({
-      institutionId,
-      maxHistoricalDays: 90,
-      accessValidForDays: 90,
-      accessScope: ["details", "balances", "transactions"],
+      institution_id: institutionId,
+      max_historical_days: 90,
+      access_valid_for_days: 90,
+      access_scope: ["details", "balances", "transactions"],
     })
     console.log("[GoCardless] agreement created", agreement)
   } catch (err: any) {
@@ -85,10 +85,10 @@ export async function createRequisition(
   let requisition: any
   try {
     requisition = await nordigen.requisition.createRequisition({
-      redirectUrl,
-      institutionId,
+      redirect: redirectUrl,
+      institution_id: institutionId,
       agreement: agreement.id as string,
-      userLanguage: "EN",
+      user_language: "EN",
     })
     console.log("[GoCardless] requisition created", requisition)
   } catch (err: any) {

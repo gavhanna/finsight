@@ -203,7 +203,7 @@ function TransactionsPage() {
                     {formatDate(tx.bookingDate)}
                   </td>
                   <td className="px-3 py-2 font-medium max-w-48 truncate">
-                    {tx.creditorName ?? tx.debtorName ?? "—"}
+                    {tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground max-w-64 truncate">
                     {tx.description ?? "—"}
