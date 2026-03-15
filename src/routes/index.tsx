@@ -325,7 +325,7 @@ function SpendingBarChart({ data }: { data: { categoryName: string; categoryColo
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} layout="vertical" margin={{ left: 80, right: 20 }}>
-        <XAxis type="number" tickFormatter={(v) => `£${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
+        <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
         <YAxis type="category" dataKey="categoryName" tick={{ fontSize: 11 }} width={80} />
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Bar dataKey="total" radius={[0, 4, 4, 0]}>
@@ -353,7 +353,7 @@ function SpendingTrendsChart({
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-        <YAxis tickFormatter={(v) => `£${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
+        <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Legend />
         {categories.map((cat) => (
@@ -378,7 +378,7 @@ function TopMerchantsChart({ data }: { data: { name: string; total: number; coun
   return (
     <ResponsiveContainer width="100%" height={Math.max(200, data.length * 36)}>
       <BarChart data={data} layout="vertical" margin={{ left: 140, right: 40 }}>
-        <XAxis type="number" tickFormatter={(v) => `£${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
+        <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={140} />
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
@@ -400,7 +400,7 @@ function IncomeExpensesChart({
       <BarChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-        <YAxis tickFormatter={(v) => `£${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
+        <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Legend />
         <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
