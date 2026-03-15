@@ -1,12 +1,14 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
-import { categories, categoryRules, transactions } from "../../db/schema"
+import { categories, rules, rulePatterns, transactions } from "../../db/schema"
 import { eq, and, sql, inArray } from "drizzle-orm"
 import { z } from "zod"
 import { invalidateCategoryCache } from "../services/categoriser.server"
 
-const RuleFieldSchema = z.enum(["description", "creditorName", "debtorName", "merchantCategoryCode"])
+const FieldSchema = z.enum(["description", "creditorName", "debtorName", "merchantCategoryCode"])
 const MatchTypeSchema = z.enum(["contains", "exact", "startsWith"])
+
+// ── Categories ────────────────────────────────────────────────────────────────
 
 export const getCategories = createServerFn().handler(async () => {
   return db.select().from(categories).orderBy(categories.name)
@@ -14,22 +16,21 @@ export const getCategories = createServerFn().handler(async () => {
 
 export const getCategoriesWithRules = createServerFn().handler(async () => {
   const cats = await db.select().from(categories).orderBy(categories.name)
-  const rules = await db.select().from(categoryRules).orderBy(categoryRules.priority)
-  return cats.map((cat) => ({
+  const allRules = await db.select().from(rules)
+  const ruleCount = cats.map((cat) => ({
     ...cat,
-    rules: rules.filter((r) => r.categoryId === cat.id),
+    rules: allRules.filter((r) => r.categoryId === cat.id).length,
   }))
+  return ruleCount
 })
 
 export const createCategory = createServerFn()
-  .inputValidator(
-    z.object({
-      name: z.string().min(1),
-      color: z.string().default("#94a3b8"),
-      icon: z.string().optional(),
-      type: z.enum(["expense", "income", "transfer"]).default("expense"),
-    }),
-  )
+  .inputValidator(z.object({
+    name: z.string().min(1),
+    color: z.string().default("#94a3b8"),
+    icon: z.string().optional(),
+    type: z.enum(["expense", "income", "transfer"]).default("expense"),
+  }))
   .handler(async ({ data }) => {
     const [cat] = await db.insert(categories).values(data).returning()
     invalidateCategoryCache()
@@ -37,15 +38,13 @@ export const createCategory = createServerFn()
   })
 
 export const updateCategory = createServerFn()
-  .inputValidator(
-    z.object({
-      id: z.number(),
-      name: z.string().min(1).optional(),
-      color: z.string().optional(),
-      icon: z.string().optional(),
-      type: z.enum(["expense", "income", "transfer"]).optional(),
-    }),
-  )
+  .inputValidator(z.object({
+    id: z.number(),
+    name: z.string().min(1).optional(),
+    color: z.string().optional(),
+    icon: z.string().optional(),
+    type: z.enum(["expense", "income", "transfer"]).optional(),
+  }))
   .handler(async ({ data: { id, ...rest } }) => {
     await db.update(categories).set(rest).where(eq(categories.id, id))
     invalidateCategoryCache()
@@ -58,78 +57,120 @@ export const deleteCategory = createServerFn()
     invalidateCategoryCache()
   })
 
+// ── Rules ─────────────────────────────────────────────────────────────────────
+
+export const getAllRules = createServerFn().handler(async () => {
+  const allRules = await db.select().from(rules).orderBy(rules.priority)
+  const patterns = await db.select().from(rulePatterns)
+  const cats = await db.select().from(categories)
+  return allRules.map((r) => ({
+    ...r,
+    category: cats.find((c) => c.id === r.categoryId) ?? null,
+    patterns: patterns.filter((p) => p.ruleId === r.id),
+  }))
+})
+
 export const createRule = createServerFn()
-  .inputValidator(
-    z.object({
-      categoryId: z.number(),
+  .inputValidator(z.object({
+    name: z.string().min(1),
+    categoryId: z.number(),
+    priority: z.number().default(0),
+    patterns: z.array(z.object({
       pattern: z.string().min(1),
-      field: z.enum(["description", "creditorName", "debtorName", "merchantCategoryCode"]).default("description"),
-      matchType: z.enum(["contains", "exact", "startsWith"]).default("contains"),
-      priority: z.number().default(0),
-    }),
-  )
+      field: FieldSchema,
+      matchType: MatchTypeSchema,
+    })).min(1),
+  }))
   .handler(async ({ data }) => {
-    const [rule] = await db.insert(categoryRules).values(data).returning()
+    const [rule] = await db.insert(rules).values({
+      name: data.name,
+      categoryId: data.categoryId,
+      priority: data.priority,
+    }).returning()
+    for (const p of data.patterns) {
+      await db.insert(rulePatterns).values({ ruleId: rule.id, ...p })
+    }
     invalidateCategoryCache()
     return rule
   })
 
 export const updateRule = createServerFn()
-  .inputValidator(
-    z.object({
-      id: z.number(),
-      pattern: z.string().min(1).optional(),
-      field: z.enum(["description", "creditorName", "debtorName", "merchantCategoryCode"]).optional(),
-      matchType: z.enum(["contains", "exact", "startsWith"]).optional(),
-      priority: z.number().optional(),
-    }),
-  )
+  .inputValidator(z.object({
+    id: z.number(),
+    name: z.string().min(1).optional(),
+    categoryId: z.number().optional(),
+    priority: z.number().optional(),
+  }))
   .handler(async ({ data: { id, ...rest } }) => {
-    await db.update(categoryRules).set(rest).where(eq(categoryRules.id, id))
+    await db.update(rules).set(rest).where(eq(rules.id, id))
     invalidateCategoryCache()
   })
 
 export const deleteRule = createServerFn()
   .inputValidator(z.number())
   .handler(async ({ data: id }) => {
-    await db.delete(categoryRules).where(eq(categoryRules.id, id))
+    await db.delete(rules).where(eq(rules.id, id))
     invalidateCategoryCache()
   })
 
-export const getAllRules = createServerFn().handler(async () => {
-  const rules = await db.select().from(categoryRules).orderBy(categoryRules.priority)
-  const cats = await db.select().from(categories)
-  return rules.map((r) => ({
-    ...r,
-    category: cats.find((c) => c.id === r.categoryId) ?? null,
+export const addPattern = createServerFn()
+  .inputValidator(z.object({
+    ruleId: z.number(),
+    pattern: z.string().min(1),
+    field: FieldSchema,
+    matchType: MatchTypeSchema,
   }))
-})
+  .handler(async ({ data }) => {
+    const [p] = await db.insert(rulePatterns).values(data).returning()
+    invalidateCategoryCache()
+    return p
+  })
 
-const PreviewRuleSchema = z.object({
-  pattern: z.string().min(1),
-  field: RuleFieldSchema,
-  matchType: MatchTypeSchema,
-})
+export const updatePattern = createServerFn()
+  .inputValidator(z.object({
+    id: z.number(),
+    pattern: z.string().min(1).optional(),
+    field: FieldSchema.optional(),
+    matchType: MatchTypeSchema.optional(),
+  }))
+  .handler(async ({ data: { id, ...rest } }) => {
+    await db.update(rulePatterns).set(rest).where(eq(rulePatterns.id, id))
+    invalidateCategoryCache()
+  })
+
+export const deletePattern = createServerFn()
+  .inputValidator(z.number())
+  .handler(async ({ data: id }) => {
+    await db.delete(rulePatterns).where(eq(rulePatterns.id, id))
+    invalidateCategoryCache()
+  })
+
+// ── Preview & apply ───────────────────────────────────────────────────────────
+
+function buildPatternCondition(
+  pattern: string,
+  field: "description" | "creditorName" | "debtorName" | "merchantCategoryCode",
+  matchType: "contains" | "exact" | "startsWith",
+) {
+  const col = {
+    description: transactions.description,
+    creditorName: transactions.creditorName,
+    debtorName: transactions.debtorName,
+    merchantCategoryCode: transactions.merchantCategoryCode,
+  }[field]
+  if (matchType === "contains") return sql`${col} ILIKE ${"%" + pattern + "%"}`
+  if (matchType === "startsWith") return sql`${col} ILIKE ${pattern + "%"}`
+  return sql`lower(${col}) = lower(${pattern})`
+}
 
 export const previewRule = createServerFn()
-  .inputValidator(PreviewRuleSchema)
+  .inputValidator(z.object({
+    pattern: z.string().min(1),
+    field: FieldSchema,
+    matchType: MatchTypeSchema,
+  }))
   .handler(async ({ data: { pattern, field, matchType } }) => {
-    const col = {
-      description: transactions.description,
-      creditorName: transactions.creditorName,
-      debtorName: transactions.debtorName,
-      merchantCategoryCode: transactions.merchantCategoryCode,
-    }[field]
-
-    let condition
-    if (matchType === "contains") {
-      condition = sql`${col} ILIKE ${"%" + pattern + "%"}`
-    } else if (matchType === "startsWith") {
-      condition = sql`${col} ILIKE ${pattern + "%"}`
-    } else {
-      condition = sql`lower(${col}) = lower(${pattern})`
-    }
-
+    const condition = buildPatternCondition(pattern, field, matchType)
     const rows = await db
       .select({
         id: transactions.id,
@@ -161,29 +202,20 @@ export const previewRule = createServerFn()
 export const applyRuleToHistory = createServerFn()
   .inputValidator(z.object({ ruleId: z.number(), categoryId: z.number() }))
   .handler(async ({ data: { ruleId, categoryId } }) => {
-    const [rule] = await db.select().from(categoryRules).where(eq(categoryRules.id, ruleId))
-    if (!rule) throw new Error("Rule not found")
+    const patterns = await db.select().from(rulePatterns).where(eq(rulePatterns.ruleId, ruleId))
+    if (patterns.length === 0) return { updated: 0 }
 
-    const col = {
-      description: transactions.description,
-      creditorName: transactions.creditorName,
-      debtorName: transactions.debtorName,
-      merchantCategoryCode: transactions.merchantCategoryCode,
-    }[rule.field]
-
-    let condition
-    if (rule.matchType === "contains") {
-      condition = sql`${col} ILIKE ${"%" + rule.pattern + "%"}`
-    } else if (rule.matchType === "startsWith") {
-      condition = sql`${col} ILIKE ${rule.pattern + "%"}`
-    } else {
-      condition = sql`lower(${col}) = lower(${rule.pattern})`
-    }
+    const orConditions = patterns.map((p) =>
+      buildPatternCondition(p.pattern, p.field, p.matchType)
+    )
+    const matchCondition = orConditions.length === 1
+      ? orConditions[0]
+      : sql`(${sql.join(orConditions, sql` OR `)})`
 
     const matching = await db
       .select({ id: transactions.id })
       .from(transactions)
-      .where(and(condition, sql`${transactions.categorisedBy} IS DISTINCT FROM 'manual'`))
+      .where(and(matchCondition, sql`${transactions.categorisedBy} IS DISTINCT FROM 'manual'`))
 
     if (matching.length === 0) return { updated: 0 }
 

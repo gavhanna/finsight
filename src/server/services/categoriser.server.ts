@@ -1,6 +1,6 @@
 import { db } from "../../db/index.server"
-import { categories, categoryRules } from "../../db/schema"
-import type { Category, CategoryRule } from "../../db/schema"
+import { categories, rules, rulePatterns } from "../../db/schema"
+import type { Category, Rule, RulePattern } from "../../db/schema"
 import { MCC_CATEGORY_MAP } from "../../lib/constants"
 import { categoriseWithOllama } from "./ollama.server"
 
@@ -17,8 +17,10 @@ interface CategoriseResult {
   categorisedBy: "rule" | "mcc" | "llm" | null
 }
 
+type RuleWithPatterns = Rule & { patterns: RulePattern[] }
+
 // In-memory cache
-let rulesCache: (CategoryRule & { categoryName: string })[] | null = null
+let rulesCache: RuleWithPatterns[] | null = null
 let categoriesCache: Category[] | null = null
 
 export function invalidateCategoryCache() {
@@ -26,16 +28,12 @@ export function invalidateCategoryCache() {
   categoriesCache = null
 }
 
-async function getRules() {
+async function getRules(): Promise<RuleWithPatterns[]> {
   if (rulesCache) return rulesCache
-  const allCategories = await getCategories()
-  const rules = await db.select().from(categoryRules).orderBy(categoryRules.priority)
-  rulesCache = rules
-    .map((r) => ({
-      ...r,
-      categoryName:
-        allCategories.find((c) => c.id === r.categoryId)?.name ?? "",
-    }))
+  const allRules = await db.select().from(rules).orderBy(rules.priority)
+  const patterns = await db.select().from(rulePatterns)
+  rulesCache = allRules
+    .map((r) => ({ ...r, patterns: patterns.filter((p) => p.ruleId === r.id) }))
     .reverse() // highest priority first
   return rulesCache
 }
@@ -46,40 +44,24 @@ async function getCategories() {
   return categoriesCache
 }
 
-function matchesRule(
-  rule: CategoryRule,
+function matchesField(
+  pattern: RulePattern,
   tx: TransactionData,
 ): boolean {
-  const fieldValue = getField(rule.field, tx)
-  if (!fieldValue) return false
-
-  switch (rule.matchType) {
-    case "contains":
-      return fieldValue.toLowerCase().includes(rule.pattern.toLowerCase())
-    case "exact":
-      return fieldValue.toLowerCase() === rule.pattern.toLowerCase()
-    case "startsWith":
-      return fieldValue.toLowerCase().startsWith(rule.pattern.toLowerCase())
-    default:
-      return false
-  }
-}
-
-function getField(
-  field: CategoryRule["field"],
-  tx: TransactionData,
-): string | null {
-  switch (field) {
-    case "description":
-      return tx.description ?? null
-    case "creditorName":
-      return tx.creditorName ?? null
-    case "debtorName":
-      return tx.debtorName ?? null
-    case "merchantCategoryCode":
-      return tx.merchantCategoryCode ?? null
-    default:
-      return null
+  const val = {
+    description: tx.description,
+    creditorName: tx.creditorName,
+    debtorName: tx.debtorName,
+    merchantCategoryCode: tx.merchantCategoryCode,
+  }[pattern.field]
+  if (!val) return false
+  const v = val.toLowerCase()
+  const p = pattern.pattern.toLowerCase()
+  switch (pattern.matchType) {
+    case "contains": return v.includes(p)
+    case "exact": return v === p
+    case "startsWith": return v.startsWith(p)
+    default: return false
   }
 }
 
@@ -89,11 +71,11 @@ export async function categorise(
   ollamaModel?: string,
 ): Promise<CategoriseResult> {
   const allCategories = await getCategories()
-  const rules = await getRules()
+  const allRules = await getRules()
 
-  // 1. Keyword rules (highest priority first)
-  for (const rule of rules) {
-    if (matchesRule(rule, tx)) {
+  // 1. Keyword rules — a rule matches if ANY of its patterns match
+  for (const rule of allRules) {
+    if (rule.patterns.some((p) => matchesField(p, tx))) {
       const cat = allCategories.find((c) => c.id === rule.categoryId)
       if (cat) {
         return { categoryId: cat.id, categorisedBy: "rule" }

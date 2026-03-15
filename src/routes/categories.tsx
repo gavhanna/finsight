@@ -145,7 +145,7 @@ function CategoriesPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground capitalize">{cat.type}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{cat.rules.length}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{cat.rules}</td>
                 <td className="px-4 py-2.5 text-right">
                   {!cat.isDefault && (
                     <button

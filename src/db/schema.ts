@@ -62,11 +62,20 @@ export const categories = pgTable("categories", {
   isDefault: boolean("is_default").notNull().default(false),
 })
 
-export const categoryRules = pgTable("category_rules", {
+export const rules = pgTable("rules", {
   id: serial("id").primaryKey(),
+  name: text("name").notNull(),
   categoryId: integer("category_id")
     .notNull()
     .references(() => categories.id, { onDelete: "cascade" }),
+  priority: integer("priority").notNull().default(0),
+})
+
+export const rulePatterns = pgTable("rule_patterns", {
+  id: serial("id").primaryKey(),
+  ruleId: integer("rule_id")
+    .notNull()
+    .references(() => rules.id, { onDelete: "cascade" }),
   pattern: text("pattern").notNull(),
   field: text("field")
     .notNull()
@@ -76,7 +85,6 @@ export const categoryRules = pgTable("category_rules", {
     .notNull()
     .default("contains")
     .$type<"contains" | "exact" | "startsWith">(),
-  priority: integer("priority").notNull().default(0),
 })
 
 export const transactions = pgTable(
@@ -114,5 +122,6 @@ export type Setting = typeof settings.$inferSelect
 export type BankConnection = typeof bankConnections.$inferSelect
 export type Account = typeof accounts.$inferSelect
 export type Category = typeof categories.$inferSelect
-export type CategoryRule = typeof categoryRules.$inferSelect
+export type Rule = typeof rules.$inferSelect
+export type RulePattern = typeof rulePatterns.$inferSelect
 export type Transaction = typeof transactions.$inferSelect
