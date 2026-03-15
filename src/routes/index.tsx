@@ -128,57 +128,61 @@ function DashboardPage() {
   const hasData = byCat.length > 0
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl">
       {/* Header + Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold flex-1">Dashboard</h1>
+      <div className="space-y-3">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
 
-        {/* Date presets */}
-        <div className="flex gap-1 rounded-lg border p-1">
-          {(Object.entries(PRESET_LABELS) as [DatePreset, string][]).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setPreset(key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${preset === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom date range */}
-        <div className="flex gap-2">
-          <input
-            type="date"
-            value={search.dateFrom ?? ""}
-            onChange={(e) => navigate({ search: { ...search, dateFrom: e.target.value || undefined, preset: undefined } })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <input
-            type="date"
-            value={search.dateTo ?? ""}
-            onChange={(e) => navigate({ search: { ...search, dateTo: e.target.value || undefined, preset: undefined } })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-
-        {/* Account filter */}
-        {accounts.length > 1 && (
-          <select
-            value={(search.accountIds ?? [])[0] ?? ""}
-            onChange={(e) => navigate({ search: { ...search, accountIds: e.target.value ? [e.target.value] : undefined } })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">All accounts</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</option>
+        {/* Date presets — scrollable on mobile */}
+        <div className="overflow-x-auto">
+          <div className="flex gap-1 rounded-lg border p-1 w-max min-w-full sm:w-auto">
+            {(Object.entries(PRESET_LABELS) as [DatePreset, string][]).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setPreset(key)}
+                className={`rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${preset === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+              >
+                {label}
+              </button>
             ))}
-          </select>
-        )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Custom date range */}
+          <div className="flex gap-2 flex-wrap">
+            <input
+              type="date"
+              value={search.dateFrom ?? ""}
+              onChange={(e) => navigate({ search: { ...search, dateFrom: e.target.value || undefined, preset: undefined } })}
+              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+            />
+            <input
+              type="date"
+              value={search.dateTo ?? ""}
+              onChange={(e) => navigate({ search: { ...search, dateTo: e.target.value || undefined, preset: undefined } })}
+              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+            />
+          </div>
+
+          {/* Account filter */}
+          {accounts.length > 1 && (
+            <select
+              value={(search.accountIds ?? [])[0] ?? ""}
+              onChange={(e) => navigate({ search: { ...search, accountIds: e.target.value ? [e.target.value] : undefined } })}
+              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+            >
+              <option value="">All accounts</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label="Total Spend"
           value={formatCurrency(stats.totalExpenses)}
@@ -207,12 +211,12 @@ function DashboardPage() {
       </div>
 
       {!hasData ? (
-        <div className="rounded-lg border-2 border-dashed p-16 text-center">
+        <div className="rounded-lg border-2 border-dashed p-8 sm:p-16 text-center">
           <p className="text-muted-foreground">No transaction data for this period.</p>
           <p className="text-sm text-muted-foreground mt-1">Connect a bank account and sync transactions to get started.</p>
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {/* Spending by category */}
           <div className="rounded-lg border p-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -276,12 +280,12 @@ function StatCard({
   valueClass?: string
 }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="rounded-lg border p-3 sm:p-4">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground">{label}</p>
         {icon}
       </div>
-      <p className={`text-2xl font-bold tabular-nums ${valueClass ?? ""}`}>{value}</p>
+      <p className={`text-xl sm:text-2xl font-bold tabular-nums ${valueClass ?? ""}`}>{value}</p>
       <p className="text-xs text-muted-foreground mt-1 capitalize">{sub}</p>
     </div>
   )
@@ -289,8 +293,8 @@ function StatCard({
 
 function SpendingPieChart({ data }: { data: { categoryName: string; categoryColor: string; total: number; count: number }[] }) {
   return (
-    <div className="flex gap-4 items-center">
-      <ResponsiveContainer width="50%" height={220}>
+    <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+      <ResponsiveContainer width="100%" height={200} className="sm:w-[50%] sm:flex-shrink-0">
         <PieChart>
           <Pie
             data={data}
@@ -298,8 +302,8 @@ function SpendingPieChart({ data }: { data: { categoryName: string; categoryColo
             nameKey="categoryName"
             cx="50%"
             cy="50%"
-            outerRadius={90}
-            innerRadius={45}
+            outerRadius={80}
+            innerRadius={40}
           >
             {data.map((entry, i) => (
               <Cell key={i} fill={entry.categoryColor} />
@@ -308,7 +312,7 @@ function SpendingPieChart({ data }: { data: { categoryName: string; categoryColo
           <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         </PieChart>
       </ResponsiveContainer>
-      <div className="flex-1 space-y-1.5 overflow-auto max-h-52">
+      <div className="flex-1 space-y-1.5 overflow-auto max-h-48">
         {data.map((d) => (
           <div key={d.categoryName} className="flex items-center gap-2 text-sm">
             <div className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.categoryColor }} />

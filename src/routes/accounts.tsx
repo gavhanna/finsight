@@ -68,12 +68,13 @@ function AccountsPage() {
   const today = new Date().toISOString().slice(0, 10)
 
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 max-w-4xl">
+      <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
         <h1 className="text-2xl font-semibold">Bank Accounts</h1>
-        <Button onClick={() => setShowPicker(true)}>
+        <Button onClick={() => setShowPicker(true)} className="shrink-0">
           <Plus className="h-4 w-4" />
-          Connect Bank
+          <span className="hidden sm:inline">Connect Bank</span>
+          <span className="sm:hidden">Connect</span>
         </Button>
       </div>
 
@@ -151,9 +152,9 @@ function AccountsPage() {
                       const callsToday = acc.syncCallsDate === today ? acc.syncCallsToday : 0
                       const atLimit = callsToday >= 4
                       return (
-                        <div key={acc.id} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{acc.name ?? acc.iban ?? acc.id}</p>
+                        <div key={acc.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md bg-muted/40 px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{acc.name ?? acc.iban ?? acc.id}</p>
                             <p className="text-xs text-muted-foreground">
                               {acc.iban && <span className="mr-2">{acc.iban}</span>}
                               {acc.currency && <span>{acc.currency}</span>}
@@ -162,7 +163,7 @@ function AccountsPage() {
                               )}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             {atLimit && (
                               <span className="text-xs text-amber-600 font-medium">Rate limit reached</span>
                             )}
@@ -192,7 +193,7 @@ function AccountsPage() {
       )}
 
       <Dialog open={showPicker} onOpenChange={setShowPicker}>
-        <DialogContent className="flex flex-col max-h-[80vh] p-0 gap-0 sm:max-w-lg">
+        <DialogContent className="flex flex-col max-h-[90vh] sm:max-h-[80vh] p-0 gap-0 sm:max-w-lg">
           <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
             <DialogTitle>Connect a Bank</DialogTitle>
           </DialogHeader>

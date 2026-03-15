@@ -82,61 +82,65 @@ function TransactionsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Filters */}
-      <div className="border-b p-4 space-y-3">
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-48">
+      <div className="border-b p-3 sm:p-4 space-y-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-0 w-full sm:min-w-48 sm:w-auto">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               value={search.search ?? ""}
               onChange={(e) => updateSearch({ search: e.target.value || undefined })}
               placeholder="Search transactions…"
-              className="pl-9"
+              className="pl-9 w-full"
             />
           </div>
-          <Input
-            type="date"
-            value={search.dateFrom ?? ""}
-            onChange={(e) => updateSearch({ dateFrom: e.target.value || undefined })}
-            className="w-auto"
-          />
-          <Input
-            type="date"
-            value={search.dateTo ?? ""}
-            onChange={(e) => updateSearch({ dateTo: e.target.value || undefined })}
-            className="w-auto"
-          />
-          <Select
-            value={search.categoryId !== undefined ? String(search.categoryId) : "all"}
-            onValueChange={(v) => updateSearch({ categoryId: v && v !== "all" ? Number(v) : undefined })}
-          >
-            <SelectTrigger className="w-auto min-w-36">
-              <SelectValue placeholder="All categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              <SelectItem value="-1">Uncategorised</SelectItem>
-              {categories.map((c: any) => (
-                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {accounts.length > 1 && (
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Input
+              type="date"
+              value={search.dateFrom ?? ""}
+              onChange={(e) => updateSearch({ dateFrom: e.target.value || undefined })}
+              className="flex-1 sm:w-auto"
+            />
+            <Input
+              type="date"
+              value={search.dateTo ?? ""}
+              onChange={(e) => updateSearch({ dateTo: e.target.value || undefined })}
+              className="flex-1 sm:w-auto"
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap w-full sm:w-auto">
             <Select
-              value={(search.accountIds ?? [])[0] ?? "all"}
-              onValueChange={(v) => updateSearch({ accountIds: v && v !== "all" ? [v] : undefined })}
+              value={search.categoryId !== undefined ? String(search.categoryId) : "all"}
+              onValueChange={(v) => updateSearch({ categoryId: v && v !== "all" ? Number(v) : undefined })}
             >
-              <SelectTrigger className="w-auto min-w-36">
-                <SelectValue placeholder="All accounts" />
+              <SelectTrigger className="flex-1 sm:flex-none sm:min-w-36">
+                <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All accounts</SelectItem>
-                {accounts.map((a: any) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</SelectItem>
+                <SelectItem value="all">All categories</SelectItem>
+                <SelectItem value="-1">Uncategorised</SelectItem>
+                {categories.map((c: any) => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          )}
+            {accounts.length > 1 && (
+              <Select
+                value={(search.accountIds ?? [])[0] ?? "all"}
+                onValueChange={(v) => updateSearch({ accountIds: v && v !== "all" ? [v] : undefined })}
+              >
+                <SelectTrigger className="flex-1 sm:flex-none sm:min-w-36">
+                  <SelectValue placeholder="All accounts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All accounts</SelectItem>
+                  {accounts.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
 
         {/* Bulk actions */}
@@ -179,7 +183,7 @@ function TransactionsPage() {
               </TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Payee</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead className="hidden sm:table-cell">Description</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Category</TableHead>
             </TableRow>
@@ -187,7 +191,7 @@ function TransactionsPage() {
           <TableBody>
             {transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-16 text-muted-foreground">
                   No transactions found.
                 </TableCell>
               </TableRow>
@@ -208,7 +212,7 @@ function TransactionsPage() {
                   <TableCell className="font-medium max-w-48 truncate">
                     {tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground max-w-64 truncate">
+                  <TableCell className="hidden sm:table-cell text-muted-foreground max-w-64 truncate">
                     {tx.description ?? "—"}
                   </TableCell>
                   <TableCell className={`text-right font-medium tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-green-600" : ""}`}>

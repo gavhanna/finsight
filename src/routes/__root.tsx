@@ -1,7 +1,6 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
+import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
-import { Link } from "@tanstack/react-router"
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -10,7 +9,21 @@ import {
   Filter,
   Settings,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { Separator } from "@/components/ui/separator"
 
 import appCss from "../styles.css?url"
 
@@ -54,40 +67,75 @@ const navItems = [
   { to: "/settings", label: "Settings", icon: Settings },
 ]
 
+function AppSidebar() {
+  const { location } = useRouterState()
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2 px-2 py-1">
+              <div className="flex aspect-square size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold flex-shrink-0">
+                F
+              </div>
+              <span className="truncate font-semibold text-sm group-data-[collapsible=icon]:hidden">
+                FinSight
+              </span>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarMenu className="gap-0.5 px-2">
+          {navItems.map(({ to, label, icon: Icon, exact }) => {
+            const isActive = exact
+              ? location.pathname === to
+              : location.pathname.startsWith(to)
+            return (
+              <SidebarMenuItem key={to}>
+                <SidebarMenuButton
+                  render={<Link to={to} />}
+                  isActive={isActive}
+                  tooltip={label}
+                >
+                  <Icon />
+                  <span>{label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
+        </SidebarMenu>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <p className="px-2 text-xs text-sidebar-foreground/50 truncate group-data-[collapsible=icon]:hidden">
+          Family Finance Insights
+        </p>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
+  )
+}
+
 function RootLayout() {
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <aside className="flex w-56 flex-shrink-0 flex-col border-r bg-muted/30">
-        <div className="flex h-14 items-center border-b px-4">
-          <span className="text-lg font-semibold tracking-tight">FinSight</span>
-        </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {navItems.map(({ to, label, icon: Icon, exact }) => (
-            <Link
-              key={to}
-              to={to}
-              activeOptions={{ exact: exact ?? false }}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                "text-muted-foreground hover:bg-muted hover:text-foreground",
-                "[&.active]:bg-muted [&.active]:text-foreground [&.active]:font-medium",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="border-t p-3">
-          <p className="text-xs text-muted-foreground">Family Finance Insights</p>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <Outlet />
-      </main>
-    </div>
+    <TooltipProvider>
+      <SidebarProvider className="h-svh overflow-hidden">
+        <AppSidebar />
+        <SidebarInset className="overflow-hidden">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mx-1 h-4" />
+            <span className="font-semibold text-sm md:hidden">FinSight</span>
+          </header>
+          <div className="flex flex-1 flex-col overflow-auto min-h-0">
+            <Outlet />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }

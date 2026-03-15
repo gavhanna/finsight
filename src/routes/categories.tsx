@@ -58,22 +58,23 @@ function CategoriesPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 max-w-3xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 sm:mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Categories</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage spending categories. Add keyword rules under <strong>Rules</strong>.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRecategorise} disabled={recatting}>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" onClick={handleRecategorise} disabled={recatting} size="sm" className="sm:size-auto">
             <RefreshCw className={`h-4 w-4 ${recatting ? "animate-spin" : ""}`} />
-            Re-categorise All
+            <span className="hidden sm:inline">Re-categorise All</span>
+            <span className="sm:hidden">Re-categorise</span>
           </Button>
-          <Button onClick={() => setShowNew(true)}>
+          <Button onClick={() => setShowNew(true)} size="sm" className="sm:size-auto">
             <Plus className="h-4 w-4" />
-            New Category
+            New
           </Button>
         </div>
       </div>
@@ -87,15 +88,16 @@ function CategoriesPage() {
       {showNew && (
         <div className="mb-4 rounded-lg border p-4 space-y-3">
           <h3 className="font-medium text-sm">New Category</h3>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
               value={newCat.name}
               onChange={(e) => setNewCat((f) => ({ ...f, name: e.target.value }))}
               placeholder="Category name"
               autoFocus
+              className="flex-1"
             />
             <Select value={newCat.type} onValueChange={(v) => v && setNewCat((f) => ({ ...f, type: v as any }))}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger className="w-full sm:w-36">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

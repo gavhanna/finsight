@@ -70,15 +70,15 @@ function RulesPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 max-w-4xl">
+      <div className="flex items-start justify-between gap-3 mb-4 sm:mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Rules</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Named rules with one or more patterns for auto-categorisation. Higher priority runs first.
           </p>
         </div>
-        <Button onClick={() => setShowNew(true)}>
+        <Button onClick={() => setShowNew(true)} className="shrink-0">
           <Plus className="h-4 w-4" />
           New Rule
         </Button>
@@ -337,32 +337,34 @@ function PatternRow({ pattern, onDelete, onRefresh }: { pattern: RulePattern; on
 
   return (
     <div className="rounded-md border p-3 space-y-3 bg-muted/10">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-2">
         <Input
-          className="col-span-3 font-mono text-sm"
+          className="font-mono text-sm w-full"
           value={form.pattern}
           onChange={(e) => setForm(f => ({ ...f, pattern: e.target.value }))}
           autoFocus
         />
-        <Select value={form.field} onValueChange={(v) => v && setForm(f => ({ ...f, field: v as any }))}>
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={form.matchType} onValueChange={(v) => v && setForm(f => ({ ...f, matchType: v as any }))}>
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="flex gap-1">
-          <Button size="sm" className="flex-1 h-8 text-xs" onClick={handleSave}>Save</Button>
-          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => setEditing(false)}>Cancel</Button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <Select value={form.field} onValueChange={(v) => v && setForm(f => ({ ...f, field: v as any }))}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={form.matchType} onValueChange={(v) => v && setForm(f => ({ ...f, matchType: v as any }))}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="flex gap-1 col-span-2 sm:col-span-1">
+            <Button size="sm" className="flex-1 h-8 text-xs" onClick={handleSave}>Save</Button>
+            <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => setEditing(false)}>Cancel</Button>
+          </div>
         </div>
       </div>
 
@@ -560,8 +562,8 @@ function NewRuleForm({
     <div className="mb-6 rounded-lg border p-4 space-y-4">
       <h3 className="font-medium">New Rule</h3>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2 space-y-1.5">
+      <div className="space-y-3">
+        <div className="space-y-1.5">
           <Label>Rule name</Label>
           <Input
             type="text"
@@ -571,24 +573,26 @@ function NewRuleForm({
             autoFocus
           />
         </div>
-        <div className="space-y-1.5">
-          <Label>Category</Label>
-          <Select value={String(categoryId)} onValueChange={(v) => v && setCategoryId(Number(v))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Priority</Label>
-          <Input
-            type="number"
-            value={priority}
-            onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Category</Label>
+            <Select value={String(categoryId)} onValueChange={(v) => v && setCategoryId(Number(v))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Priority</Label>
+            <Input
+              type="number"
+              value={priority}
+              onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
+            />
+          </div>
         </div>
       </div>
 
@@ -598,7 +602,7 @@ function NewRuleForm({
         </Label>
         <div className="space-y-2">
           {patterns.map((p, idx) => (
-            <div key={idx} className="grid grid-cols-3 gap-2 items-center">
+            <div key={idx} className="space-y-2 rounded-md border p-2 sm:border-0 sm:p-0">
               <Input
                 className={`font-mono text-sm ${activePatternIdx === idx ? "ring-2 ring-ring" : ""}`}
                 value={p.pattern}
@@ -606,15 +610,15 @@ function NewRuleForm({
                 onChange={(e) => updatePattern(idx, { pattern: e.target.value })}
                 onFocus={() => setActivePatternIdx(idx)}
               />
-              <Select value={p.field} onValueChange={(v) => v && updatePattern(idx, { field: v as any })}>
-                <SelectTrigger onFocus={() => setActivePatternIdx(idx)}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <div className="flex gap-1">
+              <div className="flex gap-2">
+                <Select value={p.field} onValueChange={(v) => v && updatePattern(idx, { field: v as any })}>
+                  <SelectTrigger className="flex-1" onFocus={() => setActivePatternIdx(idx)}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <Select value={p.matchType} onValueChange={(v) => v && updatePattern(idx, { matchType: v as any })}>
                   <SelectTrigger className="flex-1" onFocus={() => setActivePatternIdx(idx)}>
                     <SelectValue />
