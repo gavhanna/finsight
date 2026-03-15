@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/gocardless/callback")({
   loader: async ({ location }) => {
     const ref = new URL(
       location.href,
-      "http://localhost:3000",
+      process.env["APP_URL"] ?? "http://localhost:3000",
     ).searchParams.get("ref")
 
     if (!ref) {

@@ -66,20 +66,35 @@ export async function createRequisition(
   const nordigen = getClient(secretId, secretKey)
   await ensureToken(nordigen)
 
-  // Create agreement first
-  const agreement = await nordigen.agreement.createAgreement({
-    institution_id: institutionId,
-    max_historical_days: 90,
-    access_valid_for_days: 90,
-    access_scope: ["details", "balances", "transactions"],
-  })
+  console.log("[GoCardless] createAgreement", { institutionId, redirectUrl })
+  let agreement: any
+  try {
+    agreement = await nordigen.agreement.createAgreement({
+      institutionId,
+      maxHistoricalDays: 90,
+      accessValidForDays: 90,
+      accessScope: ["details", "balances", "transactions"],
+    })
+    console.log("[GoCardless] agreement created", agreement)
+  } catch (err: any) {
+    console.error("[GoCardless] createAgreement failed", err?.response?.data ?? err?.message ?? err)
+    throw err
+  }
 
-  const requisition = await nordigen.requisition.createRequisition({
-    redirect: redirectUrl,
-    institution_id: institutionId,
-    agreement: agreement.id as string,
-    user_language: "EN",
-  })
+  console.log("[GoCardless] createRequisition", { redirectUrl, institutionId, agreement: agreement.id })
+  let requisition: any
+  try {
+    requisition = await nordigen.requisition.createRequisition({
+      redirectUrl,
+      institutionId,
+      agreement: agreement.id as string,
+      userLanguage: "EN",
+    })
+    console.log("[GoCardless] requisition created", requisition)
+  } catch (err: any) {
+    console.error("[GoCardless] createRequisition failed", err?.response?.data ?? err?.message ?? err)
+    throw err
+  }
 
   return requisition as unknown as GoCardlessRequisition
 }

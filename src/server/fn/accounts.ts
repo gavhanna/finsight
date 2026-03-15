@@ -52,7 +52,8 @@ export const initiateConnection = createServerFn()
     const { secretId, secretKey } = await getCredentials()
     if (!secretId || !secretKey) throw new Error("GoCardless credentials not configured")
 
-    const redirectUrl = "http://localhost:3000/api/gocardless/callback"
+    const redirectUrl = `${process.env["APP_URL"] ?? "http://localhost:3000"}/api/gocardless/callback`
+    console.log("[initiateConnection]", { institutionId, redirectUrl, secretId: secretId.slice(0, 8) + "…" })
     const requisition = await createRequisition(secretId, secretKey, institutionId, redirectUrl)
 
     await db.insert(bankConnections).values({

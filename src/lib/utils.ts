@@ -7,10 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatCurrency(
   amount: number,
-  currency = "GBP",
+  currency = "EUR",
   opts?: Intl.NumberFormatOptions,
 ) {
-  return new Intl.NumberFormat("en-GB", {
+  return new Intl.NumberFormat("en-IE", {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
