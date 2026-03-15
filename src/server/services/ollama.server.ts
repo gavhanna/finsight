@@ -23,7 +23,7 @@ export async function categoriseWithOllama(
 ): Promise<string | null> {
   const categoryNames = categories.map((c) => c.name).join(", ")
   const payee =
-    transaction.creditorName || transaction.debtorName || "Unknown payee"
+    transaction.creditorName || transaction.debtorName || transaction.description || "Unknown"
   const desc = transaction.description || ""
 
   const prompt = `You are a bank transaction categoriser. Given the following transaction details, respond with ONLY the category name from the list, nothing else.
@@ -33,7 +33,7 @@ Categories: ${categoryNames}
 Transaction:
 - Payee: ${payee}
 - Description: ${desc}
-- Amount: ${transaction.amount > 0 ? "+" : ""}${transaction.amount}
+- Amount: ${transaction.amount > 0 ? "credit" : "debit"} ${Math.abs(transaction.amount)}
 
 Category:`
 
@@ -46,7 +46,7 @@ Category:`
         prompt,
         stream: false,
       } satisfies OllamaRequest),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(60000),
     })
 
     if (!response.ok) return null
@@ -54,7 +54,6 @@ Category:`
     const data = (await response.json()) as OllamaResponse
     const rawCategory = data.response?.trim()
 
-    // Find best matching category (case-insensitive)
     const match = categories.find(
       (c) => c.name.toLowerCase() === rawCategory?.toLowerCase(),
     )

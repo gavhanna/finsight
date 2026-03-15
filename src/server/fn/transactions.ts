@@ -91,7 +91,9 @@ export const bulkCategorise = createServerFn()
 
 export const recategoriseAll = createServerFn().handler(async () => {
   const settingRows = await db.select().from(settings)
-  const ollamaUrl = settingRows.find((r) => r.key === "ollama_url")?.value ?? undefined
+  const settingMap = Object.fromEntries(settingRows.map((r) => [r.key, r.value]))
+  const ollamaUrl = settingMap["ollama_url"] ?? undefined
+  const ollamaModel = settingMap["ollama_model"] ?? undefined
 
   // Get all non-manual transactions
   const txs = await db
@@ -110,6 +112,7 @@ export const recategoriseAll = createServerFn().handler(async () => {
         amount: tx.amount,
       },
       ollamaUrl,
+      ollamaModel,
     )
     if (categoryId !== tx.categoryId) {
       await db

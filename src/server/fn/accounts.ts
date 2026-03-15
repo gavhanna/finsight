@@ -21,6 +21,7 @@ async function getCredentials() {
     secretId: map["gocardless_secret_id"] ?? "",
     secretKey: map["gocardless_secret_key"] ?? "",
     ollamaUrl: map["ollama_url"] ?? undefined,
+    ollamaModel: map["ollama_model"] ?? undefined,
   }
 }
 
@@ -102,7 +103,7 @@ export const completeConnection = createServerFn()
 export const syncAccount = createServerFn()
   .inputValidator(z.string())
   .handler(async ({ data: accountId }) => {
-    const { secretId, secretKey, ollamaUrl } = await getCredentials()
+    const { secretId, secretKey, ollamaUrl, ollamaModel } = await getCredentials()
     if (!secretId || !secretKey) throw new Error("GoCardless credentials not configured")
 
     const today = new Date().toISOString().slice(0, 10)
@@ -158,7 +159,7 @@ export const syncAccount = createServerFn()
         amount,
       }
 
-      const { categoryId, categorisedBy } = await categorise(rawTx, ollamaUrl)
+      const { categoryId, categorisedBy } = await categorise(rawTx, ollamaUrl, ollamaModel)
 
       try {
         await db.insert(txTable).values({
