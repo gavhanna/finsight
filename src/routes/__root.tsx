@@ -7,6 +7,7 @@ import {
   ArrowLeftRight,
   Building2,
   Tag,
+  Filter,
   Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -49,6 +50,7 @@ const navItems = [
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/accounts", label: "Accounts", icon: Building2 },
   { to: "/categories", label: "Categories", icon: Tag },
+  { to: "/rules", label: "Rules", icon: Filter },
   { to: "/settings", label: "Settings", icon: Settings },
 ]
 

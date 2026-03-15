@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RulesRouteImport } from './routes/rules'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
@@ -24,6 +25,11 @@ const TransactionsRoute = TransactionsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RulesRoute = RulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CategoriesRoute = CategoriesRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/categories': typeof CategoriesRoute
+  '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/categories': typeof CategoriesRoute
+  '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/categories': typeof CategoriesRoute
+  '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/categories'
+    | '/rules'
     | '/settings'
     | '/transactions'
     | '/api/gocardless/callback'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/categories'
+    | '/rules'
     | '/settings'
     | '/transactions'
     | '/api/gocardless/callback'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/categories'
+    | '/rules'
     | '/settings'
     | '/transactions'
     | '/api/gocardless/callback'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
   CategoriesRoute: typeof CategoriesRoute
+  RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
   ApiGocardlessCallbackRoute: typeof ApiGocardlessCallbackRoute
@@ -122,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rules': {
+      id: '/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof RulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/categories': {
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
   CategoriesRoute: CategoriesRoute,
+  RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
   ApiGocardlessCallbackRoute: ApiGocardlessCallbackRoute,
