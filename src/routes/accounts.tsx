@@ -11,6 +11,13 @@ import type { GoCardlessInstitution } from "../server/services/gocardless.server
 import { formatDate } from "../lib/utils"
 import { Building2, RefreshCw, Trash2, Plus, AlertCircle, CheckCircle, X } from "lucide-react"
 import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export const Route = createFileRoute("/accounts")({
   validateSearch: z.object({
@@ -20,6 +27,11 @@ export const Route = createFileRoute("/accounts")({
   component: AccountsPage,
   loader: () => getConnections(),
 })
+
+const STATUS_CLASSES: Record<string, string> = {
+  LINKED: "bg-green-100 text-green-700 hover:bg-green-100",
+  EXPIRED: "bg-red-100 text-red-700 hover:bg-red-100",
+}
 
 function AccountsPage() {
   const connections = Route.useLoaderData()
@@ -59,21 +71,23 @@ function AccountsPage() {
     <div className="p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Bank Accounts</h1>
-        <button
-          onClick={() => setShowPicker(true)}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
+        <Button onClick={() => setShowPicker(true)}>
           <Plus className="h-4 w-4" />
           Connect Bank
-        </button>
+        </Button>
       </div>
 
-      {/* Notifications */}
-      {(connected || errorParam) && (
-        <div className={`mb-4 flex items-center gap-2 rounded-md px-4 py-3 text-sm ${connected ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
-          {connected ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          {connected ? "Bank connected successfully!" : `Connection error: ${errorParam}`}
-        </div>
+      {connected && (
+        <Alert className="mb-4">
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>Bank connected successfully!</AlertDescription>
+        </Alert>
+      )}
+      {errorParam && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Connection error: {errorParam}</AlertDescription>
+        </Alert>
       )}
 
       {toast && (
@@ -92,8 +106,8 @@ function AccountsPage() {
       ) : (
         <div className="space-y-4">
           {connections.map((conn) => (
-            <div key={conn.id} className="rounded-lg border p-4">
-              <div className="flex items-center justify-between mb-3">
+            <Card key={conn.id}>
+              <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
                 <div className="flex items-center gap-3">
                   {conn.institutionLogo ? (
                     <img src={conn.institutionLogo} alt="" className="h-8 w-8 rounded object-contain" />
@@ -105,9 +119,12 @@ function AccountsPage() {
                   <div>
                     <p className="font-medium">{conn.institutionName}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${conn.status === "LINKED" ? "bg-green-100 text-green-700" : conn.status === "EXPIRED" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
+                      <Badge
+                        variant="outline"
+                        className={STATUS_CLASSES[conn.status] ?? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"}
+                      >
                         {conn.status}
-                      </span>
+                      </Badge>
                       {conn.lastSyncAt && (
                         <span className="text-xs text-muted-foreground">
                           Last sync: {formatDate(conn.lastSyncAt)}
@@ -116,65 +133,78 @@ function AccountsPage() {
                     </div>
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleDelete(conn.id)}
-                  className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                  className="text-muted-foreground hover:text-destructive"
                   title="Remove connection"
                 >
                   <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+                </Button>
+              </CardHeader>
 
               {conn.accounts.length > 0 && (
-                <div className="ml-11 space-y-2">
-                  {conn.accounts.map((acc) => {
-                    const callsToday = acc.syncCallsDate === today ? acc.syncCallsToday : 0
-                    const atLimit = callsToday >= 4
-                    return (
-                      <div key={acc.id} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
-                        <div>
-                          <p className="text-sm font-medium">{acc.name ?? acc.iban ?? acc.id}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {acc.iban && <span className="mr-2">{acc.iban}</span>}
-                            {acc.currency && <span>{acc.currency}</span>}
-                            {acc.lastSyncAt && (
-                              <span className="ml-2">· Last synced {formatDate(acc.lastSyncAt)}</span>
+                <CardContent className="pt-0">
+                  <div className="ml-11 space-y-2">
+                    {conn.accounts.map((acc) => {
+                      const callsToday = acc.syncCallsDate === today ? acc.syncCallsToday : 0
+                      const atLimit = callsToday >= 4
+                      return (
+                        <div key={acc.id} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{acc.name ?? acc.iban ?? acc.id}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {acc.iban && <span className="mr-2">{acc.iban}</span>}
+                              {acc.currency && <span>{acc.currency}</span>}
+                              {acc.lastSyncAt && (
+                                <span className="ml-2">· Last synced {formatDate(acc.lastSyncAt)}</span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {atLimit && (
+                              <span className="text-xs text-amber-600 font-medium">Rate limit reached</span>
                             )}
-                          </p>
+                            {!atLimit && (
+                              <span className="text-xs text-muted-foreground">{callsToday}/4 syncs</span>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSync(acc.id)}
+                              disabled={syncing === acc.id || atLimit}
+                              className="h-7 text-xs"
+                            >
+                              <RefreshCw className={`h-3 w-3 ${syncing === acc.id ? "animate-spin" : ""}`} />
+                              {syncing === acc.id ? "Syncing…" : "Sync"}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {atLimit && (
-                            <span className="text-xs text-amber-600 font-medium">Rate limit reached</span>
-                          )}
-                          {!atLimit && (
-                            <span className="text-xs text-muted-foreground">{callsToday}/4 syncs</span>
-                          )}
-                          <button
-                            onClick={() => handleSync(acc.id)}
-                            disabled={syncing === acc.id || atLimit}
-                            className="flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <RefreshCw className={`h-3 w-3 ${syncing === acc.id ? "animate-spin" : ""}`} />
-                            {syncing === acc.id ? "Syncing…" : "Sync"}
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
-      {showPicker && <InstitutionPicker onClose={() => setShowPicker(false)} />}
+      <Dialog open={showPicker} onOpenChange={setShowPicker}>
+        <DialogContent className="flex flex-col max-h-[80vh] p-0 gap-0 sm:max-w-lg">
+          <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
+            <DialogTitle>Connect a Bank</DialogTitle>
+          </DialogHeader>
+          <InstitutionPickerBody onClose={() => setShowPicker(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function InstitutionPicker({ onClose }: { onClose: () => void }) {
-  const [country, setCountry] = useState("GB")
+function InstitutionPickerBody({ onClose: _onClose }: { onClose: () => void }) {
+  const [country, setCountry] = useState("IE")
   const [search, setSearch] = useState("")
   const [institutions, setInstitutions] = useState<GoCardlessInstitution[]>([])
   const [loading, setLoading] = useState(false)
@@ -216,80 +246,67 @@ function InstitutionPicker({ onClose }: { onClose: () => void }) {
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h2 className="font-semibold">Connect a Bank</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
+    <>
+      <div className="p-4 border-b flex-shrink-0 space-y-3">
+        <div className="flex gap-2">
+          <Select value={country} onValueChange={(v) => v && setCountry(v)}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="GB">UK</SelectItem>
+              <SelectItem value="IE">Ireland</SelectItem>
+              <SelectItem value="DE">Germany</SelectItem>
+              <SelectItem value="FR">France</SelectItem>
+              <SelectItem value="ES">Spain</SelectItem>
+              <SelectItem value="NL">Netherlands</SelectItem>
+              <SelectItem value="SE">Sweden</SelectItem>
+              <SelectItem value="NO">Norway</SelectItem>
+              <SelectItem value="DK">Denmark</SelectItem>
+              <SelectItem value="FI">Finland</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button className="flex-1" onClick={loadInstitutions} disabled={loading}>
+            {loading ? "Loading…" : institutions.length ? "Reload" : "Load Banks"}
+          </Button>
+        </div>
+        {institutions.length > 0 && (
+          <Input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search banks…"
+          />
+        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+
+      <div className="flex-1 overflow-auto p-2">
+        {filtered.map((inst) => (
+          <button
+            key={inst.id}
+            onClick={() => handleSelect(inst)}
+            disabled={connecting}
+            className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {inst.logo ? (
+              <img src={inst.logo} alt="" className="h-8 w-8 rounded object-contain flex-shrink-0" />
+            ) : (
+              <div className="h-8 w-8 rounded bg-muted flex-shrink-0" />
+            )}
+            <span className="font-medium">{inst.name}</span>
           </button>
-        </div>
-
-        <div className="p-4 border-b space-y-3">
-          <div className="flex gap-2">
-            <select
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="GB">UK</option>
-              <option value="IE">Ireland</option>
-              <option value="DE">Germany</option>
-              <option value="FR">France</option>
-              <option value="ES">Spain</option>
-              <option value="NL">Netherlands</option>
-              <option value="SE">Sweden</option>
-              <option value="NO">Norway</option>
-              <option value="DK">Denmark</option>
-              <option value="FI">Finland</option>
-            </select>
-            <button
-              onClick={loadInstitutions}
-              disabled={loading}
-              className="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              {loading ? "Loading…" : institutions.length ? "Reload" : "Load Banks"}
-            </button>
-          </div>
-          {institutions.length > 0 && (
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search banks…"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-
-        <div className="flex-1 overflow-auto p-2">
-          {filtered.map((inst) => (
-            <button
-              key={inst.id}
-              onClick={() => handleSelect(inst)}
-              disabled={connecting}
-              className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted transition-colors disabled:opacity-50"
-            >
-              {inst.logo ? (
-                <img src={inst.logo} alt="" className="h-8 w-8 rounded object-contain flex-shrink-0" />
-              ) : (
-                <div className="h-8 w-8 rounded bg-muted flex-shrink-0" />
-              )}
-              <span className="font-medium">{inst.name}</span>
-            </button>
-          ))}
-          {institutions.length > 0 && filtered.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-8">No banks found.</p>
-          )}
-        </div>
-
-        {connecting && (
-          <div className="border-t px-4 py-3 text-sm text-muted-foreground">
-            Redirecting to bank…
-          </div>
+        ))}
+        {institutions.length > 0 && filtered.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground py-8">No banks found.</p>
         )}
       </div>
-    </div>
+
+      {connecting && (
+        <div className="border-t px-4 py-3 text-sm text-muted-foreground flex-shrink-0">
+          Redirecting to bank…
+        </div>
+      )}
+    </>
   )
 }

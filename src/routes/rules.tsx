@@ -15,6 +15,12 @@ import {
 import type { Category, Rule, RulePattern } from "../db/schema"
 import { Plus, Trash2, Pencil, Search, CheckCircle2, ChevronDown, ChevronRight, X, Check } from "lucide-react"
 import { formatCurrency, formatDate } from "../lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 
 type RuleWithMeta = Rule & { category: Category | null; patterns: RulePattern[] }
 type PreviewTx = {
@@ -72,13 +78,10 @@ function RulesPage() {
             Named rules with one or more patterns for auto-categorisation. Higher priority runs first.
           </p>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
+        <Button onClick={() => setShowNew(true)}>
           <Plus className="h-4 w-4" />
           New Rule
-        </button>
+        </Button>
       </div>
 
       {showNew && (
@@ -162,24 +165,29 @@ function RuleCard({
   }
 
   return (
-    <div className="rounded-lg border">
+    <Card>
       {/* Header */}
       <div className="flex items-center gap-3 p-3">
         <button onClick={onToggle} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-          {isExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
+          {isExpanded
+            ? <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+            : <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
 
-          {/* Editable name */}
           {editingName ? (
             <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <input
-                className="rounded border bg-background px-2 py-0.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+              <Input
+                className="h-7 text-sm font-medium w-48"
                 value={nameVal}
                 onChange={(e) => setNameVal(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false) }}
                 autoFocus
               />
-              <button onClick={saveName} className="text-green-600 hover:text-green-700 p-0.5"><Check className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setEditingName(false)} className="text-muted-foreground hover:text-foreground p-0.5"><X className="h-3.5 w-3.5" /></button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:text-green-700" onClick={saveName}>
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingName(false)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
             </span>
           ) : (
             <span className="font-medium text-sm truncate">{rule.name}</span>
@@ -191,16 +199,20 @@ function RuleCard({
         {/* Category badge */}
         {editingCat ? (
           <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <select
-              className="rounded border bg-background px-2 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-              value={catVal}
-              onChange={(e) => setCatVal(Number(e.target.value))}
-              autoFocus
-            >
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <button onClick={saveCat} className="text-green-600 hover:text-green-700 p-0.5"><Check className="h-3.5 w-3.5" /></button>
-            <button onClick={() => setEditingCat(false)} className="text-muted-foreground p-0.5"><X className="h-3.5 w-3.5" /></button>
+            <Select value={String(catVal)} onValueChange={(v) => v && setCatVal(Number(v))}>
+              <SelectTrigger className="h-7 text-xs w-36" autoFocus>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:text-green-700" onClick={saveCat}>
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingCat(false)}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
           </span>
         ) : (
           <button
@@ -215,16 +227,23 @@ function RuleCard({
 
         <span className="text-xs text-muted-foreground">p={rule.priority}</span>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
           onClick={(e) => { e.stopPropagation(); setEditingName(true); setNameVal(rule.name) }}
-          className="text-muted-foreground hover:text-foreground p-1"
           title="Rename"
         >
           <Pencil className="h-3.5 w-3.5" />
-        </button>
-        <button onClick={(e) => { e.stopPropagation(); onDelete() }} className="text-muted-foreground hover:text-destructive p-1">
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          onClick={(e) => { e.stopPropagation(); onDelete() }}
+        >
           <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
 
       {/* Expanded patterns + apply */}
@@ -254,14 +273,10 @@ function RuleCard({
               <span className="text-sm">Apply to all historical transactions (non-manual)</span>
             </label>
             {applyToHistory && (
-              <button
-                onClick={handleApply}
-                disabled={applying}
-                className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-              >
+              <Button onClick={handleApply} disabled={applying}>
                 <CheckCircle2 className="h-4 w-4" />
                 {applying ? "Applying…" : "Apply Now"}
-              </button>
+              </Button>
             )}
             {applyResult !== null && (
               <p className="text-xs text-green-600">Updated {applyResult} transaction{applyResult !== 1 ? "s" : ""}.</p>
@@ -269,7 +284,7 @@ function RuleCard({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -307,8 +322,12 @@ function PatternRow({ pattern, onDelete, onRefresh }: { pattern: RulePattern; on
         <span className="text-muted-foreground">{FIELDS.find(f => f.value === pattern.field)?.label}</span>
         <span className="text-muted-foreground">({pattern.matchType})</span>
         <div className="ml-auto flex items-center gap-1">
-          <button onClick={() => setEditing(true)} className="text-muted-foreground hover:text-foreground p-0.5"><Pencil className="h-3 w-3" /></button>
-          <button onClick={onDelete} className="text-muted-foreground hover:text-destructive p-0.5"><Trash2 className="h-3 w-3" /></button>
+          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" onClick={() => setEditing(true)}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
         </div>
       </div>
     )
@@ -319,21 +338,31 @@ function PatternRow({ pattern, onDelete, onRefresh }: { pattern: RulePattern; on
   return (
     <div className="rounded-md border p-3 space-y-3 bg-muted/10">
       <div className="grid grid-cols-3 gap-2">
-        <input
-          className="col-span-3 rounded-md border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+        <Input
+          className="col-span-3 font-mono text-sm"
           value={form.pattern}
           onChange={(e) => setForm(f => ({ ...f, pattern: e.target.value }))}
           autoFocus
         />
-        <select className="rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.field} onChange={(e) => setForm(f => ({ ...f, field: e.target.value as any }))}>
-          {FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-        <select className="rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.matchType} onChange={(e) => setForm(f => ({ ...f, matchType: e.target.value as any }))}>
-          {MATCH_TYPES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-        </select>
+        <Select value={form.field} onValueChange={(v) => v && setForm(f => ({ ...f, field: v as any }))}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={form.matchType} onValueChange={(v) => v && setForm(f => ({ ...f, matchType: v as any }))}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <div className="flex gap-1">
-          <button onClick={handleSave} className="flex-1 rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Save</button>
-          <button onClick={() => setEditing(false)} className="flex-1 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted">Cancel</button>
+          <Button size="sm" className="flex-1 h-8 text-xs" onClick={handleSave}>Save</Button>
+          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => setEditing(false)}>Cancel</Button>
         </div>
       </div>
 
@@ -377,31 +406,41 @@ function AddPatternRow({ ruleId, onSaved }: { ruleId: number; onSaved: () => voi
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+      <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => setOpen(true)}>
         <Plus className="h-3 w-3" /> Add pattern
-      </button>
+      </Button>
     )
   }
 
   return (
     <div className="rounded-md border p-3 space-y-3 bg-muted/10">
       <div className="grid grid-cols-3 gap-2">
-        <input
-          className="col-span-3 rounded-md border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+        <Input
+          className="col-span-3 font-mono text-sm"
           placeholder="e.g. ALDI, SUPERVALU"
           value={form.pattern}
           onChange={(e) => setForm(f => ({ ...f, pattern: e.target.value }))}
           autoFocus
         />
-        <select className="rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.field} onChange={(e) => setForm(f => ({ ...f, field: e.target.value as any }))}>
-          {FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-        <select className="rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.matchType} onChange={(e) => setForm(f => ({ ...f, matchType: e.target.value as any }))}>
-          {MATCH_TYPES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-        </select>
+        <Select value={form.field} onValueChange={(v) => v && setForm(f => ({ ...f, field: v as any }))}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={form.matchType} onValueChange={(v) => v && setForm(f => ({ ...f, matchType: v as any }))}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <div className="flex gap-1">
-          <button onClick={handleAdd} disabled={!form.pattern.trim()} className="flex-1 rounded-md bg-primary px-2 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Add</button>
-          <button onClick={() => setOpen(false)} className="flex-1 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted">Cancel</button>
+          <Button size="sm" className="flex-1 h-8 text-xs" disabled={!form.pattern.trim()} onClick={handleAdd}>Add</Button>
+          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => setOpen(false)}>Cancel</Button>
         </div>
       </div>
       {form.pattern.trim() && (
@@ -428,24 +467,24 @@ function PreviewTable({ preview, previewing, manualCount }: {
       </div>
       {preview && preview.transactions.length > 0 && (
         <div className="rounded-md border overflow-hidden max-h-48 overflow-y-auto">
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-muted/60">
-              <tr>
-                <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">Date</th>
-                <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">Payee / Description</th>
-                <th className="px-3 py-1.5 text-right font-medium text-muted-foreground">Amount</th>
-                <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">Current category</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader className="sticky top-0 bg-muted/60">
+              <TableRow>
+                <TableHead className="py-1.5 text-xs">Date</TableHead>
+                <TableHead className="py-1.5 text-xs">Payee / Description</TableHead>
+                <TableHead className="py-1.5 text-xs text-right">Amount</TableHead>
+                <TableHead className="py-1.5 text-xs">Current category</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {preview.transactions.map((tx) => (
-                <tr key={tx.id} className={`border-t hover:bg-muted/20 ${tx.categorisedBy === "manual" ? "opacity-50" : ""}`}>
-                  <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">{formatDate(tx.bookingDate)}</td>
-                  <td className="px-3 py-1.5 max-w-xs truncate">{tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}</td>
-                  <td className={`px-3 py-1.5 text-right tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-green-600" : ""}`}>
+                <TableRow key={tx.id} className={tx.categorisedBy === "manual" ? "opacity-50" : ""}>
+                  <TableCell className="py-1.5 text-xs text-muted-foreground whitespace-nowrap">{formatDate(tx.bookingDate)}</TableCell>
+                  <TableCell className="py-1.5 text-xs max-w-xs truncate">{tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}</TableCell>
+                  <TableCell className={`py-1.5 text-xs text-right tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-green-600" : ""}`}>
                     {formatCurrency(tx.amount, tx.currency)}
-                  </td>
-                  <td className="px-3 py-1.5">
+                  </TableCell>
+                  <TableCell className="py-1.5 text-xs">
                     {tx.category ? (
                       <span className="flex items-center gap-1">
                         <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tx.category.color }} />
@@ -453,11 +492,11 @@ function PreviewTable({ preview, previewing, manualCount }: {
                         {tx.categorisedBy === "manual" && <span className="text-muted-foreground ml-1">(manual)</span>}
                       </span>
                     ) : <span className="text-muted-foreground">Uncategorised</span>}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
@@ -522,87 +561,92 @@ function NewRuleForm({
       <h3 className="font-medium">New Rule</h3>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <label className="text-xs text-muted-foreground mb-1 block">Rule name</label>
-          <input
+        <div className="col-span-2 space-y-1.5">
+          <Label>Rule name</Label>
+          <Input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Groceries, Streaming services"
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             autoFocus
           />
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Category</label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(Number(e.target.value))}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+        <div className="space-y-1.5">
+          <Label>Category</Label>
+          <Select value={String(categoryId)} onValueChange={(v) => v && setCategoryId(Number(v))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Priority</label>
-          <input
+        <div className="space-y-1.5">
+          <Label>Priority</Label>
+          <Input
             type="number"
             value={priority}
             onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>
 
-      <div>
-        <label className="text-xs text-muted-foreground mb-2 block">Patterns <span className="text-muted-foreground/60">(transaction matches if ANY pattern matches)</span></label>
+      <div className="space-y-1.5">
+        <Label>
+          Patterns <span className="text-muted-foreground font-normal text-xs">(transaction matches if ANY pattern matches)</span>
+        </Label>
         <div className="space-y-2">
           {patterns.map((p, idx) => (
             <div key={idx} className="grid grid-cols-3 gap-2 items-center">
-              <input
-                className={`rounded-md border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring ${activePatternIdx === idx ? "ring-2 ring-ring" : ""}`}
+              <Input
+                className={`font-mono text-sm ${activePatternIdx === idx ? "ring-2 ring-ring" : ""}`}
                 value={p.pattern}
                 placeholder="e.g. ALDI"
                 onChange={(e) => updatePattern(idx, { pattern: e.target.value })}
                 onFocus={() => setActivePatternIdx(idx)}
               />
-              <select
-                className="rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                value={p.field}
-                onChange={(e) => updatePattern(idx, { field: e.target.value as any })}
-                onFocus={() => setActivePatternIdx(idx)}
-              >
-                {FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
+              <Select value={p.field} onValueChange={(v) => v && updatePattern(idx, { field: v as any })}>
+                <SelectTrigger onFocus={() => setActivePatternIdx(idx)}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <div className="flex gap-1">
-                <select
-                  className="flex-1 rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  value={p.matchType}
-                  onChange={(e) => updatePattern(idx, { matchType: e.target.value as any })}
-                  onFocus={() => setActivePatternIdx(idx)}
-                >
-                  {MATCH_TYPES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                <Select value={p.matchType} onValueChange={(v) => v && updatePattern(idx, { matchType: v as any })}>
+                  <SelectTrigger className="flex-1" onFocus={() => setActivePatternIdx(idx)}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 {patterns.length > 1 && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive flex-shrink-0"
                     onClick={() => { setPatterns(ps => ps.filter((_, i) => i !== idx)); setActivePatternIdx(0) }}
-                    className="text-muted-foreground hover:text-destructive p-1"
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
           ))}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground"
             onClick={() => {
               setPatterns(ps => [...ps, { pattern: "", field: "description", matchType: "contains" }])
               setActivePatternIdx(patterns.length)
             }}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" /> Add another pattern
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -611,16 +655,13 @@ function NewRuleForm({
       )}
 
       <div className="flex gap-2">
-        <button
+        <Button
           onClick={handleSave}
           disabled={saving || !name.trim() || !patterns.some(p => p.pattern.trim())}
-          className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
           {saving ? "Saving…" : "Save Rule"}
-        </button>
-        <button onClick={onClose} className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors">
-          Cancel
-        </button>
+        </Button>
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
       </div>
     </div>
   )

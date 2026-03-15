@@ -3,6 +3,11 @@ import { useState } from "react"
 import { getCategoriesWithRules, createCategory, deleteCategory } from "../server/fn/categories"
 import { recategoriseAll } from "../server/fn/transactions"
 import { Plus, Trash2, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 
 export const Route = createFileRoute("/categories")({
   component: CategoriesPage,
@@ -15,11 +20,17 @@ const COLORS = [
   "#d97706","#94a3b8","#ef4444","#06b6d4","#84cc16",
 ]
 
+const TYPE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
+  income: "default",
+  transfer: "secondary",
+  expense: "outline",
+}
+
 function CategoriesPage() {
   const categories = Route.useLoaderData()
   const router = useRouter()
   const [showNew, setShowNew] = useState(false)
-  const [newCat, setNewCat] = useState({ name: "", color: "#94a3b8", type: "expense" as "expense"|"income"|"transfer" })
+  const [newCat, setNewCat] = useState({ name: "", color: "#94a3b8", type: "expense" as "expense" | "income" | "transfer" })
   const [recatResult, setRecatResult] = useState<{ updated: number; total: number } | null>(null)
   const [recatting, setRecatting] = useState(false)
 
@@ -51,24 +62,19 @@ function CategoriesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Categories</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage spending categories. Add keyword rules under <strong>Rules</strong>.</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage spending categories. Add keyword rules under <strong>Rules</strong>.
+          </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={handleRecategorise}
-            disabled={recatting}
-            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
-          >
+          <Button variant="outline" onClick={handleRecategorise} disabled={recatting}>
             <RefreshCw className={`h-4 w-4 ${recatting ? "animate-spin" : ""}`} />
             Re-categorise All
-          </button>
-          <button
-            onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          </Button>
+          <Button onClick={() => setShowNew(true)}>
             <Plus className="h-4 w-4" />
             New Category
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -82,23 +88,22 @@ function CategoriesPage() {
         <div className="mb-4 rounded-lg border p-4 space-y-3">
           <h3 className="font-medium text-sm">New Category</h3>
           <div className="flex gap-3">
-            <input
-              type="text"
+            <Input
               value={newCat.name}
               onChange={(e) => setNewCat((f) => ({ ...f, name: e.target.value }))}
               placeholder="Category name"
-              className="flex-1 rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               autoFocus
             />
-            <select
-              value={newCat.type}
-              onChange={(e) => setNewCat((f) => ({ ...f, type: e.target.value as any }))}
-              className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-              <option value="transfer">Transfer</option>
-            </select>
+            <Select value={newCat.type} onValueChange={(v) => v && setNewCat((f) => ({ ...f, type: v as any }))}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="expense">Expense</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="transfer">Transfer</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-2">Colour</p>
@@ -115,51 +120,53 @@ function CategoriesPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleCreateCategory} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-              Create
-            </button>
-            <button onClick={() => setShowNew(false)} className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted">
-              Cancel
-            </button>
+            <Button onClick={handleCreateCategory}>Create</Button>
+            <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
           </div>
         </div>
       )}
 
       <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Category</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Type</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Rules</th>
-              <th className="px-4 py-2.5" />
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Category</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Rules</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {categories.map((cat) => (
-              <tr key={cat.id} className="border-b last:border-0 hover:bg-muted/20">
-                <td className="px-4 py-2.5">
+              <TableRow key={cat.id}>
+                <TableCell>
                   <span className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                     <span className="font-medium">{cat.name}</span>
                   </span>
-                </td>
-                <td className="px-4 py-2.5 text-muted-foreground capitalize">{cat.type}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{cat.rules}</td>
-                <td className="px-4 py-2.5 text-right">
+                </TableCell>
+                <TableCell>
+                  <Badge variant={TYPE_VARIANT[cat.type] ?? "outline"} className="capitalize">
+                    {cat.type}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{cat.rules}</TableCell>
+                <TableCell className="text-right">
                   {!cat.isDefault && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDeleteCategory(cat.id)}
-                      className="text-muted-foreground hover:text-destructive p-1"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

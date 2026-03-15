@@ -6,6 +6,10 @@ import { getAccounts } from "../server/fn/insights"
 import { formatDate, formatCurrency } from "../lib/utils"
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const SearchSchema = z.object({
   page: z.coerce.number().default(1),
@@ -36,7 +40,7 @@ function TransactionsPage() {
   const navigate = Route.useNavigate()
   const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [bulkCatId, setBulkCatId] = useState<number | "">("")
+  const [bulkCatId, setBulkCatId] = useState<string>("")
   const [loading, setLoading] = useState(false)
 
   const { transactions, total, page, pageSize } = txData
@@ -82,48 +86,56 @@ function TransactionsPage() {
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
+            <Input
               type="text"
               value={search.search ?? ""}
               onChange={(e) => updateSearch({ search: e.target.value || undefined })}
               placeholder="Search transactions…"
-              className="w-full pl-9 pr-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="pl-9"
             />
           </div>
-          <input
+          <Input
             type="date"
             value={search.dateFrom ?? ""}
             onChange={(e) => updateSearch({ dateFrom: e.target.value || undefined })}
-            className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-auto"
           />
-          <input
+          <Input
             type="date"
             value={search.dateTo ?? ""}
             onChange={(e) => updateSearch({ dateTo: e.target.value || undefined })}
-            className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-auto"
           />
-          <select
-            value={search.categoryId ?? ""}
-            onChange={(e) => updateSearch({ categoryId: e.target.value ? Number(e.target.value) : undefined })}
-            className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          <Select
+            value={search.categoryId !== undefined ? String(search.categoryId) : "all"}
+            onValueChange={(v) => updateSearch({ categoryId: v && v !== "all" ? Number(v) : undefined })}
           >
-            <option value="">All categories</option>
-            <option value="-1">Uncategorised</option>
-            {categories.map((c: any) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          {accounts.length > 1 && (
-            <select
-              value={(search.accountIds ?? [])[0] ?? ""}
-              onChange={(e) => updateSearch({ accountIds: e.target.value ? [e.target.value] : undefined })}
-              className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">All accounts</option>
-              {accounts.map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</option>
+            <SelectTrigger className="w-auto min-w-36">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              <SelectItem value="-1">Uncategorised</SelectItem>
+              {categories.map((c: any) => (
+                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
               ))}
-            </select>
+            </SelectContent>
+          </Select>
+          {accounts.length > 1 && (
+            <Select
+              value={(search.accountIds ?? [])[0] ?? "all"}
+              onValueChange={(v) => updateSearch({ accountIds: v && v !== "all" ? [v] : undefined })}
+            >
+              <SelectTrigger className="w-auto min-w-36">
+                <SelectValue placeholder="All accounts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All accounts</SelectItem>
+                {accounts.map((a: any) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
 
@@ -131,91 +143,83 @@ function TransactionsPage() {
         {selected.size > 0 && (
           <div className="flex items-center gap-3 bg-muted/40 rounded-md px-3 py-2">
             <span className="text-sm font-medium">{selected.size} selected</span>
-            <select
-              value={bulkCatId}
-              onChange={(e) => setBulkCatId(e.target.value ? Number(e.target.value) : "")}
-              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Assign category…</option>
-              {categories.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <button
-              onClick={handleBulkCategorise}
-              disabled={!bulkCatId || loading}
-              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
+            <Select value={bulkCatId || "none"} onValueChange={(v) => setBulkCatId(v && v !== "none" ? v : "")}>
+              <SelectTrigger className="h-8 w-auto min-w-40 text-sm">
+                <SelectValue placeholder="Assign category…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" disabled>Assign category…</SelectItem>
+                {categories.map((c: any) => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={handleBulkCategorise} disabled={!bulkCatId || loading}>
               Apply
-            </button>
-            <button
-              onClick={() => setSelected(new Set())}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
               Clear
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
-            <tr>
-              <th className="px-3 py-2 text-left">
+        <Table>
+          <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+            <TableRow>
+              <TableHead className="w-10 px-3">
                 <input
                   type="checkbox"
                   checked={selected.size === transactions.length && transactions.length > 0}
                   onChange={toggleAll}
                   className="rounded"
                 />
-              </th>
-              <th className="px-3 py-2 text-left font-medium text-muted-foreground">Date</th>
-              <th className="px-3 py-2 text-left font-medium text-muted-foreground">Payee</th>
-              <th className="px-3 py-2 text-left font-medium text-muted-foreground">Description</th>
-              <th className="px-3 py-2 text-right font-medium text-muted-foreground">Amount</th>
-              <th className="px-3 py-2 text-left font-medium text-muted-foreground">Category</th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Payee</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Category</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {transactions.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-16 text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
                   No transactions found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               transactions.map((tx: any) => (
-                <tr
-                  key={tx.id}
-                  className="border-b hover:bg-muted/20 transition-colors"
-                >
-                  <td className="px-3 py-2">
+                <TableRow key={tx.id}>
+                  <TableCell className="px-3">
                     <input
                       type="checkbox"
                       checked={selected.has(tx.id)}
                       onChange={() => toggleSelect(tx.id)}
                       className="rounded"
                     />
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">
                     {formatDate(tx.bookingDate)}
-                  </td>
-                  <td className="px-3 py-2 font-medium max-w-48 truncate">
+                  </TableCell>
+                  <TableCell className="font-medium max-w-48 truncate">
                     {tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground max-w-64 truncate">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground max-w-64 truncate">
                     {tx.description ?? "—"}
-                  </td>
-                  <td className={`px-3 py-2 text-right font-medium tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-green-600" : "text-foreground"}`}>
+                  </TableCell>
+                  <TableCell className={`text-right font-medium tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-green-600" : ""}`}>
                     {formatCurrency(tx.amount, tx.currency)}
-                  </td>
-                  <td className="px-3 py-2">
+                  </TableCell>
+                  <TableCell>
+                    {/* Keep native select for inline category — needs colored text styling */}
                     <select
                       value={tx.categoryId ?? ""}
                       onChange={(e) => handleCategoryChange(tx.id, e.target.value ? Number(e.target.value) : null)}
-                      className="w-full rounded border-0 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-ring rounded-md py-1 px-2 hover:bg-muted transition-colors cursor-pointer"
+                      className="w-full rounded-md border-0 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-ring py-1 px-2 hover:bg-muted transition-colors cursor-pointer"
                       style={tx.category ? { color: tx.category.color } : undefined}
                     >
                       <option value="">Uncategorised</option>
@@ -223,12 +227,12 @@ function TransactionsPage() {
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}
@@ -237,20 +241,22 @@ function TransactionsPage() {
           {total} transaction{total !== 1 ? "s" : ""} · page {page} of {totalPages || 1}
         </p>
         <div className="flex gap-2">
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => navigate({ search: { ...search, page: page - 1 } })}
             disabled={page <= 1}
-            className="rounded-md border px-2 py-1 text-sm disabled:opacity-40 hover:bg-muted transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => navigate({ search: { ...search, page: page + 1 } })}
             disabled={page >= totalPages}
-            className="rounded-md border px-2 py-1 text-sm disabled:opacity-40 hover:bg-muted transition-colors"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>
