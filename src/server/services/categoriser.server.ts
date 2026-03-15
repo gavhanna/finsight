@@ -1,8 +1,8 @@
-import { db } from "../../db"
+import { db } from "../../db/index.server"
 import { categories, categoryRules } from "../../db/schema"
 import type { Category, CategoryRule } from "../../db/schema"
 import { MCC_CATEGORY_MAP } from "../../lib/constants"
-import { categoriseWithOllama } from "./ollama"
+import { categoriseWithOllama } from "./ollama.server"
 
 interface TransactionData {
   description?: string | null

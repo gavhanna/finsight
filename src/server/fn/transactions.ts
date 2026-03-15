@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start"
-import { db } from "../../db"
+import { db } from "../../db/index.server"
 import { transactions, categories, settings } from "../../db/schema"
 import { eq, and, gte, lte, desc, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
-import { categorise } from "../services/categoriser"
+import { categorise } from "../services/categoriser.server"
 
 const FiltersSchema = z.object({
   dateFrom: z.string().optional(),

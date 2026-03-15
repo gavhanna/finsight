@@ -1,4 +1,4 @@
-import { db } from "./index"
+import { db } from "./index.server"
 import { categories } from "./schema"
 import { DEFAULT_CATEGORIES } from "../lib/constants"
 import { sql } from "drizzle-orm"

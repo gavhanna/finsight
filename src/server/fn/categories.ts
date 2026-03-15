@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start"
-import { db } from "../../db"
+import { db } from "../../db/index.server"
 import { categories, categoryRules } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
-import { invalidateCategoryCache } from "../services/categoriser"
+import { invalidateCategoryCache } from "../services/categoriser.server"
 
 export const getCategories = createServerFn().handler(async () => {
   return db.select().from(categories).orderBy(categories.name)

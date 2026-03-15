@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start"
-import { db } from "../../db"
+import { db } from "../../db/index.server"
 import { settings } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { z } from "zod"

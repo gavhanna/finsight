@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start"
-import { db } from "../../db"
+import { db } from "../../db/index.server"
 import { accounts, bankConnections, transactions as txTable, settings } from "../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { z } from "zod"
@@ -9,8 +9,8 @@ import {
   getAccountDetails,
   getAccountTransactions,
   getInstitutions,
-} from "../services/gocardless"
-import { categorise } from "../services/categoriser"
+} from "../services/gocardless.server"
+import { categorise } from "../services/categoriser.server"
 import { createHash } from "crypto"
 
 async function getCredentials() {
