@@ -16,6 +16,8 @@ import type { Category, Rule, RulePattern } from "../db/schema"
 import { Plus, Trash2, Pencil, Search, CheckCircle2, ChevronDown, ChevronRight, X, Check } from "lucide-react"
 import { formatCurrency, formatDate } from "../lib/utils"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -215,14 +217,16 @@ function RuleCard({
             </Button>
           </span>
         ) : (
-          <button
-            onClick={(e) => { e.stopPropagation(); setEditingCat(true) }}
-            className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-muted hover:bg-muted/80 transition-colors"
+          <Badge
+            variant="secondary"
+            render={<button />}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setEditingCat(true) }}
+            className="gap-1.5 cursor-pointer rounded-full hover:bg-secondary/70"
           >
-            {rule.category && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: rule.category.color }} />}
+            {rule.category && <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: rule.category.color }} />}
             {rule.category?.name ?? "No category"}
             <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
-          </button>
+          </Badge>
         )}
 
         <span className="text-xs text-muted-foreground">p={rule.priority}</span>
@@ -264,11 +268,9 @@ function RuleCard({
 
           <div className="border-t pt-3 space-y-2">
             <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={applyToHistory}
-                onChange={(e) => { setApplyToHistory(e.target.checked); setApplyResult(null) }}
-                className="h-4 w-4 rounded border"
+                onCheckedChange={(checked) => { setApplyToHistory(!!checked); setApplyResult(null) }}
               />
               <span className="text-sm">Apply to all historical transactions (non-manual)</span>
             </label>

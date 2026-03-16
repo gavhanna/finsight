@@ -27,6 +27,9 @@ import {
 } from "recharts"
 import { TrendingDown, TrendingUp, ArrowLeftRight, Hash } from "lucide-react"
 import { z } from "zod"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
 
@@ -102,7 +105,6 @@ function DashboardPage() {
     navigate({ search: { ...search, chartType: t } })
   }
 
-  // Build trend chart data
   const trendData = useMemo(() => {
     const allTrends = trends as Array<{ month: string; categoryName: string; categoryColor: string; total: number }>
     const months = [...new Set(allTrends.map((t) => t.month))].sort()
@@ -134,19 +136,17 @@ function DashboardPage() {
       <div className="space-y-3">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
 
-        {/* Date presets — scrollable on mobile */}
+        {/* Date presets */}
         <div className="overflow-x-auto">
-          <div className="flex gap-1 rounded-lg border p-1 w-max min-w-full sm:w-auto">
-            {(Object.entries(PRESET_LABELS) as [DatePreset, string][]).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setPreset(key)}
-                className={`rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${preset === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Tabs value={preset} onValueChange={(v) => v && setPreset(v as DatePreset)}>
+            <TabsList>
+              {(Object.entries(PRESET_LABELS) as [DatePreset, string][]).map(([key, label]) => (
+                <TabsTrigger key={key} value={key} className="whitespace-nowrap">
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
@@ -166,16 +166,20 @@ function DashboardPage() {
 
           {/* Account filter */}
           {accounts.length > 1 && (
-            <select
-              value={(search.accountIds ?? [])[0] ?? ""}
-              onChange={(e) => navigate({ search: { ...search, accountIds: e.target.value ? [e.target.value] : undefined } })}
-              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+            <Select
+              value={(search.accountIds ?? [])[0] ?? "all"}
+              onValueChange={(v) => navigate({ search: { ...search, accountIds: v && v !== "all" ? [v] : undefined } })}
             >
-              <option value="">All accounts</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full sm:w-auto">
+                <SelectValue placeholder="All accounts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All accounts</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
       </div>
@@ -217,48 +221,56 @@ function DashboardPage() {
       ) : (
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {/* Spending by category */}
-          <div className="rounded-lg border p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold">Spending by Category</h2>
-              <div className="flex gap-1 rounded border p-0.5">
-                <button
-                  onClick={() => setChartType("pie")}
-                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${chartType === "pie" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Pie
-                </button>
-                <button
-                  onClick={() => setChartType("bar")}
-                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${chartType === "bar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Bar
-                </button>
-              </div>
-            </div>
-            {chartType === "pie" ? (
-              <SpendingPieChart data={byCat} />
-            ) : (
-              <SpendingBarChart data={byCat} />
-            )}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Spending by Category</CardTitle>
+              <CardAction>
+                <Tabs value={chartType} onValueChange={(v) => v && setChartType(v as "pie" | "bar")}>
+                  <TabsList>
+                    <TabsTrigger value="pie">Pie</TabsTrigger>
+                    <TabsTrigger value="bar">Bar</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              {chartType === "pie" ? (
+                <SpendingPieChart data={byCat} />
+              ) : (
+                <SpendingBarChart data={byCat} />
+              )}
+            </CardContent>
+          </Card>
 
           {/* Income vs Expenses */}
-          <div className="rounded-lg border p-4 space-y-3">
-            <h2 className="font-semibold">Income vs Expenses</h2>
-            <IncomeExpensesChart data={incomeVsExp} />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Income vs Expenses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <IncomeExpensesChart data={incomeVsExp} />
+            </CardContent>
+          </Card>
 
           {/* Spending trends */}
-          <div className="rounded-lg border p-4 space-y-3 lg:col-span-2">
-            <h2 className="font-semibold">Spending Trends</h2>
-            <SpendingTrendsChart data={trendData} categories={trendCategories} />
-          </div>
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Spending Trends</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SpendingTrendsChart data={trendData} categories={trendCategories} />
+            </CardContent>
+          </Card>
 
           {/* Top merchants */}
-          <div className="rounded-lg border p-4 space-y-3 lg:col-span-2">
-            <h2 className="font-semibold">Top Merchants</h2>
-            <TopMerchantsChart data={merchants} />
-          </div>
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Top Merchants</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TopMerchantsChart data={merchants} />
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
@@ -279,14 +291,16 @@ function StatCard({
   valueClass?: string
 }) {
   return (
-    <div className="rounded-lg border p-3 sm:p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs sm:text-sm text-muted-foreground">{label}</p>
-        {icon}
-      </div>
-      <p className={`text-xl sm:text-2xl font-bold tabular-nums ${valueClass ?? ""}`}>{value}</p>
-      <p className="text-xs text-muted-foreground mt-1 capitalize">{sub}</p>
-    </div>
+    <Card>
+      <CardContent className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs sm:text-sm text-muted-foreground">{label}</p>
+          {icon}
+        </div>
+        <p className={`text-xl sm:text-2xl font-bold tabular-nums ${valueClass ?? ""}`}>{value}</p>
+        <p className="text-xs text-muted-foreground capitalize">{sub}</p>
+      </CardContent>
+    </Card>
   )
 }
 

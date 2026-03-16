@@ -92,10 +92,18 @@ function AccountsPage() {
       )}
 
       {toast && (
-        <div className={`mb-4 flex items-center justify-between gap-2 rounded-md px-4 py-3 text-sm ${toast.type === "ok" ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
-          <span>{toast.msg}</span>
-          <button onClick={() => setToast(null)}><X className="h-3 w-3" /></button>
-        </div>
+        <Alert variant={toast.type === "err" ? "destructive" : "default"} className="mb-4 relative pr-10">
+          {toast.type === "ok" ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          <AlertDescription>{toast.msg}</AlertDescription>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1 h-6 w-6"
+            onClick={() => setToast(null)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </Alert>
       )}
 
       {connections.length === 0 ? (

@@ -7,6 +7,7 @@ import { formatDate, formatCurrency } from "../lib/utils"
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -174,11 +175,9 @@ function TransactionsPage() {
           <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
             <TableRow>
               <TableHead className="w-10 px-3">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selected.size === transactions.length && transactions.length > 0}
-                  onChange={toggleAll}
-                  className="rounded"
+                  onCheckedChange={() => toggleAll()}
                 />
               </TableHead>
               <TableHead>Date</TableHead>
@@ -199,11 +198,9 @@ function TransactionsPage() {
               transactions.map((tx: any) => (
                 <TableRow key={tx.id}>
                   <TableCell className="px-3">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selected.has(tx.id)}
-                      onChange={() => toggleSelect(tx.id)}
-                      className="rounded"
+                      onCheckedChange={() => toggleSelect(tx.id)}
                     />
                   </TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">

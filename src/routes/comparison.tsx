@@ -14,6 +14,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 type Preset = "3months" | "6months" | "12months"
 
@@ -80,13 +84,11 @@ function ComparisonPage() {
     navigate({ search: { ...search, ...dates, preset: p } })
   }
 
-  // Sorted unique months from the data
   const months = useMemo(() => {
     const set = new Set(trends.map((t) => t.month))
     return [...set].sort()
   }, [trends])
 
-  // Map category name → { name, color, byMonth }
   const categories = useMemo(() => {
     const catMap = new Map<
       string,
@@ -102,7 +104,6 @@ function ComparisonPage() {
       }
       catMap.get(row.categoryName)!.byMonth.set(row.month, row.total)
     }
-    // Sort by total spend descending
     return [...catMap.values()].sort((a, b) => {
       const aTotal = [...a.byMonth.values()].reduce((s, v) => s + v, 0)
       const bTotal = [...b.byMonth.values()].reduce((s, v) => s + v, 0)
@@ -110,7 +111,6 @@ function ComparisonPage() {
     })
   }, [trends])
 
-  // Total spending per month (for footer + chart)
   const monthlyTotals = useMemo(() => {
     return months.map((month) => ({
       month,
@@ -119,7 +119,6 @@ function ComparisonPage() {
     }))
   }, [months, categories])
 
-  // Income per month from incomeVsExp
   const incomeByMonth = useMemo(() => {
     const map = new Map<string, number>()
     for (const row of incomeVsExp) {
@@ -137,21 +136,15 @@ function ComparisonPage() {
         <h1 className="text-2xl font-semibold">Monthly Comparison</h1>
 
         <div className="overflow-x-auto">
-          <div className="flex gap-1 rounded-lg border p-1 w-max">
-            {(Object.entries(PRESET_LABELS) as [Preset, string][]).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setPreset(key)}
-                className={`rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                  preset === key
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Tabs value={preset} onValueChange={(v) => v && setPreset(v as Preset)}>
+            <TabsList>
+              {(Object.entries(PRESET_LABELS) as [Preset, string][]).map(([key, label]) => (
+                <TabsTrigger key={key} value={key} className="whitespace-nowrap">
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
@@ -166,25 +159,29 @@ function ComparisonPage() {
             placeholder="To date"
           />
           {accounts.length > 1 && (
-            <select
-              value={(search.accountIds ?? [])[0] ?? ""}
-              onChange={(e) =>
+            <Select
+              value={(search.accountIds ?? [])[0] ?? "all"}
+              onValueChange={(v) =>
                 navigate({
                   search: {
                     ...search,
-                    accountIds: e.target.value ? [e.target.value] : undefined,
+                    accountIds: v && v !== "all" ? [v] : undefined,
                   },
                 })
               }
-              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
             >
-              <option value="">All accounts</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name ?? a.iban ?? a.id}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full sm:w-auto">
+                <SelectValue placeholder="All accounts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All accounts</SelectItem>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name ?? a.iban ?? a.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
       </div>
@@ -199,158 +196,154 @@ function ComparisonPage() {
       ) : (
         <>
           {/* Monthly totals chart */}
-          <div className="rounded-lg border p-4 space-y-3">
-            <h2 className="font-semibold">Total Spending by Month</h2>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={monthlyTotals} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis
-                  tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`}
-                  tick={{ fontSize: 11 }}
-                  width={48}
-                />
-                <Tooltip
-                  formatter={(v: any) => [formatCurrency(Number(v)), "Spending"]}
-                  labelStyle={{ fontWeight: 600 }}
-                />
-                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Spending by Month</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={monthlyTotals} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`}
+                    tick={{ fontSize: 11 }}
+                    width={48}
+                  />
+                  <Tooltip
+                    formatter={(v: any) => [formatCurrency(Number(v)), "Spending"]}
+                    labelStyle={{ fontWeight: 600 }}
+                  />
+                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
           {/* Comparison table */}
           <div className="rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="sticky left-0 z-20 bg-muted/80 backdrop-blur text-left px-4 py-3 font-medium text-muted-foreground min-w-[160px]">
-                      Category
-                    </th>
-                    {months.map((month) => (
-                      <th
-                        key={month}
-                        className="text-right px-4 py-3 font-medium whitespace-nowrap min-w-[110px]"
-                      >
-                        {formatMonth(month)}
-                      </th>
-                    ))}
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap min-w-[90px]">
-                      Avg / mo
-                    </th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap min-w-[80px]">
-                      Trend
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.map((cat) => {
-                    const values = months.map((m) => cat.byMonth.get(m) ?? 0)
-                    const nonZeroValues = values.filter((v) => v > 0)
-                    const avg =
-                      nonZeroValues.length > 0
-                        ? nonZeroValues.reduce((a, b) => a + b, 0) / nonZeroValues.length
-                        : 0
-                    const first = values.find((v) => v > 0) ?? 0
-                    const last = [...values].reverse().find((v) => v > 0) ?? 0
-                    const trendPct = first > 0 ? ((last - first) / first) * 100 : 0
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="sticky left-0 z-20 bg-muted/80 backdrop-blur px-4 py-3 min-w-[160px]">
+                    Category
+                  </TableHead>
+                  {months.map((month) => (
+                    <TableHead key={month} className="text-right px-4 py-3 whitespace-nowrap min-w-[110px]">
+                      {formatMonth(month)}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-right px-4 py-3 text-muted-foreground whitespace-nowrap min-w-[90px]">
+                    Avg / mo
+                  </TableHead>
+                  <TableHead className="text-right px-4 py-3 text-muted-foreground whitespace-nowrap min-w-[80px]">
+                    Trend
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categories.map((cat) => {
+                  const values = months.map((m) => cat.byMonth.get(m) ?? 0)
+                  const nonZeroValues = values.filter((v) => v > 0)
+                  const avg =
+                    nonZeroValues.length > 0
+                      ? nonZeroValues.reduce((a, b) => a + b, 0) / nonZeroValues.length
+                      : 0
+                  const first = values.find((v) => v > 0) ?? 0
+                  const last = [...values].reverse().find((v) => v > 0) ?? 0
+                  const trendPct = first > 0 ? ((last - first) / first) * 100 : 0
 
-                    return (
-                      <tr key={cat.name} className="group border-b last:border-b-0">
-                        <td className="sticky left-0 z-10 bg-background group-hover:bg-muted/30 transition-colors px-4 py-2.5 font-medium">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="h-2 w-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: cat.color }}
-                            />
-                            <span className="truncate max-w-[130px]">{cat.name}</span>
-                          </div>
-                        </td>
-                        {values.map((val, i) => (
-                          <td
-                            key={months[i]}
-                            className="text-right px-4 py-2.5 tabular-nums group-hover:bg-muted/30 transition-colors"
-                          >
-                            {val > 0 ? (
-                              formatCurrency(val)
-                            ) : (
-                              <span className="text-muted-foreground/30">—</span>
-                            )}
-                          </td>
-                        ))}
-                        <td className="text-right px-4 py-2.5 tabular-nums text-muted-foreground group-hover:bg-muted/30 transition-colors">
-                          {avg > 0 ? (
-                            formatCurrency(avg)
+                  return (
+                    <TableRow key={cat.name} className="group">
+                      <TableCell className="sticky left-0 z-10 bg-background group-hover:bg-muted/30 px-4 py-2.5 font-medium">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-2 w-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          <span className="truncate max-w-[130px]">{cat.name}</span>
+                        </div>
+                      </TableCell>
+                      {values.map((val, i) => (
+                        <TableCell key={months[i]} className="text-right px-4 py-2.5 tabular-nums">
+                          {val > 0 ? (
+                            formatCurrency(val)
                           ) : (
                             <span className="text-muted-foreground/30">—</span>
                           )}
-                        </td>
-                        <td className="text-right px-4 py-2.5 group-hover:bg-muted/30 transition-colors">
-                          <TrendBadge pct={trendPct} hasData={nonZeroValues.length > 1} />
-                        </td>
-                      </tr>
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right px-4 py-2.5 tabular-nums text-muted-foreground">
+                        {avg > 0 ? (
+                          formatCurrency(avg)
+                        ) : (
+                          <span className="text-muted-foreground/30">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right px-4 py-2.5">
+                        <TrendBadge pct={trendPct} hasData={nonZeroValues.length > 1} />
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+              <TableFooter>
+                <TableRow className="border-t-2 font-semibold">
+                  <TableCell className="sticky left-0 z-10 bg-muted/80 backdrop-blur px-4 py-3">
+                    Total Spending
+                  </TableCell>
+                  {monthlyTotals.map(({ month, total }) => (
+                    <TableCell key={month} className="text-right px-4 py-3 tabular-nums">
+                      {formatCurrency(total)}
+                    </TableCell>
+                  ))}
+                  <TableCell className="text-right px-4 py-3 tabular-nums text-muted-foreground">
+                    {formatCurrency(
+                      monthlyTotals.reduce((s, m) => s + m.total, 0) /
+                        (monthlyTotals.length || 1),
+                    )}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+                <TableRow>
+                  <TableCell className="sticky left-0 z-10 bg-muted/30 px-4 py-3 font-medium text-green-600">
+                    Income
+                  </TableCell>
+                  {months.map((month) => {
+                    const income = incomeByMonth.get(month) ?? 0
+                    return (
+                      <TableCell key={month} className="text-right px-4 py-3 tabular-nums text-green-600">
+                        {income > 0 ? (
+                          formatCurrency(income)
+                        ) : (
+                          <span className="text-muted-foreground/30">—</span>
+                        )}
+                      </TableCell>
                     )
                   })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 font-semibold bg-muted/50">
-                    <td className="sticky left-0 z-10 bg-muted/80 backdrop-blur px-4 py-3">
-                      Total Spending
-                    </td>
-                    {monthlyTotals.map(({ month, total }) => (
-                      <td key={month} className="text-right px-4 py-3 tabular-nums">
-                        {formatCurrency(total)}
-                      </td>
-                    ))}
-                    <td className="text-right px-4 py-3 tabular-nums text-muted-foreground">
-                      {formatCurrency(
-                        monthlyTotals.reduce((s, m) => s + m.total, 0) /
-                          (monthlyTotals.length || 1),
-                      )}
-                    </td>
-                    <td />
-                  </tr>
-                  <tr className="border-t">
-                    <td className="sticky left-0 z-10 bg-background px-4 py-3 font-medium text-green-600">
-                      Income
-                    </td>
-                    {months.map((month) => {
-                      const income = incomeByMonth.get(month) ?? 0
-                      return (
-                        <td key={month} className="text-right px-4 py-3 tabular-nums text-green-600">
-                          {income > 0 ? (
-                            formatCurrency(income)
-                          ) : (
-                            <span className="text-muted-foreground/30">—</span>
-                          )}
-                        </td>
-                      )
-                    })}
-                    <td colSpan={2} />
-                  </tr>
-                  <tr className="border-t">
-                    <td className="sticky left-0 z-10 bg-background px-4 py-3 font-medium">Net</td>
-                    {months.map((month) => {
-                      const income = incomeByMonth.get(month) ?? 0
-                      const spending = monthlyTotals.find((m) => m.month === month)?.total ?? 0
-                      const net = income - spending
-                      return (
-                        <td
-                          key={month}
-                          className={`text-right px-4 py-3 tabular-nums font-medium ${
-                            net >= 0 ? "text-green-600" : "text-red-500"
-                          }`}
-                        >
-                          {formatCurrency(net)}
-                        </td>
-                      )
-                    })}
-                    <td colSpan={2} />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                  <TableCell colSpan={2} />
+                </TableRow>
+                <TableRow>
+                  <TableCell className="sticky left-0 z-10 bg-muted/30 px-4 py-3 font-medium">Net</TableCell>
+                  {months.map((month) => {
+                    const income = incomeByMonth.get(month) ?? 0
+                    const spending = monthlyTotals.find((m) => m.month === month)?.total ?? 0
+                    const net = income - spending
+                    return (
+                      <TableCell
+                        key={month}
+                        className={`text-right px-4 py-3 tabular-nums font-medium ${
+                          net >= 0 ? "text-green-600" : "text-red-500"
+                        }`}
+                      >
+                        {formatCurrency(net)}
+                      </TableCell>
+                    )
+                  })}
+                  <TableCell colSpan={2} />
+                </TableRow>
+              </TableFooter>
+            </Table>
           </div>
         </>
       )}
