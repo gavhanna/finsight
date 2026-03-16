@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { z } from "zod"
 import { completeConnection } from "../../../server/fn/accounts"
-import { log } from "../../../lib/logger.server"
 
 export const Route = createFileRoute("/api/gocardless/callback")({
   validateSearch: z.object({ ref: z.string().optional() }),
@@ -20,7 +19,6 @@ export const Route = createFileRoute("/api/gocardless/callback")({
       throw redirect({ to: "/accounts", search: { connected: "true" } })
     } catch (err: any) {
       if (err?.isRedirect || err instanceof Response) throw err
-      log.error("gocardless.callback.error", { requisitionId: ref, error: err?.message })
       const error = err?.message?.includes("credentials") ? "credentials" : "connection"
       throw redirect({ to: "/accounts", search: { error } })
     }

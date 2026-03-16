@@ -75,36 +75,44 @@ export const completeConnection = createServerFn()
   .inputValidator(z.string())
   .handler(async ({ data: requisitionId }) => {
     const { secretId, secretKey } = await getCredentials()
-    if (!secretId || !secretKey) throw new Error("GoCardless credentials not configured")
-
-    const requisition = await getRequisition(secretId, secretKey, requisitionId)
-
-    // Update connection status
-    await db
-      .update(bankConnections)
-      .set({ status: "LINKED" })
-      .where(eq(bankConnections.id, requisitionId))
-
-    // Upsert accounts
-    for (const accountId of requisition.accounts ?? []) {
-      const details = await getAccountDetails(secretId, secretKey, accountId)
-      await db
-        .insert(accounts)
-        .values({
-          id: accountId,
-          connectionId: requisitionId,
-          iban: details.iban ?? null,
-          name: details.name ?? null,
-          currency: details.currency ?? null,
-          ownerName: details.ownerName ?? null,
-        })
-        .onConflictDoNothing()
+    if (!secretId || !secretKey) {
+      log.error("gocardless.callback.error", { requisitionId, error: "GoCardless credentials not configured" })
+      throw new Error("GoCardless credentials not configured")
     }
 
-    log.info("bank.connection.completed", {
-      requisitionId,
-      accountCount: requisition.accounts?.length ?? 0,
-    })
+    try {
+      const requisition = await getRequisition(secretId, secretKey, requisitionId)
+
+      // Update connection status
+      await db
+        .update(bankConnections)
+        .set({ status: "LINKED" })
+        .where(eq(bankConnections.id, requisitionId))
+
+      // Upsert accounts
+      for (const accountId of requisition.accounts ?? []) {
+        const details = await getAccountDetails(secretId, secretKey, accountId)
+        await db
+          .insert(accounts)
+          .values({
+            id: accountId,
+            connectionId: requisitionId,
+            iban: details.iban ?? null,
+            name: details.name ?? null,
+            currency: details.currency ?? null,
+            ownerName: details.ownerName ?? null,
+          })
+          .onConflictDoNothing()
+      }
+
+      log.info("bank.connection.completed", {
+        requisitionId,
+        accountCount: requisition.accounts?.length ?? 0,
+      })
+    } catch (err: any) {
+      log.error("gocardless.callback.error", { requisitionId, error: err?.message })
+      throw err
+    }
   })
 
 export const syncAccount = createServerFn()
