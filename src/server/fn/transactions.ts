@@ -4,6 +4,7 @@ import { transactions, categories, settings } from "../../db/schema"
 import { eq, and, gte, lte, desc, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 import { categorise } from "../services/categoriser.server"
+import { log } from "../../lib/logger.server"
 
 const FiltersSchema = z.object({
   dateFrom: z.string().optional(),
@@ -78,6 +79,7 @@ export const updateTransactionCategory = createServerFn()
       .update(transactions)
       .set({ categoryId, categorisedBy: "manual" })
       .where(eq(transactions.id, id))
+    log.info("transaction.categorised.manual", { transactionId: id, categoryId })
   })
 
 export const bulkCategorise = createServerFn()
@@ -87,6 +89,7 @@ export const bulkCategorise = createServerFn()
       .update(transactions)
       .set({ categoryId, categorisedBy: "manual" })
       .where(inArray(transactions.id, ids))
+    log.info("transaction.categorised.bulk", { count: ids.length, categoryId })
   })
 
 export const recategoriseAll = createServerFn().handler(async () => {
@@ -100,6 +103,8 @@ export const recategoriseAll = createServerFn().handler(async () => {
     .select()
     .from(transactions)
     .where(sql`${transactions.categorisedBy} != 'manual' OR ${transactions.categorisedBy} IS NULL`)
+
+  log.info("transaction.recategorise.started", { total: txs.length, ollamaEnabled: !!ollamaUrl })
 
   let updated = 0
   for (const tx of txs) {
@@ -122,5 +127,7 @@ export const recategoriseAll = createServerFn().handler(async () => {
       updated++
     }
   }
+
+  log.info("transaction.recategorise.completed", { updated, total: txs.length })
   return { updated, total: txs.length }
 })

@@ -12,6 +12,7 @@ import {
 } from "../services/gocardless.server"
 import { categorise } from "../services/categoriser.server"
 import { createHash } from "crypto"
+import { log } from "../../lib/logger.server"
 
 async function getCredentials() {
   const rows = await db.select().from(settings)
@@ -54,7 +55,7 @@ export const initiateConnection = createServerFn()
     if (!secretId || !secretKey) throw new Error("GoCardless credentials not configured")
 
     const redirectUrl = `${process.env["APP_URL"] ?? "http://localhost:3000"}/api/gocardless/callback`
-    console.log("[initiateConnection]", { institutionId, redirectUrl, secretId: secretId.slice(0, 8) + "…" })
+    log.info("bank.connection.initiating", { institutionId, institutionName })
     const requisition = await createRequisition(secretId, secretKey, institutionId, redirectUrl)
 
     await db.insert(bankConnections).values({
@@ -66,6 +67,7 @@ export const initiateConnection = createServerFn()
       agreementId: requisition.agreement,
     })
 
+    log.info("bank.connection.initiated", { requisitionId: requisition.id, institutionId, institutionName })
     return { link: requisition.link }
   })
 
@@ -98,6 +100,11 @@ export const completeConnection = createServerFn()
         })
         .onConflictDoNothing()
     }
+
+    log.info("bank.connection.completed", {
+      requisitionId,
+      accountCount: requisition.accounts?.length ?? 0,
+    })
   })
 
 export const syncAccount = createServerFn()
@@ -117,6 +124,7 @@ export const syncAccount = createServerFn()
     // Rate limit check
     const callsToday = account.syncCallsDate === today ? account.syncCallsToday : 0
     if (callsToday >= 4) {
+      log.warn("account.sync.rate_limited", { accountId, callsToday })
       throw new Error("Rate limit reached: max 4 syncs per day per account")
     }
 
@@ -131,6 +139,8 @@ export const syncAccount = createServerFn()
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
     const dateFrom = latestTx?.bookingDate ?? ninetyDaysAgo.toISOString().slice(0, 10)
+
+    log.info("account.sync.started", { accountId, dateFrom, syncCallsToday: callsToday + 1 })
 
     // Fetch transactions
     const { booked } = await getAccountTransactions(
@@ -201,6 +211,7 @@ export const syncAccount = createServerFn()
       .set({ lastSyncAt: new Date() })
       .where(eq(bankConnections.id, account.connectionId))
 
+    log.info("account.sync.completed", { accountId, fetched: booked.length, imported })
     return { imported, total: booked.length }
   })
 
@@ -208,4 +219,5 @@ export const deleteConnection = createServerFn()
   .inputValidator(z.string())
   .handler(async ({ data: connectionId }) => {
     await db.delete(bankConnections).where(eq(bankConnections.id, connectionId))
+    log.info("bank.connection.deleted", { connectionId })
   })

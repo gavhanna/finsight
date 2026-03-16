@@ -3,6 +3,7 @@ import { db } from "../../db/index.server"
 import { settings } from "../../db/schema"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
+import { log } from "../../lib/logger.server"
 
 export const getSettings = createServerFn().handler(async () => {
   const rows = await db.select().from(settings)
@@ -42,6 +43,7 @@ export const saveSettings = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
+    const keys: string[] = []
     for (const [key, value] of Object.entries(data)) {
       const v = value as string | undefined
       if (v !== undefined) {
@@ -52,6 +54,10 @@ export const saveSettings = createServerFn()
             target: settings.key,
             set: { value: v, updatedAt: new Date() },
           })
+        keys.push(key)
       }
+    }
+    if (keys.length > 0) {
+      log.info("settings.saved", { keys })
     }
   })

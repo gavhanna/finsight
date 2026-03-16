@@ -17,6 +17,9 @@ WORKDIR /app
 COPY --from=builder /app/.output ./.output
 
 ENV PORT=3000
+ENV LOG_DIR=/data/logs
 EXPOSE 3000
+
+VOLUME ["/data"]
 
 CMD ["node", ".output/server/index.mjs"]

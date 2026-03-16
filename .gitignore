@@ -4,3 +4,5 @@ data/
 .vinxi/
 dist/
 .output/
+logs/
+.claude

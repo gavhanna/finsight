@@ -1,4 +1,5 @@
 import NordigenClient from "nordigen-node"
+import { log } from "../../lib/logger.server"
 
 let client: InstanceType<typeof NordigenClient> | null = null
 let tokenExpiresAt = 0
@@ -66,7 +67,7 @@ export async function createRequisition(
   const nordigen = getClient(secretId, secretKey)
   await ensureToken(nordigen)
 
-  console.log("[GoCardless] createAgreement", { institutionId, redirectUrl })
+  log.info("gocardless.agreement.creating", { institutionId })
   let agreement: any
   try {
     agreement = await nordigen.agreement.createAgreement({
@@ -75,13 +76,13 @@ export async function createRequisition(
       access_valid_for_days: 90,
       access_scope: ["details", "balances", "transactions"],
     })
-    console.log("[GoCardless] agreement created", agreement)
+    log.info("gocardless.agreement.created", { agreementId: agreement.id, institutionId })
   } catch (err: any) {
-    console.error("[GoCardless] createAgreement failed", err?.response?.data ?? err?.message ?? err)
+    log.error("gocardless.agreement.failed", { institutionId, error: err?.response?.data ?? err?.message })
     throw err
   }
 
-  console.log("[GoCardless] createRequisition", { redirectUrl, institutionId, agreement: agreement.id })
+  log.info("gocardless.requisition.creating", { institutionId, agreementId: agreement.id })
   let requisition: any
   try {
     requisition = await nordigen.requisition.createRequisition({
@@ -90,9 +91,9 @@ export async function createRequisition(
       agreement: agreement.id as string,
       user_language: "EN",
     })
-    console.log("[GoCardless] requisition created", requisition)
+    log.info("gocardless.requisition.created", { requisitionId: requisition.id, institutionId })
   } catch (err: any) {
-    console.error("[GoCardless] createRequisition failed", err?.response?.data ?? err?.message ?? err)
+    log.error("gocardless.requisition.failed", { institutionId, error: err?.response?.data ?? err?.message })
     throw err
   }
 

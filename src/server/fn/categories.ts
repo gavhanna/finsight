@@ -4,6 +4,7 @@ import { categories, rules, rulePatterns, transactions } from "../../db/schema"
 import { eq, and, sql, inArray } from "drizzle-orm"
 import { z } from "zod"
 import { invalidateCategoryCache } from "../services/categoriser.server"
+import { log } from "../../lib/logger.server"
 
 const FieldSchema = z.enum(["description", "creditorName", "debtorName", "merchantCategoryCode"])
 const MatchTypeSchema = z.enum(["contains", "exact", "startsWith"])
@@ -34,6 +35,7 @@ export const createCategory = createServerFn()
   .handler(async ({ data }) => {
     const [cat] = await db.insert(categories).values(data).returning()
     invalidateCategoryCache()
+    log.info("category.created", { id: cat.id, name: cat.name, type: cat.type })
     return cat
   })
 
@@ -48,6 +50,7 @@ export const updateCategory = createServerFn()
   .handler(async ({ data: { id, ...rest } }) => {
     await db.update(categories).set(rest).where(eq(categories.id, id))
     invalidateCategoryCache()
+    log.info("category.updated", { id, fields: Object.keys(rest) })
   })
 
 export const deleteCategory = createServerFn()
@@ -55,6 +58,7 @@ export const deleteCategory = createServerFn()
   .handler(async ({ data: id }) => {
     await db.delete(categories).where(eq(categories.id, id))
     invalidateCategoryCache()
+    log.info("category.deleted", { id })
   })
 
 // ── Rules ─────────────────────────────────────────────────────────────────────
@@ -91,6 +95,7 @@ export const createRule = createServerFn()
       await db.insert(rulePatterns).values({ ruleId: rule.id, ...p })
     }
     invalidateCategoryCache()
+    log.info("rule.created", { id: rule.id, name: rule.name, categoryId: rule.categoryId, patternCount: data.patterns.length })
     return rule
   })
 
@@ -104,6 +109,7 @@ export const updateRule = createServerFn()
   .handler(async ({ data: { id, ...rest } }) => {
     await db.update(rules).set(rest).where(eq(rules.id, id))
     invalidateCategoryCache()
+    log.info("rule.updated", { id, fields: Object.keys(rest) })
   })
 
 export const deleteRule = createServerFn()
@@ -111,6 +117,7 @@ export const deleteRule = createServerFn()
   .handler(async ({ data: id }) => {
     await db.delete(rules).where(eq(rules.id, id))
     invalidateCategoryCache()
+    log.info("rule.deleted", { id })
   })
 
 export const addPattern = createServerFn()
@@ -224,5 +231,6 @@ export const applyRuleToHistory = createServerFn()
       .set({ categoryId, categorisedBy: "rule" })
       .where(inArray(transactions.id, matching.map((r) => r.id)))
 
+    log.info("rule.applied_to_history", { ruleId, categoryId, updated: matching.length })
     return { updated: matching.length }
   })
