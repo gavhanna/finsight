@@ -9,6 +9,7 @@ import {
   getAccounts,
 } from "../server/fn/insights"
 import { formatCurrency, startOfMonth, daysAgo, startOfYear, todayStr } from "../lib/utils"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
   PieChart,
   Pie,
@@ -151,17 +152,15 @@ function DashboardPage() {
         <div className="flex flex-wrap gap-2 items-center">
           {/* Custom date range */}
           <div className="flex gap-2 flex-wrap">
-            <input
-              type="date"
-              value={search.dateFrom ?? ""}
-              onChange={(e) => navigate({ search: { ...search, dateFrom: e.target.value || undefined, preset: undefined } })}
-              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+            <DatePicker
+              value={search.dateFrom}
+              onChange={(v) => navigate({ search: { ...search, dateFrom: v, preset: undefined } })}
+              placeholder="From date"
             />
-            <input
-              type="date"
-              value={search.dateTo ?? ""}
-              onChange={(e) => navigate({ search: { ...search, dateTo: e.target.value || undefined, preset: undefined } })}
-              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+            <DatePicker
+              value={search.dateTo}
+              onChange={(v) => navigate({ search: { ...search, dateTo: v, preset: undefined } })}
+              placeholder="To date"
             />
           </div>
 

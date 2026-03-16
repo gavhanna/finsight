@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
 import { getSpendingTrends, getIncomeVsExpenses, getAccounts } from "../server/fn/insights"
 import { formatCurrency, todayStr } from "../lib/utils"
+import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 import {
@@ -154,25 +155,15 @@ function ComparisonPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
-          <input
-            type="date"
-            value={search.dateFrom ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: { ...search, dateFrom: e.target.value || undefined, preset: undefined },
-              })
-            }
-            className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+          <DatePicker
+            value={search.dateFrom}
+            onChange={(v) => navigate({ search: { ...search, dateFrom: v, preset: undefined } })}
+            placeholder="From date"
           />
-          <input
-            type="date"
-            value={search.dateTo ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: { ...search, dateTo: e.target.value || undefined, preset: undefined },
-              })
-            }
-            className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+          <DatePicker
+            value={search.dateTo}
+            onChange={(v) => navigate({ search: { ...search, dateTo: v, preset: undefined } })}
+            placeholder="To date"
           />
           {accounts.length > 1 && (
             <select
