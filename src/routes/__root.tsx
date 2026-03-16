@@ -8,6 +8,7 @@ import {
   Tag,
   Filter,
   Settings,
+  GitCompare,
 } from "lucide-react"
 import {
   Sidebar,
@@ -60,6 +61,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/comparison", label: "Comparison", icon: GitCompare },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/accounts", label: "Accounts", icon: Building2 },
   { to: "/categories", label: "Categories", icon: Tag },
