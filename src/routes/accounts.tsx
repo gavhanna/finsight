@@ -50,7 +50,11 @@ function AccountsPage() {
     setSyncing(accountId)
     try {
       const result = await syncAccount({ data: accountId })
-      showToast(`Synced ${result.imported} new transactions.`)
+      showToast(
+        result.total === 0
+          ? "Sync complete — no transactions returned from bank."
+          : `Synced ${result.imported} new of ${result.total} transactions returned.`
+      )
       router.invalidate()
     } catch (err: any) {
       showToast(err.message ?? "Sync failed", "err")

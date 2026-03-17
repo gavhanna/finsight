@@ -151,14 +151,25 @@ export const syncAccount = createServerFn()
     log.info("account.sync.started", { accountId, dateFrom, syncCallsToday: callsToday + 1 })
 
     // Fetch transactions
-    const { booked } = await getAccountTransactions(
+    const { booked, pending } = await getAccountTransactions(
       secretId,
       secretKey,
       accountId,
       dateFrom,
     )
 
+    log.info("account.sync.fetched", {
+      accountId,
+      dateFrom,
+      bookedCount: booked.length,
+      pendingCount: pending.length,
+      bookedDates: booked.length > 0
+        ? { first: booked[booked.length - 1]?.bookingDate, last: booked[0]?.bookingDate }
+        : null,
+    })
+
     let imported = 0
+    let skipped = 0
     for (const tx of booked) {
       const payeeName = tx.creditorName ?? tx.debtorName ?? ""
       const desc = tx.remittanceInformationUnstructured ?? tx.remittanceInformationStructured ?? ""
@@ -198,8 +209,21 @@ export const syncAccount = createServerFn()
           rawData: JSON.stringify(tx),
         })
         imported++
-      } catch {
-        // ON CONFLICT DO NOTHING (dedupe)
+      } catch (err: any) {
+        // Drizzle wraps postgres.js errors — PG error code is on err.cause.code
+        const pgCode = err?.cause?.code ?? err?.code
+        const isDedup = pgCode === "23505" // PostgreSQL unique_violation
+        if (!isDedup) {
+          log.error("account.sync.insert_error", {
+            accountId,
+            txId,
+            bookingDate: tx.bookingDate,
+            amount,
+            errCode: pgCode,
+            errMsg: err?.message,
+          })
+        }
+        skipped++
       }
     }
 
@@ -219,7 +243,7 @@ export const syncAccount = createServerFn()
       .set({ lastSyncAt: new Date() })
       .where(eq(bankConnections.id, account.connectionId))
 
-    log.info("account.sync.completed", { accountId, fetched: booked.length, imported })
+    log.info("account.sync.completed", { accountId, fetched: booked.length, imported, skipped })
     return { imported, total: booked.length }
   })
 
