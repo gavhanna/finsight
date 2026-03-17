@@ -206,6 +206,45 @@ export const previewRule = createServerFn()
     }
   })
 
+const PatternInput = z.object({
+  pattern: z.string().min(1),
+  field: FieldSchema,
+  matchType: MatchTypeSchema,
+})
+
+export const previewPatterns = createServerFn()
+  .inputValidator(z.object({ patterns: z.array(PatternInput).min(1) }))
+  .handler(async ({ data: { patterns: pats } }) => {
+    const conditions = pats.map(p => buildPatternCondition(p.pattern, p.field, p.matchType))
+    const condition = conditions.length === 1 ? conditions[0] : sql`(${sql.join(conditions, sql` OR `)})`
+    const rows = await db
+      .select({
+        id: transactions.id,
+        bookingDate: transactions.bookingDate,
+        amount: transactions.amount,
+        currency: transactions.currency,
+        creditorName: transactions.creditorName,
+        debtorName: transactions.debtorName,
+        description: transactions.description,
+        categoryId: transactions.categoryId,
+        categorisedBy: transactions.categorisedBy,
+      })
+      .from(transactions)
+      .where(condition)
+      .orderBy(transactions.bookingDate)
+      .limit(200)
+
+    const cats = await db.select().from(categories)
+    return {
+      count: rows.length,
+      capped: rows.length === 200,
+      transactions: rows.map((r) => ({
+        ...r,
+        category: cats.find((c) => c.id === r.categoryId) ?? null,
+      })),
+    }
+  })
+
 export const applyRuleToHistory = createServerFn()
   .inputValidator(z.object({ ruleId: z.number(), categoryId: z.number() }))
   .handler(async ({ data: { ruleId, categoryId } }) => {
