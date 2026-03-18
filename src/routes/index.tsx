@@ -378,6 +378,11 @@ function SpendingPieChart({ data }: { data: { categoryName: string; categoryColo
   )
 }
 
+const CHART_COLORS = [
+  "#22c55e", "#3b82f6", "#f97316", "#a855f7", "#ec4899",
+  "#14b8a6", "#eab308", "#ef4444", "#6366f1", "#84cc16",
+]
+
 function SpendingBarChart({ data }: { data: { categoryName: string; categoryColor: string; total: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -387,7 +392,7 @@ function SpendingBarChart({ data }: { data: { categoryName: string; categoryColo
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Bar dataKey="total" radius={[0, 4, 4, 0]}>
           {data.map((entry, i) => (
-            <Cell key={i} fill={entry.categoryColor} />
+            <Cell key={i} fill={entry.categoryColor ?? CHART_COLORS[i % CHART_COLORS.length]} />
           ))}
         </Bar>
       </BarChart>
@@ -501,7 +506,11 @@ function TopMerchantsChart({ data }: { data: { name: string; total: number; coun
         <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={140} />
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
-        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+          {data.map((_, i) => (
+            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   )

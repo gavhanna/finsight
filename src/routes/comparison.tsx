@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -18,6 +19,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+
+const CHART_COLORS = [
+  "#22c55e", "#3b82f6", "#f97316", "#a855f7", "#ec4899",
+  "#14b8a6", "#eab308", "#ef4444", "#6366f1", "#84cc16",
+]
 
 type Preset = "3months" | "6months" | "12months"
 
@@ -214,7 +220,11 @@ function ComparisonPage() {
                     formatter={(v: any) => [formatCurrency(Number(v)), "Spending"]}
                     labelStyle={{ fontWeight: 600 }}
                   />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                    {monthlyTotals.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
