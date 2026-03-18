@@ -519,17 +519,17 @@ function IncomeExpensesChart({
   const formatted = data.map((d) => ({ ...d, month: formatMonth(d.month) }))
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={formatted}>
+      <LineChart data={formatted}>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} interval={interval} />
         <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Legend />
         <ReferenceLine y={0} stroke="hsl(var(--border))" strokeWidth={1.5} />
-        <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="expenses" name="Expenses" fill="#f97316" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="net" name="Net" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-      </BarChart>
+        <Line type="monotone" dataKey="income" name="Income" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="net" name="Net" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+      </LineChart>
     </ResponsiveContainer>
   )
 }
