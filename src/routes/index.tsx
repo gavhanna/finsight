@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   getSpendingByCategory,
   getSpendingTrends,
@@ -24,6 +25,8 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  ComposedChart,
+  ReferenceLine,
 } from "recharts"
 import { TrendingDown, TrendingUp, ArrowLeftRight, Hash } from "lucide-react"
 import { z } from "zod"
@@ -32,6 +35,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
+
+function formatMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split("-")
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return `${monthNames[parseInt(month, 10) - 1]} '${year.slice(2)}`
+}
 
 const SearchSchema = z.object({
   dateFrom: z.string().optional(),
@@ -128,6 +137,22 @@ function DashboardPage() {
     }))
   }, [trends])
 
+  const periodDelta = useMemo(() => {
+    const data = incomeVsExp as Array<{ month: string; income: number; expenses: number; net: number }>
+    if (data.length < 2) return null
+    const mid = Math.floor(data.length / 2)
+    const prev = data.slice(0, mid)
+    const curr = data.slice(mid)
+    const prevIncome = prev.reduce((s, d) => s + d.income, 0)
+    const currIncome = curr.reduce((s, d) => s + d.income, 0)
+    const prevExpenses = prev.reduce((s, d) => s + d.expenses, 0)
+    const currExpenses = curr.reduce((s, d) => s + d.expenses, 0)
+    return {
+      income: prevIncome === 0 ? null : ((currIncome - prevIncome) / prevIncome) * 100,
+      expenses: prevExpenses === 0 ? null : ((currExpenses - prevExpenses) / prevExpenses) * 100,
+    }
+  }, [incomeVsExp])
+
   const hasData = byCat.length > 0
 
   return (
@@ -191,12 +216,14 @@ function DashboardPage() {
           value={formatCurrency(stats.totalExpenses)}
           icon={<TrendingDown className="h-4 w-4 text-red-500" />}
           sub="outgoing"
+          delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
         />
         <StatCard
           label="Total Income"
           value={formatCurrency(stats.totalIncome)}
           icon={<TrendingUp className="h-4 w-4 text-green-500" />}
           sub="incoming"
+          delta={periodDelta?.income}
         />
         <StatCard
           label="Net"
@@ -219,51 +246,57 @@ function DashboardPage() {
           <p className="text-sm text-muted-foreground mt-1">Connect a bank account and sync transactions to get started.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          {/* Spending by category */}
+        <div className="space-y-4 sm:space-y-6">
+          {/* Monthly Cash Flow — full width */}
           <Card>
             <CardHeader>
-              <CardTitle>Spending by Category</CardTitle>
-              <CardAction>
-                <Tabs value={chartType} onValueChange={(v) => v && setChartType(v as "pie" | "bar")}>
-                  <TabsList>
-                    <TabsTrigger value="pie">Pie</TabsTrigger>
-                    <TabsTrigger value="bar">Bar</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              {chartType === "pie" ? (
-                <SpendingPieChart data={byCat} />
-              ) : (
-                <SpendingBarChart data={byCat} />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Income vs Expenses */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Income vs Expenses</CardTitle>
+              <CardTitle>Monthly Cash Flow</CardTitle>
             </CardHeader>
             <CardContent>
               <IncomeExpensesChart data={incomeVsExp} />
             </CardContent>
           </Card>
 
-          {/* Spending trends */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Spending Trends</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SpendingTrendsChart data={trendData} categories={trendCategories} />
-            </CardContent>
-          </Card>
+          {/* 2-col grid: Category + Trends */}
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+            {/* Spending by category */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Spending by Category</CardTitle>
+                <CardAction>
+                  <Tabs value={chartType} onValueChange={(v) => v && setChartType(v as "pie" | "bar")}>
+                    <TabsList>
+                      <TabsTrigger value="pie">Pie</TabsTrigger>
+                      <TabsTrigger value="bar">Bar</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                {chartType === "pie" ? (
+                  <SpendingPieChart data={byCat} />
+                ) : (
+                  <SpendingBarChart data={byCat} />
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Top merchants */}
-          <Card className="lg:col-span-2">
+            {/* Spending trends */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Spending Trends</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SpendingTrendsChart data={trendData} categories={trendCategories} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Month by Month table — full width */}
+          <CashFlowTable data={incomeVsExp} stats={stats} />
+
+          {/* Top merchants — full width */}
+          <Card>
             <CardHeader>
               <CardTitle>Top Merchants</CardTitle>
             </CardHeader>
@@ -283,12 +316,14 @@ function StatCard({
   icon,
   sub,
   valueClass,
+  delta,
 }: {
   label: string
   value: string
   icon: React.ReactNode
   sub: string
   valueClass?: string
+  delta?: number | null
 }) {
   return (
     <Card>
@@ -299,6 +334,11 @@ function StatCard({
         </div>
         <p className={`text-xl sm:text-2xl font-bold tabular-nums ${valueClass ?? ""}`}>{value}</p>
         <p className="text-xs text-muted-foreground capitalize">{sub}</p>
+        {delta != null && (
+          <p className={`text-xs font-medium ${delta >= 0 ? "text-green-600" : "text-red-500"}`}>
+            {delta >= 0 ? "+" : ""}{delta.toFixed(1)}% vs prior period
+          </p>
+        )}
       </CardContent>
     </Card>
   )
@@ -388,6 +428,69 @@ function SpendingTrendsChart({
   )
 }
 
+function CashFlowTable({
+  data,
+  stats,
+}: {
+  data: { month: string; income: number; expenses: number; net: number }[]
+  stats: { totalIncome: number; totalExpenses: number; net: number; count: number }
+}) {
+  if (data.length < 2) return null
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Month by Month</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Month</TableHead>
+              <TableHead className="text-right">Income</TableHead>
+              <TableHead className="text-right">Expenses</TableHead>
+              <TableHead className="text-right">Net</TableHead>
+              <TableHead className="text-right">Savings Rate</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((row) => {
+              const net = row.net
+              const savingsRate = row.income > 0 ? `${((net / row.income) * 100).toFixed(0)}%` : "—"
+              const savingsPositive = row.income > 0 && net > 0
+              return (
+                <TableRow key={row.month}>
+                  <TableCell>{formatMonth(row.month)}</TableCell>
+                  <TableCell className="text-right text-green-600 tabular-nums">{formatCurrency(row.income)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatCurrency(row.expenses)}</TableCell>
+                  <TableCell className={`text-right tabular-nums font-medium ${net >= 0 ? "text-green-600" : "text-red-500"}`}>
+                    {formatCurrency(net)}
+                  </TableCell>
+                  <TableCell className={`text-right tabular-nums ${savingsPositive ? "text-green-600" : ""}`}>
+                    {savingsRate}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell className="font-semibold">Total</TableCell>
+              <TableCell className="text-right text-green-600 tabular-nums font-semibold">{formatCurrency(stats.totalIncome)}</TableCell>
+              <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(stats.totalExpenses)}</TableCell>
+              <TableCell className={`text-right tabular-nums font-semibold ${stats.net >= 0 ? "text-green-600" : "text-red-500"}`}>
+                {formatCurrency(stats.net)}
+              </TableCell>
+              <TableCell className={`text-right tabular-nums font-semibold ${stats.totalIncome > 0 && stats.net > 0 ? "text-green-600" : ""}`}>
+                {stats.totalIncome > 0 ? `${((stats.net / stats.totalIncome) * 100).toFixed(0)}%` : "—"}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
 function TopMerchantsChart({ data }: { data: { name: string; total: number; count: number }[] }) {
   if (data.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">No merchant data.</p>
@@ -412,16 +515,20 @@ function IncomeExpensesChart({
   if (data.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">No data.</p>
   }
+  const interval = data.length > 6 ? Math.floor(data.length / 6) : 0
+  const formatted = data.map((d) => ({ ...d, month: formatMonth(d.month) }))
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data}>
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={formatted}>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+        <XAxis dataKey="month" tick={{ fontSize: 11 }} interval={interval} />
         <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Legend />
+        <ReferenceLine y={0} stroke="hsl(var(--border))" strokeWidth={1.5} />
         <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
         <Bar dataKey="expenses" name="Expenses" fill="#f97316" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="net" name="Net" fill="#3b82f6" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
