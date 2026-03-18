@@ -1,8 +1,8 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
-import { getCategoriesWithRules, createCategory, deleteCategory } from "../server/fn/categories"
+import { getCategoriesWithRules, createCategory, deleteCategory, updateCategory } from "../server/fn/categories"
 import { recategoriseAll } from "../server/fn/transactions"
-import { Plus, Trash2, RefreshCw } from "lucide-react"
+import { Plus, Trash2, RefreshCw, Pencil, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -33,6 +33,8 @@ function CategoriesPage() {
   const [newCat, setNewCat] = useState({ name: "", color: "#94a3b8", type: "expense" as "expense" | "income" | "transfer" })
   const [recatResult, setRecatResult] = useState<{ updated: number; total: number } | null>(null)
   const [recatting, setRecatting] = useState(false)
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editFields, setEditFields] = useState({ name: "", color: "#94a3b8", type: "expense" as "expense" | "income" | "transfer" })
 
   async function handleCreateCategory() {
     if (!newCat.name.trim()) return
@@ -45,6 +47,18 @@ function CategoriesPage() {
   async function handleDeleteCategory(id: number) {
     if (!confirm("Delete this category? Transactions will become uncategorised.")) return
     await deleteCategory({ data: id })
+    router.invalidate()
+  }
+
+  function startEdit(cat: typeof categories[number]) {
+    setEditId(cat.id)
+    setEditFields({ name: cat.name, color: cat.color, type: cat.type as any })
+  }
+
+  async function handleUpdateCategory() {
+    if (!editFields.name.trim() || editId === null) return
+    await updateCategory({ data: { id: editId, ...editFields } })
+    setEditId(null)
     router.invalidate()
   }
 
@@ -139,7 +153,52 @@ function CategoriesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.map((cat) => (
+            {categories.map((cat) =>
+              editId === cat.id ? (
+                <TableRow key={cat.id}>
+                  <TableCell colSpan={4}>
+                    <div className="flex flex-col gap-3 py-1">
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          value={editFields.name}
+                          onChange={(e) => setEditFields((f) => ({ ...f, name: e.target.value }))}
+                          autoFocus
+                          className="flex-1"
+                        />
+                        <Select value={editFields.type} onValueChange={(v) => v && setEditFields((f) => ({ ...f, type: v as any }))}>
+                          <SelectTrigger className="w-full sm:w-36">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="expense">Expense</SelectItem>
+                            <SelectItem value="income">Income</SelectItem>
+                            <SelectItem value="transfer">Transfer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {COLORS.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setEditFields((f) => ({ ...f, color: c }))}
+                            className={`h-6 w-6 rounded-full transition-transform ${editFields.color === c ? "scale-125 ring-2 ring-offset-2 ring-ring" : ""}`}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleUpdateCategory}>
+                          <Check className="h-3.5 w-3.5 mr-1" /> Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditId(null)}>
+                          <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
               <TableRow key={cat.id}>
                 <TableCell>
                   <span className="flex items-center gap-2">
@@ -154,7 +213,15 @@ function CategoriesPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{cat.rules}</TableCell>
                 <TableCell className="text-right">
-                  {!cat.isDefault && (
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => startEdit(cat)}
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -163,10 +230,11 @@ function CategoriesPage() {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  )}
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
+              )
+            )}
           </TableBody>
         </Table>
       </div>
