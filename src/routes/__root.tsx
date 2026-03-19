@@ -9,6 +9,7 @@ import {
   Filter,
   Settings,
   GitCompare,
+  Inbox,
 } from "lucide-react"
 import {
   Sidebar,
@@ -64,6 +65,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/comparison", label: "Comparison", icon: GitCompare },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { to: "/triage", label: "Triage", icon: Inbox },
   { to: "/accounts", label: "Accounts", icon: Building2 },
   { to: "/categories", label: "Categories", icon: Tag },
   { to: "/rules", label: "Rules", icon: Filter },

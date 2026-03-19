@@ -92,6 +92,16 @@ export const bulkCategorise = createServerFn()
     log.info("transaction.categorised.bulk", { count: ids.length, categoryId })
   })
 
+export const getUncategorisedTransactions = createServerFn().handler(async () => {
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(sql`${transactions.categoryId} IS NULL`)
+    .orderBy(desc(transactions.bookingDate), desc(transactions.id))
+    .limit(500)
+  return rows
+})
+
 export const recategoriseAll = createServerFn().handler(async () => {
   const settingRows = await db.select().from(settings)
   const settingMap = Object.fromEntries(settingRows.map((r) => [r.key, r.value]))
