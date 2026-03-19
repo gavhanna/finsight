@@ -29,8 +29,8 @@ export const Route = createFileRoute("/accounts")({
 })
 
 const STATUS_CLASSES: Record<string, string> = {
-  LINKED: "bg-green-100 text-green-700 hover:bg-green-100",
-  EXPIRED: "bg-red-100 text-red-700 hover:bg-red-100",
+  LINKED: "bg-positive-muted text-positive hover:bg-positive-muted",
+  EXPIRED: "bg-negative-muted text-negative hover:bg-negative-muted",
 }
 
 function AccountsPage() {

@@ -316,13 +316,13 @@ function ComparisonPage() {
                   <TableCell />
                 </TableRow>
                 <TableRow>
-                  <TableCell className="sticky left-0 z-10 bg-muted/30 px-4 py-3 font-medium text-green-600">
+                  <TableCell className="sticky left-0 z-10 bg-muted/30 px-4 py-3 font-medium text-positive">
                     Income
                   </TableCell>
                   {months.map((month) => {
                     const income = incomeByMonth.get(month) ?? 0
                     return (
-                      <TableCell key={month} className="text-right px-4 py-3 tabular-nums text-green-600">
+                      <TableCell key={month} className="text-right px-4 py-3 tabular-nums text-positive">
                         {income > 0 ? (
                           formatCurrency(income)
                         ) : (
@@ -343,7 +343,7 @@ function ComparisonPage() {
                       <TableCell
                         key={month}
                         className={`text-right px-4 py-3 tabular-nums font-medium ${
-                          net >= 0 ? "text-green-600" : "text-red-500"
+                          net >= 0 ? "text-positive" : "text-negative"
                         }`}
                       >
                         {formatCurrency(net)}
@@ -376,13 +376,13 @@ function TrendBadge({ pct, hasData }: { pct: number; hasData: boolean }) {
   }
   if (pct > 0) {
     return (
-      <span className="text-red-500 text-xs inline-flex items-center gap-0.5 justify-end">
+      <span className="text-negative text-xs inline-flex items-center gap-0.5 justify-end">
         <TrendingUp className="h-3 w-3" />+{abs.toFixed(0)}%
       </span>
     )
   }
   return (
-    <span className="text-green-600 text-xs inline-flex items-center gap-0.5 justify-end">
+    <span className="text-positive text-xs inline-flex items-center gap-0.5 justify-end">
       <TrendingDown className="h-3 w-3" />-{abs.toFixed(0)}%
     </span>
   )

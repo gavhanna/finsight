@@ -244,7 +244,7 @@ function RuleCard({
 
           <div className="p-3">
             {applyResult !== null ? (
-              <p className="text-xs text-green-600 flex items-center gap-1.5">
+              <p className="text-xs text-positive flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5" />
                 Updated {applyResult} transaction{applyResult !== 1 ? "s" : ""}.
               </p>
@@ -806,7 +806,7 @@ function PreviewTable({ preview, previewing, manualCount, patternCount }: {
                 <TableRow key={tx.id} className={tx.categorisedBy === "manual" ? "opacity-50" : ""}>
                   <TableCell className="py-1.5 text-xs text-muted-foreground whitespace-nowrap">{formatDate(tx.bookingDate)}</TableCell>
                   <TableCell className="py-1.5 text-xs max-w-xs truncate">{tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}</TableCell>
-                  <TableCell className={`py-1.5 text-xs text-right tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-green-600" : ""}`}>
+                  <TableCell className={`py-1.5 text-xs text-right tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-positive" : ""}`}>
                     {formatCurrency(tx.amount, tx.currency)}
                   </TableCell>
                   <TableCell className="py-1.5 text-xs">

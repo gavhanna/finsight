@@ -113,7 +113,7 @@ function SettingsPage() {
 
         <div className="flex items-center gap-3">
           <Button type="submit">Save Settings</Button>
-          {saved && <p className="text-sm text-green-600">Settings saved!</p>}
+          {saved && <p className="text-sm text-positive">Settings saved!</p>}
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </form>

@@ -214,23 +214,23 @@ function DashboardPage() {
         <StatCard
           label="Total Spend"
           value={formatCurrency(stats.totalExpenses)}
-          icon={<TrendingDown className="h-4 w-4 text-red-500" />}
+          icon={<TrendingDown className="h-4 w-4 text-negative" />}
           sub="outgoing"
           delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
         />
         <StatCard
           label="Total Income"
           value={formatCurrency(stats.totalIncome)}
-          icon={<TrendingUp className="h-4 w-4 text-green-500" />}
+          icon={<TrendingUp className="h-4 w-4 text-positive" />}
           sub="incoming"
           delta={periodDelta?.income}
         />
         <StatCard
           label="Net"
           value={formatCurrency(stats.net)}
-          icon={<ArrowLeftRight className="h-4 w-4 text-blue-500" />}
+          icon={<ArrowLeftRight className="h-4 w-4 text-neutral-data" />}
           sub={stats.net >= 0 ? "surplus" : "deficit"}
-          valueClass={stats.net >= 0 ? "text-green-600" : "text-red-600"}
+          valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
         />
         <StatCard
           label="Transactions"
@@ -332,10 +332,10 @@ function StatCard({
           <p className="text-xs sm:text-sm text-muted-foreground">{label}</p>
           {icon}
         </div>
-        <p className={`text-xl sm:text-2xl font-bold tabular-nums ${valueClass ?? ""}`}>{value}</p>
+        <p className={`text-xl sm:text-2xl font-bold tabular-nums font-mono ${valueClass ?? ""}`}>{value}</p>
         <p className="text-xs text-muted-foreground capitalize">{sub}</p>
         {delta != null && (
-          <p className={`text-xs font-medium ${delta >= 0 ? "text-green-600" : "text-red-500"}`}>
+          <p className={`text-xs font-medium ${delta >= 0 ? "text-positive" : "text-negative"}`}>
             {delta >= 0 ? "+" : ""}{delta.toFixed(1)}% vs prior period
           </p>
         )}
@@ -378,9 +378,16 @@ function SpendingPieChart({ data }: { data: { categoryName: string; categoryColo
   )
 }
 
+// Matches --chart-1 through --chart-8 from our theme
 const CHART_COLORS = [
-  "#22c55e", "#3b82f6", "#f97316", "#a855f7", "#ec4899",
-  "#14b8a6", "#eab308", "#ef4444", "#6366f1", "#84cc16",
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+  "var(--color-chart-6)",
+  "var(--color-chart-7)",
+  "var(--color-chart-8)",
 ]
 
 function SpendingBarChart({ data }: { data: { categoryName: string; categoryColor: string; total: number }[] }) {
@@ -465,12 +472,12 @@ function CashFlowTable({
               return (
                 <TableRow key={row.month}>
                   <TableCell>{formatMonth(row.month)}</TableCell>
-                  <TableCell className="text-right text-green-600 tabular-nums">{formatCurrency(row.income)}</TableCell>
+                  <TableCell className="text-right text-positive tabular-nums">{formatCurrency(row.income)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatCurrency(row.expenses)}</TableCell>
-                  <TableCell className={`text-right tabular-nums font-medium ${net >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  <TableCell className={`text-right tabular-nums font-medium ${net >= 0 ? "text-positive" : "text-negative"}`}>
                     {formatCurrency(net)}
                   </TableCell>
-                  <TableCell className={`text-right tabular-nums ${savingsPositive ? "text-green-600" : ""}`}>
+                  <TableCell className={`text-right tabular-nums ${savingsPositive ? "text-positive" : ""}`}>
                     {savingsRate}
                   </TableCell>
                 </TableRow>
@@ -480,12 +487,12 @@ function CashFlowTable({
           <TableFooter>
             <TableRow>
               <TableCell className="font-semibold">Total</TableCell>
-              <TableCell className="text-right text-green-600 tabular-nums font-semibold">{formatCurrency(stats.totalIncome)}</TableCell>
+              <TableCell className="text-right text-positive tabular-nums font-semibold">{formatCurrency(stats.totalIncome)}</TableCell>
               <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(stats.totalExpenses)}</TableCell>
-              <TableCell className={`text-right tabular-nums font-semibold ${stats.net >= 0 ? "text-green-600" : "text-red-500"}`}>
+              <TableCell className={`text-right tabular-nums font-semibold ${stats.net >= 0 ? "text-positive" : "text-negative"}`}>
                 {formatCurrency(stats.net)}
               </TableCell>
-              <TableCell className={`text-right tabular-nums font-semibold ${stats.totalIncome > 0 && stats.net > 0 ? "text-green-600" : ""}`}>
+              <TableCell className={`text-right tabular-nums font-semibold ${stats.totalIncome > 0 && stats.net > 0 ? "text-positive" : ""}`}>
                 {stats.totalIncome > 0 ? `${((stats.net / stats.totalIncome) * 100).toFixed(0)}%` : "—"}
               </TableCell>
             </TableRow>
@@ -535,9 +542,9 @@ function IncomeExpensesChart({
         <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
         <Legend />
         <ReferenceLine y={0} stroke="hsl(var(--border))" strokeWidth={1.5} />
-        <Line type="monotone" dataKey="income" name="Income" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} />
-        <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
-        <Line type="monotone" dataKey="net" name="Net" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="income" name="Income" stroke="var(--color-chart-2)" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="expenses" name="Expenses" stroke="var(--color-chart-5)" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="net" name="Net" stroke="var(--color-chart-1)" strokeWidth={2} dot={{ r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   )

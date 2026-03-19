@@ -94,7 +94,7 @@ function CategoriesPage() {
       </div>
 
       {recatResult && (
-        <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+        <div className="mb-4 rounded-md bg-positive-muted border border-positive/20 px-4 py-3 text-sm text-positive">
           Re-categorised {recatResult.updated} of {recatResult.total} transactions.
         </div>
       )}

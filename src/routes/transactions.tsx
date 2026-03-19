@@ -212,7 +212,7 @@ function TransactionsPage() {
                   <TableCell className="hidden sm:table-cell text-muted-foreground max-w-64 truncate">
                     {tx.description ?? "—"}
                   </TableCell>
-                  <TableCell className={`text-right font-medium tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-green-600" : ""}`}>
+                  <TableCell className={`text-right font-medium tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-positive" : ""}`}>
                     {formatCurrency(tx.amount, tx.currency)}
                   </TableCell>
                   <TableCell>

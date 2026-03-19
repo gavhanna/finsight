@@ -78,10 +78,10 @@ function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2 px-2 py-1">
-              <div className="flex aspect-square size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold flex-shrink-0">
+              <div className="flex aspect-square size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold flex-shrink-0 ring-1 ring-sidebar-primary/30">
                 F
               </div>
-              <span className="truncate font-semibold text-sm group-data-[collapsible=icon]:hidden">
+              <span className="truncate font-semibold text-sm tracking-tight group-data-[collapsible=icon]:hidden">
                 FinSight
               </span>
             </div>
