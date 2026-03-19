@@ -18,11 +18,18 @@ export const getCategories = createServerFn().handler(async () => {
 export const getCategoriesWithRules = createServerFn().handler(async () => {
   const cats = await db.select().from(categories).orderBy(categories.name)
   const allRules = await db.select().from(rules)
-  const ruleCount = cats.map((cat) => ({
+  const txCounts = await db
+    .select({
+      categoryId: transactions.categoryId,
+      count: sql<number>`count(*)`,
+    })
+    .from(transactions)
+    .groupBy(transactions.categoryId)
+  return cats.map((cat) => ({
     ...cat,
     rules: allRules.filter((r) => r.categoryId === cat.id).length,
+    transactionCount: Number(txCounts.find((r) => r.categoryId === cat.id)?.count ?? 0),
   }))
-  return ruleCount
 })
 
 export const createCategory = createServerFn()

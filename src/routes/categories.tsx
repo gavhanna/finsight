@@ -148,6 +148,7 @@ function CategoriesPage() {
             <TableRow>
               <TableHead>Category</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead className="text-right">Transactions</TableHead>
               <TableHead>Rules</TableHead>
               <TableHead />
             </TableRow>
@@ -156,7 +157,7 @@ function CategoriesPage() {
             {categories.map((cat) =>
               editId === cat.id ? (
                 <TableRow key={cat.id}>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={5}>
                     <div className="flex flex-col gap-3 py-1">
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Input
@@ -210,6 +211,9 @@ function CategoriesPage() {
                   <Badge variant={TYPE_VARIANT[cat.type] ?? "outline"} className="capitalize">
                     {cat.type}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-muted-foreground">
+                  {cat.transactionCount > 0 ? cat.transactionCount.toLocaleString() : <span className="text-muted-foreground/40">—</span>}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{cat.rules}</TableCell>
                 <TableCell className="text-right">

@@ -14,6 +14,7 @@ import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as ComparisonRouteImport } from './routes/comparison'
+import { Route as CategoryTrendsRouteImport } from './routes/category-trends'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
@@ -44,6 +45,11 @@ const ComparisonRoute = ComparisonRouteImport.update({
   path: '/comparison',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CategoryTrendsRoute = CategoryTrendsRouteImport.update({
+  id: '/category-trends',
+  path: '/category-trends',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoriesRoute = CategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/categories': typeof CategoriesRoute
+  '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/categories': typeof CategoriesRoute
+  '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
   '/categories': typeof CategoriesRoute
+  '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/categories'
+    | '/category-trends'
     | '/comparison'
     | '/rules'
     | '/settings'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/categories'
+    | '/category-trends'
     | '/comparison'
     | '/rules'
     | '/settings'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/categories'
+    | '/category-trends'
     | '/comparison'
     | '/rules'
     | '/settings'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
   CategoriesRoute: typeof CategoriesRoute
+  CategoryTrendsRoute: typeof CategoryTrendsRoute
   ComparisonRoute: typeof ComparisonRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComparisonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/category-trends': {
+      id: '/category-trends'
+      path: '/category-trends'
+      fullPath: '/category-trends'
+      preLoaderRoute: typeof CategoryTrendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/categories': {
       id: '/categories'
       path: '/categories'
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
   CategoriesRoute: CategoriesRoute,
+  CategoryTrendsRoute: CategoryTrendsRoute,
   ComparisonRoute: ComparisonRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,

@@ -10,6 +10,7 @@ import {
   Settings,
   GitCompare,
   Inbox,
+  AreaChart,
   Sun,
   Moon,
   Monitor,
@@ -72,6 +73,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/comparison", label: "Comparison", icon: GitCompare },
+  { to: "/category-trends", label: "Category Trends", icon: AreaChart },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/triage", label: "Triage", icon: Inbox },
   { to: "/accounts", label: "Accounts", icon: Building2 },
