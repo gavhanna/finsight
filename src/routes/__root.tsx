@@ -10,7 +10,12 @@ import {
   Settings,
   GitCompare,
   Inbox,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react"
+import { useTheme, type Theme } from "@/hooks/use-theme"
+import { cn } from "@/lib/utils"
 import {
   Sidebar,
   SidebarContent,
@@ -43,10 +48,13 @@ export const Route = createRootRoute({
   component: RootLayout,
 })
 
+const themeScript = `(function(){try{var t=localStorage.getItem('theme')||'system';if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();`
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <HeadContent />
       </head>
       <body className="bg-background text-foreground">
@@ -71,6 +79,36 @@ const navItems = [
   { to: "/rules", label: "Rules", icon: Filter },
   { to: "/settings", label: "Settings", icon: Settings },
 ]
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+
+  const options: { value: Theme; icon: React.ReactNode; label: string }[] = [
+    { value: "light", icon: <Sun className="size-3.5" />, label: "Light" },
+    { value: "system", icon: <Monitor className="size-3.5" />, label: "System" },
+    { value: "dark", icon: <Moon className="size-3.5" />, label: "Dark" },
+  ]
+
+  return (
+    <div className="flex rounded-md overflow-hidden border border-sidebar-border">
+      {options.map(({ value, icon, label }) => (
+        <button
+          key={value}
+          onClick={() => setTheme(value)}
+          aria-label={label}
+          className={cn(
+            "flex-1 flex items-center justify-center py-1.5 transition-colors",
+            theme === value
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+          )}
+        >
+          {icon}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 function AppSidebar() {
   const { location } = useRouterState()
@@ -119,10 +157,13 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter>
-        <p className="px-2 text-xs text-sidebar-foreground/50 truncate group-data-[collapsible=icon]:hidden">
+      <SidebarFooter className="px-2 pb-3 space-y-2">
+        <p className="px-1 text-xs text-sidebar-foreground/50 truncate group-data-[collapsible=icon]:hidden">
           Family Finance Insights
         </p>
+        <div className="group-data-[collapsible=icon]:hidden">
+          <ThemeToggle />
+        </div>
       </SidebarFooter>
 
       <SidebarRail />
