@@ -22,6 +22,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
@@ -71,6 +72,11 @@ const navItems = [
 
 function AppSidebar() {
   const { location } = useRouterState()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  function handleNavClick() {
+    if (isMobile) setOpenMobile(false)
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -98,7 +104,7 @@ function AppSidebar() {
             return (
               <SidebarMenuItem key={to}>
                 <SidebarMenuButton
-                  render={<Link to={to} />}
+                  render={<Link to={to} onClick={handleNavClick} />}
                   isActive={isActive}
                   tooltip={label}
                 >
