@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { useSortable } from "@/hooks/use-sortable"
+import { SortableHead } from "@/components/ui/sortable-head"
 
 export const Route = createFileRoute("/categories")({
   component: CategoriesPage,
@@ -27,7 +29,8 @@ const TYPE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
 }
 
 function CategoriesPage() {
-  const categories = Route.useLoaderData()
+  const rawCategories = Route.useLoaderData()
+  const { sorted: categories, sortKey, sortDir, toggle } = useSortable(rawCategories, "name")
   const router = useRouter()
   const [showNew, setShowNew] = useState(false)
   const [newCat, setNewCat] = useState({ name: "", color: "#94a3b8", type: "expense" as "expense" | "income" | "transfer" })
@@ -146,10 +149,10 @@ function CategoriesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Category</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Transactions</TableHead>
-              <TableHead>Rules</TableHead>
+              <SortableHead id="name" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Category</SortableHead>
+              <SortableHead id="type" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Type</SortableHead>
+              <SortableHead id="transactionCount" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Transactions</SortableHead>
+              <SortableHead id="rules" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Rules</SortableHead>
               <TableHead />
             </TableRow>
           </TableHeader>

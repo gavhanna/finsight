@@ -11,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useSortable } from "@/hooks/use-sortable"
+import { SortableHead } from "@/components/ui/sortable-head"
 
 const SearchSchema = z.object({
   page: z.coerce.number().default(1),
@@ -44,7 +46,8 @@ function TransactionsPage() {
   const [bulkCatId, setBulkCatId] = useState<string>("")
   const [loading, setLoading] = useState(false)
 
-  const { transactions, total, page, pageSize } = txData
+  const { sorted: transactions, sortKey, sortDir, toggle } = useSortable(txData.transactions, "bookingDate", "desc")
+  const { total, page, pageSize } = txData
   const totalPages = Math.ceil(total / pageSize)
 
   function updateSearch(updates: Partial<z.infer<typeof SearchSchema>>) {
@@ -180,10 +183,10 @@ function TransactionsPage() {
                   onCheckedChange={() => toggleAll()}
                 />
               </TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Payee</TableHead>
+              <SortableHead id="bookingDate" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Date</SortableHead>
+              <SortableHead id="creditorName" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Payee</SortableHead>
               <TableHead className="hidden sm:table-cell">Description</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <SortableHead id="amount" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Amount</SortableHead>
               <TableHead>Category</TableHead>
             </TableRow>
           </TableHeader>

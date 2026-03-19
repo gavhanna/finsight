@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useSortable } from "@/hooks/use-sortable"
+import { SortableHead } from "@/components/ui/sortable-head"
 import { cn } from "@/lib/utils"
 
 type Preset = "3months" | "6months" | "ytd" | "12months" | "all"
@@ -170,6 +172,9 @@ function CategoryTrendsPage() {
   function setPreset(p: Preset) {
     navigate({ search: { ...search, ...getPresetDates(p), preset: p } })
   }
+
+  const { sorted: sortedStats, sortKey: statsSortKey, sortDir: statsSortDir, toggle: statsToggle } =
+    useSortable(summaryStats, "total", "desc")
 
   const noData = trends.length === 0
 
@@ -343,15 +348,15 @@ function CategoryTrendsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">Avg / month</TableHead>
+                    <SortableHead id="name" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle}>Category</SortableHead>
+                    <SortableHead id="total" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle} className="text-right">Total</SortableHead>
+                    <SortableHead id="avgPerMonth" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle} className="text-right hidden sm:table-cell">Avg / month</SortableHead>
                     <TableHead className="text-right hidden md:table-cell">Peak month</TableHead>
-                    <TableHead className="text-right">Trend</TableHead>
+                    <SortableHead id="trendPct" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle} className="text-right">Trend</SortableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {summaryStats.map(cat => (
+                  {sortedStats.map(cat => (
                     <TableRow
                       key={cat.id}
                       className="cursor-pointer"

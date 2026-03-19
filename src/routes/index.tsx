@@ -31,6 +31,8 @@ import {
 import { TrendingDown, TrendingUp, ArrowLeftRight, Hash } from "lucide-react"
 import { z } from "zod"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSortable } from "@/hooks/use-sortable"
+import { SortableHead } from "@/components/ui/sortable-head"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -448,6 +450,11 @@ function CashFlowTable({
   stats: { totalIncome: number; totalExpenses: number; net: number; count: number }
 }) {
   if (data.length < 2) return null
+  const dataWithRate = data.map((r) => ({
+    ...r,
+    savingsRate: r.income > 0 ? r.net / r.income : null,
+  }))
+  const { sorted, sortKey, sortDir, toggle } = useSortable(dataWithRate, "month")
   return (
     <Card>
       <CardHeader>
@@ -457,15 +464,15 @@ function CashFlowTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Month</TableHead>
-              <TableHead className="text-right">Income</TableHead>
-              <TableHead className="text-right">Expenses</TableHead>
-              <TableHead className="text-right">Net</TableHead>
-              <TableHead className="text-right">Savings Rate</TableHead>
+              <SortableHead id="month" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Month</SortableHead>
+              <SortableHead id="income" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Income</SortableHead>
+              <SortableHead id="expenses" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Expenses</SortableHead>
+              <SortableHead id="net" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Net</SortableHead>
+              <SortableHead id="savingsRate" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Savings Rate</SortableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((row) => {
+            {sorted.map((row) => {
               const net = row.net
               const savingsRate = row.income > 0 ? `${((net / row.income) * 100).toFixed(0)}%` : "—"
               const savingsPositive = row.income > 0 && net > 0
