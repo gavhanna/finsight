@@ -5,6 +5,7 @@ import {
   AreaChart, Area,
   BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  ReferenceLine, Label,
 } from "recharts"
 import { TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { getSpendingTrends, getAccounts } from "../server/fn/insights"
@@ -169,6 +170,14 @@ function CategoryTrendsPage() {
     [visibleCategories, trends]
   )
 
+  const avgByKey = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const s of summaryStats) {
+      map.set(String(s.id), s.avgPerMonth)
+    }
+    return map
+  }, [summaryStats])
+
   function setPreset(p: Preset) {
     navigate({ search: { ...search, ...getPresetDates(p), preset: p } })
   }
@@ -314,6 +323,24 @@ function CategoryTrendsPage() {
                         dot={isSingle ? { r: 3, fill: cat.color } : false}
                       />
                     ))}
+                    {months.length >= 3 && visibleCategories.map((cat) => {
+                      const avg = avgByKey.get(String(cat.id))
+                      if (!avg) return null
+                      return (
+                        <ReferenceLine
+                          key={`avg-${cat.id}`}
+                          y={avg}
+                          stroke={cat.color}
+                          strokeOpacity={0.6}
+                          strokeWidth={1}
+                          strokeDasharray="4 4"
+                        >
+                          {isSingle && (
+                            <Label value="avg" position="insideRight" fontSize={10} fill={cat.color} fillOpacity={0.7} />
+                          )}
+                        </ReferenceLine>
+                      )
+                    })}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -333,6 +360,24 @@ function CategoryTrendsPage() {
                     {visibleCategories.map(cat => (
                       <Bar key={cat.id} dataKey={String(cat.id)} fill={cat.color} radius={[3,3,0,0]} maxBarSize={40} />
                     ))}
+                    {months.length >= 3 && visibleCategories.map((cat) => {
+                      const avg = avgByKey.get(String(cat.id))
+                      if (!avg) return null
+                      return (
+                        <ReferenceLine
+                          key={`avg-${cat.id}`}
+                          y={avg}
+                          stroke={cat.color}
+                          strokeOpacity={0.6}
+                          strokeWidth={1}
+                          strokeDasharray="4 4"
+                        >
+                          {isSingle && (
+                            <Label value="avg" position="insideRight" fontSize={10} fill={cat.color} fillOpacity={0.7} />
+                          )}
+                        </ReferenceLine>
+                      )
+                    })}
                   </BarChart>
                 </ResponsiveContainer>
               )}
