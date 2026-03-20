@@ -14,6 +14,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -153,6 +154,16 @@ function ComparisonPage() {
     }))
   }, [months, categories])
 
+  const stackedData = useMemo(() => {
+    return months.map((month) => {
+      const row: Record<string, any> = { month, label: formatMonth(month) }
+      for (const cat of categories) {
+        row[cat.name] = cat.byMonth.get(month) ?? 0
+      }
+      return row
+    })
+  }, [months, categories])
+
   const incomeByMonth = useMemo(() => {
     const map = new Map<string, number>()
     for (const row of incomeVsExp) {
@@ -236,7 +247,7 @@ function ComparisonPage() {
               <CardContent className="pt-5">
                 <div className="chart-bg p-3 -mx-1">
                   <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={monthlyTotals} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <BarChart data={stackedData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.08)" vertical={false} />
                       <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                       <YAxis
@@ -247,11 +258,17 @@ function ComparisonPage() {
                         axisLine={false}
                       />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="total" radius={[5, 5, 0, 0]} maxBarSize={36}>
-                        {monthlyTotals.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                        ))}
-                      </Bar>
+                      <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: "11px" }} />
+                      {categories.map((cat, i) => (
+                        <Bar
+                          key={cat.name}
+                          dataKey={cat.name}
+                          stackId="a"
+                          fill={cat.color}
+                          radius={i === categories.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                          maxBarSize={40}
+                        />
+                      ))}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
