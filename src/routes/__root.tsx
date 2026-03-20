@@ -11,6 +11,7 @@ import {
   GitCompare,
   Inbox,
   AreaChart,
+  ScrollText,
   Sun,
   Moon,
   Monitor,
@@ -80,6 +81,7 @@ const navItems = [
   { to: "/accounts", label: "Accounts", icon: Building2 },
   { to: "/categories", label: "Categories", icon: Tag },
   { to: "/rules", label: "Rules", icon: Filter },
+  { to: "/logs", label: "Logs", icon: ScrollText },
   { to: "/settings", label: "Settings", icon: Settings },
 ]
 

@@ -13,6 +13,7 @@ import { Route as TriageRouteImport } from './routes/triage'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
+import { Route as LogsRouteImport } from './routes/logs'
 import { Route as ComparisonRouteImport } from './routes/comparison'
 import { Route as CategoryTrendsRouteImport } from './routes/category-trends'
 import { Route as CategoriesRouteImport } from './routes/categories'
@@ -38,6 +39,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const RulesRoute = RulesRouteImport.update({
   id: '/rules',
   path: '/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogsRoute = LogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComparisonRoute = ComparisonRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/categories': typeof CategoriesRoute
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
+  '/logs': typeof LogsRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/categories': typeof CategoriesRoute
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
+  '/logs': typeof LogsRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/categories': typeof CategoriesRoute
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
+  '/logs': typeof LogsRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/category-trends'
     | '/comparison'
+    | '/logs'
     | '/rules'
     | '/settings'
     | '/transactions'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/category-trends'
     | '/comparison'
+    | '/logs'
     | '/rules'
     | '/settings'
     | '/transactions'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/category-trends'
     | '/comparison'
+    | '/logs'
     | '/rules'
     | '/settings'
     | '/transactions'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   CategoriesRoute: typeof CategoriesRoute
   CategoryTrendsRoute: typeof CategoryTrendsRoute
   ComparisonRoute: typeof ComparisonRoute
+  LogsRoute: typeof LogsRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/rules'
       fullPath: '/rules'
       preLoaderRoute: typeof RulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logs': {
+      id: '/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof LogsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comparison': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriesRoute: CategoriesRoute,
   CategoryTrendsRoute: CategoryTrendsRoute,
   ComparisonRoute: ComparisonRoute,
+  LogsRoute: LogsRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
