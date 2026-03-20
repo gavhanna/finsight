@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
-import { transactions, categories, accounts } from "../../db/schema"
+import { transactions, categories, accounts, settings } from "../../db/schema"
 import { eq, and, gte, lte, inArray, sql, lt } from "drizzle-orm"
 import { z } from "zod"
+import { generateFinancialNarrative } from "../services/ollama.server"
 
 const InsightFilters = z.object({
   dateFrom: z.string().optional(),
@@ -165,3 +166,32 @@ export const getSummaryStats = createServerFn()
 export const getAccounts = createServerFn().handler(async () => {
   return db.select().from(accounts)
 })
+
+export const generateNarrative = createServerFn()
+  .inputValidator(z.object({
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
+    totalIncome: z.number(),
+    totalExpenses: z.number(),
+    net: z.number(),
+    savingsRate: z.number().nullable(),
+    topCategories: z.array(z.object({ name: z.string(), total: z.number() })),
+    periodDelta: z.object({
+      income: z.number().nullable(),
+      expenses: z.number().nullable(),
+    }).nullable(),
+    currency: z.string().default("EUR"),
+  }))
+  .handler(async ({ data }) => {
+    const settingRows = await db.select().from(settings)
+    const settingMap = Object.fromEntries(settingRows.map((r) => [r.key, r.value]))
+    const ollamaUrl = settingMap["ollama_url"]
+    const ollamaModel = settingMap["ollama_model"] ?? "llama3"
+
+    if (!ollamaUrl) return { narrative: null, error: "Ollama is not configured. Add a URL in Settings." }
+
+    const narrative = await generateFinancialNarrative(data, ollamaUrl, ollamaModel)
+    if (!narrative) return { narrative: null, error: "Ollama did not return a response. Check that it is running." }
+
+    return { narrative, error: null }
+  })

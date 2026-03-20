@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   getSpendingByCategory,
@@ -8,6 +8,7 @@ import {
   getIncomeVsExpenses,
   getSummaryStats,
   getAccounts,
+  generateNarrative,
 } from "../server/fn/insights"
 import { formatCurrency, startOfMonth, daysAgo, startOfYear, todayStr } from "../lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -28,7 +29,7 @@ import {
   ComposedChart,
   ReferenceLine,
 } from "recharts"
-import { TrendingDown, TrendingUp, ArrowLeftRight, Hash } from "lucide-react"
+import { TrendingDown, TrendingUp, ArrowLeftRight, Hash, Sparkles, RefreshCw } from "lucide-react"
 import { z } from "zod"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useSortable } from "@/hooks/use-sortable"
@@ -242,6 +243,16 @@ function DashboardPage() {
         />
       </div>
 
+      {hasData && (
+        <NarrativeCard
+          stats={stats}
+          byCat={byCat}
+          periodDelta={periodDelta}
+          dateFrom={search.dateFrom}
+          dateTo={search.dateTo}
+        />
+      )}
+
       {!hasData ? (
         <div className="rounded-lg border-2 border-dashed p-8 sm:p-16 text-center">
           <p className="text-muted-foreground">No transaction data for this period.</p>
@@ -309,6 +320,83 @@ function DashboardPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function NarrativeCard({
+  stats,
+  byCat,
+  periodDelta,
+  dateFrom,
+  dateTo,
+}: {
+  stats: { totalIncome: number; totalExpenses: number; net: number }
+  byCat: { categoryName: string; total: number }[]
+  periodDelta: { income: number | null; expenses: number | null } | null
+  dateFrom?: string
+  dateTo?: string
+}) {
+  const [narrative, setNarrative] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const savingsRate = stats.totalIncome > 0 ? (stats.net / stats.totalIncome) * 100 : null
+
+  async function handleGenerate() {
+    setLoading(true)
+    setNarrative(null)
+    setError(null)
+    try {
+      const result = await generateNarrative({
+        data: {
+          dateFrom,
+          dateTo,
+          totalIncome: stats.totalIncome,
+          totalExpenses: stats.totalExpenses,
+          net: stats.net,
+          savingsRate,
+          topCategories: byCat.slice(0, 5).map((c) => ({ name: c.categoryName, total: c.total })),
+          periodDelta: periodDelta ?? null,
+          currency: "EUR",
+        },
+      })
+      if (result.error) setError(result.error)
+      else setNarrative(result.narrative)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          AI Summary
+        </CardTitle>
+        <CardAction>
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
+            {narrative ? "Regenerate" : "Generate"}
+          </button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {narrative ? (
+          <p className="text-sm leading-relaxed">{narrative}</p>
+        ) : error ? (
+          <p className="text-sm text-muted-foreground">{error}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {loading ? "Generating summary…" : "Click Generate for an AI-written summary of this period."}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

@@ -1,8 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { getCategoriesWithRules, createCategory, deleteCategory, updateCategory } from "../server/fn/categories"
-import { recategoriseAll } from "../server/fn/transactions"
-import { Plus, Trash2, RefreshCw, Pencil, Check, X } from "lucide-react"
+import { Plus, Trash2, Pencil, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -34,8 +33,6 @@ function CategoriesPage() {
   const router = useRouter()
   const [showNew, setShowNew] = useState(false)
   const [newCat, setNewCat] = useState({ name: "", color: "#94a3b8", type: "expense" as "expense" | "income" | "transfer" })
-  const [recatResult, setRecatResult] = useState<{ updated: number; total: number } | null>(null)
-  const [recatting, setRecatting] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [editFields, setEditFields] = useState({ name: "", color: "#94a3b8", type: "expense" as "expense" | "income" | "transfer" })
 
@@ -65,15 +62,6 @@ function CategoriesPage() {
     router.invalidate()
   }
 
-  async function handleRecategorise() {
-    setRecatting(true)
-    setRecatResult(null)
-    const result = await recategoriseAll()
-    setRecatResult(result)
-    setRecatting(false)
-    router.invalidate()
-  }
-
   return (
     <div className="p-4 sm:p-6 max-w-3xl">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 sm:mb-6">
@@ -83,24 +71,11 @@ function CategoriesPage() {
             Manage spending categories. Add keyword rules under <strong>Rules</strong>.
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button variant="outline" onClick={handleRecategorise} disabled={recatting} size="sm" className="sm:size-auto">
-            <RefreshCw className={`h-4 w-4 ${recatting ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Re-categorise All</span>
-            <span className="sm:hidden">Re-categorise</span>
-          </Button>
-          <Button onClick={() => setShowNew(true)} size="sm" className="sm:size-auto">
-            <Plus className="h-4 w-4" />
-            New
-          </Button>
-        </div>
+        <Button onClick={() => setShowNew(true)} size="sm">
+          <Plus className="h-4 w-4" />
+          New
+        </Button>
       </div>
-
-      {recatResult && (
-        <div className="mb-4 rounded-md bg-positive-muted border border-positive/20 px-4 py-3 text-sm text-positive">
-          Re-categorised {recatResult.updated} of {recatResult.total} transactions.
-        </div>
-      )}
 
       {showNew && (
         <div className="mb-4 rounded-lg border p-4 space-y-3">
