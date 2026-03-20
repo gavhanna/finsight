@@ -156,39 +156,36 @@ function TriagePage() {
   const progress = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
   return (
-    <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-5">
       {/* Header + progress */}
-      <div className="space-y-1">
+      <div className="animate-in space-y-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Triage</h1>
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {remaining} remaining
-          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-muted-foreground tabular-nums">{remaining} left</span>
+          </div>
+          <span className="section-label tabular-nums">{doneCount} / {total} done</span>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
+            className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {doneCount} of {total} categorised
-        </p>
       </div>
 
       {/* Transaction card */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="p-5 space-y-4">
+      <div className="animate-in stagger-1 rounded-2xl border bg-card shadow-md overflow-hidden hover-glow">
+        <div className="p-5 sm:p-6 space-y-4">
           <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1 min-w-0">
-              <p className="font-semibold text-lg leading-tight truncate">{displayName}</p>
+            <div className="space-y-1 min-w-0 flex-1">
+              <p className="font-bold text-xl leading-tight">{displayName}</p>
               {current.description && current.description !== displayName && (
                 <p className="text-sm text-muted-foreground truncate">{current.description}</p>
               )}
-              <p className="text-xs text-muted-foreground">{formatDate(current.bookingDate)}</p>
+              <p className="text-xs text-muted-foreground font-medium">{formatDate(current.bookingDate)}</p>
             </div>
             <p className={cn(
-              "text-2xl font-bold tabular-nums font-mono shrink-0",
+              "metric-number shrink-0 tabular-nums",
               isIncome ? "text-positive" : "text-foreground"
             )}>
               {formatCurrency(current.amount, current.currency)}
@@ -196,7 +193,7 @@ function TriagePage() {
           </div>
 
           {current.merchantCategoryCode && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs font-mono">
               MCC {current.merchantCategoryCode}
             </Badge>
           )}
@@ -326,12 +323,12 @@ function TriagePage() {
       </div>
 
       {/* Category picker */}
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-muted-foreground">
+      <div className="animate-in stagger-2 space-y-3">
+        <p className="section-label">
           {ruleMode && rulePattern.trim()
             ? ruleAction === "add" && selectedRuleId !== null
-              ? "Pick a category — will also add pattern to rule"
-              : "Pick a category — will also create rule"
+              ? "Pick a category — will add pattern to rule"
+              : "Pick a category — will create rule"
             : "Pick a category"}
         </p>
         <CategoryGrid
@@ -342,13 +339,13 @@ function TriagePage() {
       </div>
 
       {/* Skip */}
-      <div className="flex justify-end">
+      <div className="flex justify-end animate-in stagger-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={handleSkip}
           disabled={saving || remaining <= 1}
-          className="text-muted-foreground"
+          className="text-muted-foreground hover:text-foreground"
         >
           <SkipForward data-icon="inline-start" />
           Skip
@@ -369,23 +366,24 @@ function CategoryGrid({
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      {categories.map((cat) => (
+      {categories.map((cat, i) => (
         <button
           key={cat.id}
           onClick={() => onSelect(cat.id)}
           disabled={disabled}
+          style={{ animationDelay: `${i * 20}ms` }}
           className={cn(
-            "flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 text-left text-sm font-medium",
-            "transition-colors hover:bg-accent hover:border-primary/40",
+            "animate-in flex items-center gap-2.5 rounded-xl border bg-card px-3 py-3 text-left text-sm font-medium",
+            "transition-all hover:bg-accent hover:border-primary/30 hover:shadow-sm hover:-translate-y-px",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >
           <span
-            className="size-3 rounded-full shrink-0"
+            className="size-2.5 rounded-full shrink-0 ring-1 ring-black/10"
             style={{ backgroundColor: cat.color }}
           />
-          <span className="truncate">{cat.name}</span>
+          <span className="truncate text-xs font-semibold">{cat.name}</span>
         </button>
       ))}
     </div>

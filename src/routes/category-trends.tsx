@@ -181,8 +181,8 @@ function CategoryTrendsPage() {
   return (
     <div className="p-4 sm:p-6 space-y-5 max-w-7xl">
       {/* Header */}
-      <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Category Trends</h1>
+      <div className="animate-in space-y-3">
+        <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
 
         <div className="overflow-x-auto">
           <Tabs value={preset} onValueChange={v => v && setPreset(v as Preset)}>

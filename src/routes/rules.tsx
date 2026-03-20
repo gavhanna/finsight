@@ -117,9 +117,9 @@ function RulesPage() {
   return (
     <div className="p-4 sm:p-6 max-w-4xl">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-6">
+      <div className="animate-in flex items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Rules</h1>
+          <h1 className="text-xl font-bold tracking-tight">Rules</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Auto-categorise transactions by matching patterns against payee or description. Higher priority runs first.
           </p>

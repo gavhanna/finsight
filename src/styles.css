@@ -289,3 +289,135 @@
         box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 8%);
     }
 }
+
+/* ─────────────────────────────────────────────────
+   KEYFRAMES
+───────────────────────────────────────────────── */
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes aurora-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px oklch(0.72 0.175 195 / 0.18), 0 4px 20px oklch(0.72 0.175 195 / 0.10); }
+    50%       { box-shadow: 0 0 0 1px oklch(0.72 0.175 195 / 0.30), 0 8px 32px oklch(0.72 0.175 195 / 0.20); }
+}
+
+/* ─────────────────────────────────────────────────
+   EXTENDED UTILITIES — Premium design layer
+───────────────────────────────────────────────── */
+@layer utilities {
+    /* ── Staggered entry animations ── */
+    .animate-in {
+        animation: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .stagger-1 { animation-delay: 40ms; }
+    .stagger-2 { animation-delay: 80ms; }
+    .stagger-3 { animation-delay: 120ms; }
+    .stagger-4 { animation-delay: 160ms; }
+    .stagger-5 { animation-delay: 200ms; }
+    .stagger-6 { animation-delay: 240ms; }
+
+    /* ── Hover glow — teal aurora aura on cards ── */
+    .hover-glow {
+        transition: box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease;
+    }
+    .hover-glow:hover {
+        box-shadow:
+            0 0 0 1px oklch(0.52 0.165 195 / 0.22),
+            0 4px 18px oklch(0.52 0.165 195 / 0.09);
+        transform: translateY(-1px);
+    }
+    .dark .hover-glow:hover {
+        box-shadow:
+            0 0 0 1px oklch(0.72 0.175 195 / 0.28),
+            0 4px 22px oklch(0.72 0.175 195 / 0.14);
+        transform: translateY(-1px);
+    }
+
+    /* ── Chart area — subtle dot-grid atmosphere ── */
+    .chart-bg {
+        background-image: radial-gradient(circle, oklch(0.5 0 0 / 0.09) 1px, transparent 1px);
+        background-size: 20px 20px;
+        border-radius: calc(var(--radius) - 2px);
+    }
+    .dark .chart-bg {
+        background-image: radial-gradient(circle, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+    }
+
+    /* ── AI narrative card gradient ── */
+    .ai-gradient {
+        background: linear-gradient(135deg, var(--card) 0%, oklch(0.958 0.014 195) 100%);
+    }
+    .dark .ai-gradient {
+        background: linear-gradient(135deg, var(--card) 0%, oklch(0.182 0.025 195) 100%);
+    }
+
+    /* ── Large metric number ── */
+    .metric-number {
+        font-size: clamp(1.375rem, 2.8vw, 2rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
+        font-family: 'Geist Mono Variable', ui-monospace, monospace;
+    }
+
+    /* ── Section label — tracked uppercase caps ── */
+    .section-label {
+        font-size: 0.625rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+        line-height: 1;
+    }
+
+    /* ── Delta pill badges ── */
+    .delta-up {
+        color: var(--positive);
+        background-color: var(--positive-muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    .delta-down {
+        color: var(--negative);
+        background-color: var(--negative-muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Frosted glass header ── */
+    .header-frosted {
+        background: oklch(from var(--background) l c h / 0.88);
+        backdrop-filter: blur(12px) saturate(1.4);
+        -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    }
+    .dark .header-frosted {
+        background: oklch(from var(--background) l c h / 0.85);
+    }
+
+    /* ── Accent top border for stat cards ── */
+    .accent-positive { border-top: 2px solid var(--positive); }
+    .accent-negative { border-top: 2px solid var(--negative); }
+    .accent-primary  { border-top: 2px solid var(--primary); }
+    .accent-neutral  { border-top: 2px solid var(--neutral-data); }
+}

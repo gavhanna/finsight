@@ -14,6 +14,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  TrendingUp,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { cn } from "@/lib/utils"
@@ -125,13 +126,18 @@ function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 py-1">
-              <div className="flex aspect-square size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold flex-shrink-0 ring-1 ring-sidebar-primary/30">
-                F
+            <div className="flex items-center gap-2.5 px-2 py-1.5">
+              <div className="flex aspect-square size-7 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground flex-shrink-0 shadow-md ring-1 ring-sidebar-primary/25">
+                <TrendingUp className="size-3.5" />
               </div>
-              <span className="truncate font-semibold text-sm tracking-tight group-data-[collapsible=icon]:hidden">
-                FinSight
-              </span>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <span className="font-bold text-sm tracking-tight text-sidebar-foreground leading-none">
+                  FinSight
+                </span>
+                <span className="text-[10px] text-sidebar-foreground/40 font-medium tracking-wide leading-none mt-0.5">
+                  FAMILY FINANCE
+                </span>
+              </div>
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -159,10 +165,7 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter className="px-2 pb-3 space-y-2">
-        <p className="px-1 text-xs text-sidebar-foreground/50 truncate group-data-[collapsible=icon]:hidden">
-          Family Finance Insights
-        </p>
+      <SidebarFooter className="px-2 pb-3">
         <div className="group-data-[collapsible=icon]:hidden">
           <ThemeToggle />
         </div>
@@ -174,15 +177,26 @@ function AppSidebar() {
 }
 
 function RootLayout() {
+  const { location } = useRouterState()
+
+  const currentNav = navItems.find((item) =>
+    item.exact ? location.pathname === item.to : item.to !== "/" && location.pathname.startsWith(item.to),
+  ) ?? navItems[0]
+
+  const { icon: NavIcon } = currentNav
+
   return (
     <TooltipProvider>
       <SidebarProvider className="h-svh overflow-hidden">
         <AppSidebar />
         <SidebarInset className="overflow-hidden">
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+          <header className="header-frosted flex h-12 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-10">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mx-1 h-4" />
-            <span className="font-semibold text-sm md:hidden">FinSight</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <NavIcon className="size-3.5 text-muted-foreground shrink-0" />
+              <span className="font-semibold text-sm truncate">{currentNav.label}</span>
+            </div>
           </header>
           <div className="flex flex-1 flex-col overflow-auto min-h-0">
             <Outlet />

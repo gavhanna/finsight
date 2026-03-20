@@ -15,14 +15,42 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-xl border bg-card/95 backdrop-blur-sm shadow-xl px-3.5 py-2.5 text-sm min-w-36">
+      {label && <p className="font-semibold text-foreground text-xs mb-2 pb-1.5 border-b">{label}</p>}
+      <div className="space-y-1.5">
+        {payload.map((entry: any, i: number) => (
+          <div key={i} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: entry.color ?? entry.fill }} />
+              <span className="text-muted-foreground text-xs">{entry.name ?? "Spending"}</span>
+            </div>
+            <span className="font-semibold tabular-nums text-xs text-foreground">
+              {formatCurrency(Number(entry.value))}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const CHART_COLORS = [
-  "#22c55e", "#3b82f6", "#f97316", "#a855f7", "#ec4899",
-  "#14b8a6", "#eab308", "#ef4444", "#6366f1", "#84cc16",
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+  "var(--color-chart-6)",
+  "var(--color-chart-7)",
+  "var(--color-chart-8)",
 ]
 
 type Preset = "3months" | "6months" | "12months"
@@ -138,8 +166,8 @@ function ComparisonPage() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header + Filters */}
-      <div className="space-y-3">
-        <h1 className="text-2xl font-semibold">Monthly Comparison</h1>
+      <div className="animate-in space-y-3">
+        <h1 className="text-xl font-bold tracking-tight">Monthly Comparison</h1>
 
         <div className="overflow-x-auto">
           <Tabs value={preset} onValueChange={(v) => v && setPreset(v as Preset)}>
@@ -202,33 +230,34 @@ function ComparisonPage() {
       ) : (
         <>
           {/* Monthly totals chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Spending by Month</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={monthlyTotals} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis
-                    tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`}
-                    tick={{ fontSize: 11 }}
-                    width={48}
-                  />
-                  <Tooltip
-                    formatter={(v: any) => [formatCurrency(Number(v)), "Spending"]}
-                    labelStyle={{ fontWeight: 600 }}
-                  />
-                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                    {monthlyTotals.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <div className="space-y-2">
+            <p className="section-label">Monthly Spending Overview</p>
+            <Card>
+              <CardContent className="pt-5">
+                <div className="chart-bg p-3 -mx-1">
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={monthlyTotals} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.08)" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <YAxis
+                        tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`}
+                        tick={{ fontSize: 10 }}
+                        width={48}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Bar dataKey="total" radius={[5, 5, 0, 0]} maxBarSize={36}>
+                        {monthlyTotals.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Comparison table */}
           <div className="rounded-lg border overflow-hidden">
