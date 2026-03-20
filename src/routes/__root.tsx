@@ -23,6 +23,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -72,18 +75,40 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   )
 }
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/comparison", label: "Comparison", icon: GitCompare },
-  { to: "/category-trends", label: "Category Trends", icon: AreaChart },
-  { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/triage", label: "Triage", icon: Inbox },
-  { to: "/accounts", label: "Accounts", icon: Building2 },
-  { to: "/categories", label: "Categories", icon: Tag },
-  { to: "/rules", label: "Rules", icon: Filter },
-  { to: "/logs", label: "Logs", icon: ScrollText },
-  { to: "/settings", label: "Settings", icon: Settings },
+const navGroups = [
+  {
+    label: "Overview",
+    items: [
+      { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { to: "/comparison", label: "Comparison", icon: GitCompare },
+      { to: "/category-trends", label: "Category Trends", icon: AreaChart },
+    ],
+  },
+  {
+    label: "Transactions",
+    items: [
+      { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+      { to: "/triage", label: "Triage", icon: Inbox },
+    ],
+  },
+  {
+    label: "Manage",
+    items: [
+        { to: "/categories", label: "Categories", icon: Tag },
+        { to: "/rules", label: "Rules", icon: Filter },
+        { to: "/accounts", label: "Accounts", icon: Building2 },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { to: "/logs", label: "Logs", icon: ScrollText },
+      { to: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
 ]
+
+const navItems = navGroups.flatMap((g) => g.items)
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -146,25 +171,32 @@ function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarMenu className="gap-0.5 px-2">
-          {navItems.map(({ to, label, icon: Icon, exact }) => {
-            const isActive = exact
-              ? location.pathname === to
-              : location.pathname.startsWith(to)
-            return (
-              <SidebarMenuItem key={to}>
-                <SidebarMenuButton
-                  render={<Link to={to} onClick={handleNavClick} />}
-                  isActive={isActive}
-                  tooltip={label}
-                >
-                  <Icon />
-                  <span>{label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          })}
-        </SidebarMenu>
+        {navGroups.map((group) => (
+          <SidebarGroup key={group.label} className="px-2 py-1">
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-0.5">
+                {group.items.map(({ to, label, icon: Icon, exact }) => {
+                  const isActive = exact
+                    ? location.pathname === to
+                    : location.pathname.startsWith(to)
+                  return (
+                    <SidebarMenuItem key={to}>
+                      <SidebarMenuButton
+                        render={<Link to={to} onClick={handleNavClick} />}
+                        isActive={isActive}
+                        tooltip={label}
+                      >
+                        <Icon />
+                        <span>{label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="px-2 pb-3">
