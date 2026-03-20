@@ -34,5 +34,5 @@ export function useSortable<T>(
     })
   }, [data, sortKey, sortDir])
 
-  return { sorted, sortKey, sortDir, toggle }
+  return { sorted, sortKey: sortKey as string | null, sortDir, toggle: toggle as (key: string) => void }
 }
