@@ -8,7 +8,7 @@ import {
 } from "recharts"
 import { TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { getSpendingTrends, getAccounts } from "../server/fn/insights"
-import { formatCurrency, startOfMonth, daysAgo, startOfYear, todayStr } from "../lib/utils"
+import { formatCurrency, daysAgo, startOfYear, todayStr } from "../lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -296,11 +296,11 @@ function CategoryTrendsPage() {
                     <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `€${(v/1000).toFixed(1)}k`} tick={{ fontSize: 11 }} width={52} />
                     <Tooltip
-                      formatter={(v: any, name: string) => {
+                      formatter={(v: any, name: any) => {
                         const cat = allCategories.find(c => String(c.id) === name)
                         return [formatCurrency(Number(v)), cat?.name ?? name]
                       }}
-                      labelFormatter={formatMonth}
+                      labelFormatter={(label: any) => formatMonth(String(label))}
                     />
                     {!isSingle && <Legend formatter={name => allCategories.find(c => String(c.id) === name)?.name ?? name} />}
                     {visibleCategories.map(cat => (
@@ -323,11 +323,11 @@ function CategoryTrendsPage() {
                     <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `€${(v/1000).toFixed(1)}k`} tick={{ fontSize: 11 }} width={52} />
                     <Tooltip
-                      formatter={(v: any, name: string) => {
+                      formatter={(v: any, name: any) => {
                         const cat = allCategories.find(c => String(c.id) === name)
                         return [formatCurrency(Number(v)), cat?.name ?? name]
                       }}
-                      labelFormatter={formatMonth}
+                      labelFormatter={(label: any) => formatMonth(String(label))}
                     />
                     {!isSingle && <Legend formatter={name => allCategories.find(c => String(c.id) === name)?.name ?? name} />}
                     {visibleCategories.map(cat => (

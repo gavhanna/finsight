@@ -5,6 +5,7 @@ import { getCategories } from "../server/fn/categories"
 import { getAccounts } from "../server/fn/insights"
 import { formatDate, formatCurrency } from "../lib/utils"
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -98,18 +99,16 @@ function TransactionsPage() {
               className="pl-9 w-full"
             />
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Input
-              type="date"
-              value={search.dateFrom ?? ""}
-              onChange={(e) => updateSearch({ dateFrom: e.target.value || undefined })}
-              className="flex-1 sm:w-auto"
+          <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+            <DatePicker
+              value={search.dateFrom}
+              onChange={(v) => updateSearch({ dateFrom: v })}
+              placeholder="From date"
             />
-            <Input
-              type="date"
-              value={search.dateTo ?? ""}
-              onChange={(e) => updateSearch({ dateTo: e.target.value || undefined })}
-              className="flex-1 sm:w-auto"
+            <DatePicker
+              value={search.dateTo}
+              onChange={(v) => updateSearch({ dateTo: v })}
+              placeholder="To date"
             />
           </div>
           <div className="flex gap-2 flex-wrap w-full sm:w-auto">
@@ -118,7 +117,13 @@ function TransactionsPage() {
               onValueChange={(v) => updateSearch({ categoryId: v && v !== "all" ? Number(v) : undefined })}
             >
               <SelectTrigger className="flex-1 sm:flex-none sm:min-w-36">
-                <SelectValue placeholder="All categories" />
+                <SelectValue placeholder="All categories">
+                  {search.categoryId === undefined
+                    ? "All categories"
+                    : search.categoryId === -1
+                    ? "Uncategorised"
+                    : categories.find((c: any) => c.id === search.categoryId)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
