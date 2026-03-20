@@ -16,6 +16,7 @@ import {
   Moon,
   Monitor,
   TrendingUp,
+  Repeat,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { cn } from "@/lib/utils"
@@ -81,6 +82,7 @@ const navGroups = [
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/comparison", label: "Comparison", icon: GitCompare },
+      { to: "/subscriptions", label: "Subscriptions", icon: Repeat },
       { to: "/category-trends", label: "Category Trends", icon: AreaChart },
     ],
   },
