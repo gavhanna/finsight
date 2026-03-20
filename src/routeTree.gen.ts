@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TriageRouteImport } from './routes/triage'
 import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as LogsRouteImport } from './routes/logs'
@@ -29,6 +30,11 @@ const TriageRoute = TriageRouteImport.update({
 const TransactionsRoute = TransactionsRouteImport.update({
   id: '/transactions',
   path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubscriptionsRoute = SubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof LogsRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/logs': typeof LogsRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/logs': typeof LogsRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/rules'
     | '/settings'
+    | '/subscriptions'
     | '/transactions'
     | '/triage'
     | '/api/gocardless/callback'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/rules'
     | '/settings'
+    | '/subscriptions'
     | '/transactions'
     | '/triage'
     | '/api/gocardless/callback'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/rules'
     | '/settings'
+    | '/subscriptions'
     | '/transactions'
     | '/triage'
     | '/api/gocardless/callback'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   LogsRoute: typeof LogsRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
+  SubscriptionsRoute: typeof SubscriptionsRoute
   TransactionsRoute: typeof TransactionsRoute
   TriageRoute: typeof TriageRoute
   ApiGocardlessCallbackRoute: typeof ApiGocardlessCallbackRoute
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/transactions'
       fullPath: '/transactions'
       preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   LogsRoute: LogsRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
+  SubscriptionsRoute: SubscriptionsRoute,
   TransactionsRoute: TransactionsRoute,
   TriageRoute: TriageRoute,
   ApiGocardlessCallbackRoute: ApiGocardlessCallbackRoute,
