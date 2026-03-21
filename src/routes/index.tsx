@@ -49,14 +49,19 @@ const SearchSchema = z.object({
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   accountIds: z.array(z.string()).optional(),
-  preset: z.enum(["month", "3months", "6months", "ytd", "all"]).optional(),
+  preset: z.enum(["month", "3months", "6months", "ytd", "all"]).default("3months"),
   chartType: z.enum(["pie", "bar"]).optional(),
 })
 
 export const Route = createFileRoute("/")({
   validateSearch: SearchSchema,
   component: DashboardPage,
-  loaderDeps: ({ search }) => search,
+  loaderDeps: ({ search }) => {
+    const dates = !search.dateFrom && !search.dateTo
+      ? getPresetDates(search.preset)
+      : { dateFrom: search.dateFrom, dateTo: search.dateTo }
+    return { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo }
+  },
   loader: async ({ deps }) => {
     const filters = {
       dateFrom: deps.dateFrom,
@@ -134,11 +139,11 @@ function DashboardPage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
-  const preset = search.preset ?? "month"
+  const preset = search.preset
 
   function setPreset(p: DatePreset) {
     const dates = getPresetDates(p)
-    navigate({ search: { ...search, ...dates, preset: p } })
+    navigate({ search: { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo, preset: p } })
   }
 
   function setChartType(t: "pie" | "bar") {
