@@ -291,6 +291,8 @@ function CategoryTrendsPage() {
 
               {/* Chart */}
               {chartType === "area" ? (
+                <div className="overflow-x-auto">
+                <div style={{ minWidth: Math.max(480, chartData.length * 56) }}>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                     <defs>
@@ -343,7 +345,11 @@ function CategoryTrendsPage() {
                     })}
                   </AreaChart>
                 </ResponsiveContainer>
+                </div>
+                </div>
               ) : (
+                <div className="overflow-x-auto">
+                <div style={{ minWidth: Math.max(480, chartData.length * 56) }}>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -380,6 +386,8 @@ function CategoryTrendsPage() {
                     })}
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
+                </div>
               )}
             </CardContent>
           </Card>

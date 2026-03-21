@@ -570,7 +570,7 @@ function SpendingPieChart({ data }: { data: { categoryName: string; categoryColo
 function SpendingBarChart({ data }: { data: { categoryName: string; categoryColor: string; total: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} layout="vertical" margin={{ left: 80, right: 20 }}>
+      <BarChart data={data} layout="vertical" margin={{left: -45, right: 16 }}>
         <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
         <YAxis type="category" dataKey="categoryName" tick={{ fontSize: 10 }} width={80} tickLine={false} axisLine={false} />
         <Tooltip content={<ChartTooltip />} />
@@ -668,7 +668,7 @@ function TopMerchantsChart({ data }: { data: { name: string; total: number; coun
   }
   return (
     <ResponsiveContainer width="100%" height={Math.max(200, data.length * 36)}>
-      <BarChart data={data} layout="vertical" margin={{ left: 140, right: 40 }}>
+      <BarChart data={data} layout="vertical" margin={{left: -45, right: 16 }}>
         <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
         <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={140} tickLine={false} axisLine={false} />
         <Tooltip content={<ChartTooltip />} />

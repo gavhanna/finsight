@@ -245,7 +245,8 @@ function ComparisonPage() {
             <p className="section-label">Monthly Spending Overview</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-3 -mx-1">
+                <div className="chart-bg p-3 -mx-1 overflow-x-auto">
+                  <div style={{ minWidth: Math.max(480, stackedData.length * 56) }}>
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={stackedData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.08)" vertical={false} />
@@ -271,6 +272,7 @@ function ComparisonPage() {
                       ))}
                     </BarChart>
                   </ResponsiveContainer>
+                  </div>
                 </div>
               </CardContent>
             </Card>
