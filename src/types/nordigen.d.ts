@@ -27,18 +27,18 @@ declare module "nordigen-node" {
     }
     agreement: {
       createAgreement(opts: {
-        institution_id: string
-        max_historical_days?: number
-        access_valid_for_days?: number
-        access_scope?: string[]
+        institutionId: string
+        maxHistoricalDays?: number
+        accessValidForDays?: number
+        accessScope?: string[]
       }): Promise<{ id: string }>
     }
     requisition: {
       createRequisition(opts: {
-        redirect: string
-        institution_id: string
+        redirectUrl: string
+        institutionId: string
         agreement?: string
-        user_language?: string
+        userLanguage?: string
         reference?: string
       }): Promise<any>
       getRequisitionById(id: string): Promise<any>

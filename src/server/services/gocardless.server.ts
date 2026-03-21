@@ -67,14 +67,22 @@ export async function createRequisition(
   const nordigen = getClient(secretId, secretKey)
   await ensureToken(nordigen)
 
-  log.info("gocardless.agreement.creating", { institutionId })
+  let maxHistoricalDays = 365
+  try {
+    const institution = await nordigen.institution.getInstitutionById(institutionId)
+    maxHistoricalDays = Math.min(365, parseInt(institution?.transaction_total_days ?? "365", 10) || 365)
+  } catch (err: any) {
+    log.warn("gocardless.institution.lookup_failed", { institutionId, error: err?.message })
+  }
+
+  log.info("gocardless.agreement.creating", { institutionId, maxHistoricalDays })
   let agreement: any
   try {
     agreement = await nordigen.agreement.createAgreement({
-      institution_id: institutionId,
-      max_historical_days: 90,
-      access_valid_for_days: 90,
-      access_scope: ["details", "balances", "transactions"],
+      institutionId,
+      maxHistoricalDays,
+      accessValidForDays: 90,
+      accessScope: ["details", "balances", "transactions"],
     })
     log.info("gocardless.agreement.created", { agreementId: agreement.id, institutionId })
   } catch (err: any) {
@@ -86,10 +94,10 @@ export async function createRequisition(
   let requisition: any
   try {
     requisition = await nordigen.requisition.createRequisition({
-      redirect: redirectUrl,
-      institution_id: institutionId,
+      redirectUrl,
+      institutionId,
       agreement: agreement.id as string,
-      user_language: "EN",
+      userLanguage: "EN",
     })
     log.info("gocardless.requisition.created", { requisitionId: requisition.id, institutionId })
   } catch (err: any) {
