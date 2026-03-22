@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
-import { categories, rules, rulePatterns, transactions } from "../../db/schema"
+import { categories, categoryGroups, rules, rulePatterns, transactions } from "../../db/schema"
 import { eq, and, sql, inArray, type SQL } from "drizzle-orm"
 import { z } from "zod"
 import { invalidateCategoryCache } from "../services/categoriser.server"
@@ -8,6 +8,40 @@ import { log } from "../../lib/logger.server"
 
 const FieldSchema = z.enum(["description", "creditorName", "debtorName", "merchantCategoryCode"])
 const MatchTypeSchema = z.enum(["contains", "exact", "startsWith"])
+
+// ── Category Groups ───────────────────────────────────────────────────────────
+
+export const getCategoryGroups = createServerFn().handler(async () => {
+  return db.select().from(categoryGroups).orderBy(categoryGroups.name)
+})
+
+export const createCategoryGroup = createServerFn()
+  .inputValidator(z.object({ name: z.string().min(1), color: z.string().default("#94a3b8") }))
+  .handler(async ({ data }) => {
+    const [group] = await db.insert(categoryGroups).values(data).returning()
+    log.info("categoryGroup.created", { id: group.id, name: group.name })
+    return group
+  })
+
+export const updateCategoryGroup = createServerFn()
+  .inputValidator(z.object({ id: z.number(), name: z.string().min(1).optional(), color: z.string().optional() }))
+  .handler(async ({ data: { id, ...rest } }) => {
+    await db.update(categoryGroups).set(rest).where(eq(categoryGroups.id, id))
+    log.info("categoryGroup.updated", { id, fields: Object.keys(rest) })
+  })
+
+export const deleteCategoryGroup = createServerFn()
+  .inputValidator(z.number())
+  .handler(async ({ data: id }) => {
+    await db.delete(categoryGroups).where(eq(categoryGroups.id, id))
+    log.info("categoryGroup.deleted", { id })
+  })
+
+export const assignCategoryGroup = createServerFn()
+  .inputValidator(z.object({ categoryId: z.number(), groupId: z.number().nullable() }))
+  .handler(async ({ data: { categoryId, groupId } }) => {
+    await db.update(categories).set({ groupId }).where(eq(categories.id, categoryId))
+  })
 
 // ── Categories ────────────────────────────────────────────────────────────────
 
@@ -17,6 +51,7 @@ export const getCategories = createServerFn().handler(async () => {
 
 export const getCategoriesWithRules = createServerFn().handler(async () => {
   const cats = await db.select().from(categories).orderBy(categories.name)
+  const groups = await db.select().from(categoryGroups)
   const allRules = await db.select().from(rules)
   const txCounts = await db
     .select({
@@ -27,6 +62,7 @@ export const getCategoriesWithRules = createServerFn().handler(async () => {
     .groupBy(transactions.categoryId)
   return cats.map((cat) => ({
     ...cat,
+    groupName: groups.find((g) => g.id === cat.groupId)?.name ?? null,
     rules: allRules.filter((r) => r.categoryId === cat.id).length,
     transactionCount: Number(txCounts.find((r) => r.categoryId === cat.id)?.count ?? 0),
   }))
@@ -53,6 +89,7 @@ export const updateCategory = createServerFn()
     color: z.string().optional(),
     icon: z.string().optional(),
     type: z.enum(["expense", "income", "transfer"]).optional(),
+    groupId: z.number().nullable().optional(),
   }))
   .handler(async ({ data: { id, ...rest } }) => {
     await db.update(categories).set(rest).where(eq(categories.id, id))

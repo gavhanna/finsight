@@ -50,6 +50,12 @@ export const accounts = pgTable("accounts", {
   syncCallsDate: text("sync_calls_date"), // YYYY-MM-DD
 })
 
+export const categoryGroups = pgTable("category_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  color: text("color").notNull(),
+})
+
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
@@ -60,6 +66,9 @@ export const categories = pgTable("categories", {
     .default("expense")
     .$type<"expense" | "income" | "transfer">(),
   isDefault: boolean("is_default").notNull().default(false),
+  groupId: integer("group_id").references(() => categoryGroups.id, {
+    onDelete: "set null",
+  }),
 })
 
 export const rules = pgTable("rules", {
@@ -121,6 +130,7 @@ export const transactions = pgTable(
 export type Setting = typeof settings.$inferSelect
 export type BankConnection = typeof bankConnections.$inferSelect
 export type Account = typeof accounts.$inferSelect
+export type CategoryGroup = typeof categoryGroups.$inferSelect
 export type Category = typeof categories.$inferSelect
 export type Rule = typeof rules.$inferSelect
 export type RulePattern = typeof rulePatterns.$inferSelect
