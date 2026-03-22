@@ -10,14 +10,14 @@ import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
 import { cn } from "@/lib/utils"
 
-export const Route = createFileRoute("/subscriptions")({
-  component: SubscriptionsPage,
+export const Route = createFileRoute("/recurring")({
+  component: RecurringPage,
   loader: async () => getRecurringTransactions(),
 })
 
 type FreqFilter = "all" | "monthly" | "weekly" | "other"
 
-function SubscriptionsPage() {
+function RecurringPage() {
   const data = Route.useLoaderData()
   const [freqFilter, setFreqFilter] = useState<FreqFilter>("all")
   const [showInactive, setShowInactive] = useState(false)

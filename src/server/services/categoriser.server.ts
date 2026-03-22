@@ -2,7 +2,6 @@ import { db } from "../../db/index.server"
 import { categories, rules, rulePatterns } from "../../db/schema"
 import type { Category, Rule, RulePattern } from "../../db/schema"
 import { MCC_CATEGORY_MAP } from "../../lib/constants"
-import { categoriseWithOllama } from "./ollama.server"
 
 interface TransactionData {
   description?: string | null
@@ -65,11 +64,7 @@ function matchesField(
   }
 }
 
-export async function categorise(
-  tx: TransactionData,
-  ollamaUrl?: string,
-  ollamaModel?: string,
-): Promise<CategoriseResult> {
+export async function categorise(tx: TransactionData): Promise<CategoriseResult> {
   const allCategories = await getCategories()
   const allRules = await getRules()
 
@@ -90,17 +85,6 @@ export async function categorise(
       const cat = allCategories.find((c) => c.name === catName)
       if (cat) {
         return { categoryId: cat.id, categorisedBy: "mcc" }
-      }
-    }
-  }
-
-  // 3. Ollama LLM fallback
-  if (ollamaUrl) {
-    const catName = await categoriseWithOllama(tx, allCategories, ollamaUrl, ollamaModel)
-    if (catName) {
-      const cat = allCategories.find((c) => c.name === catName)
-      if (cat) {
-        return { categoryId: cat.id, categorisedBy: "llm" }
       }
     }
   }

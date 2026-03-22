@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
-import { transactions, categories, settings } from "../../db/schema"
+import { transactions, categories } from "../../db/schema"
 import { eq, and, gte, lte, desc, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 import { categorise } from "../services/categoriser.server"
@@ -102,33 +102,41 @@ export const getUncategorisedTransactions = createServerFn().handler(async () =>
   return rows
 })
 
+export const getTransactionsForTriage = createServerFn()
+  .inputValidator(z.object({ categoryId: z.number().nullable() }))
+  .handler(async ({ data: { categoryId } }) => {
+    const rows = await db
+      .select()
+      .from(transactions)
+      .where(
+        categoryId === null
+          ? sql`${transactions.categoryId} IS NULL`
+          : eq(transactions.categoryId, categoryId),
+      )
+      .orderBy(desc(transactions.bookingDate), desc(transactions.id))
+      .limit(500)
+    return rows
+  })
+
 export const recategoriseAll = createServerFn().handler(async () => {
-  const settingRows = await db.select().from(settings)
-  const settingMap = Object.fromEntries(settingRows.map((r) => [r.key, r.value]))
-  const ollamaUrl = settingMap["ollama_url"] ?? undefined
-  const ollamaModel = settingMap["ollama_model"] ?? undefined
+  const txs = await db.select().from(transactions)
 
-  // Get all non-manual transactions
-  const txs = await db
-    .select()
-    .from(transactions)
-    .where(sql`${transactions.categorisedBy} != 'manual' OR ${transactions.categorisedBy} IS NULL`)
-
-  log.info("transaction.recategorise.started", { total: txs.length, ollamaEnabled: !!ollamaUrl })
+  log.info("transaction.recategorise.started", { total: txs.length })
 
   let updated = 0
   for (const tx of txs) {
-    const { categoryId, categorisedBy } = await categorise(
-      {
-        description: tx.description,
-        creditorName: tx.creditorName,
-        debtorName: tx.debtorName,
-        merchantCategoryCode: tx.merchantCategoryCode,
-        amount: tx.amount,
-      },
-      ollamaUrl,
-      ollamaModel,
-    )
+    const { categoryId, categorisedBy } = await categorise({
+      description: tx.description,
+      creditorName: tx.creditorName,
+      debtorName: tx.debtorName,
+      merchantCategoryCode: tx.merchantCategoryCode,
+      amount: tx.amount,
+    })
+    // Rules are king: they override even manual categorisation.
+    // MCC and LLM do not override manual choices.
+    const isManual = tx.categorisedBy === "manual"
+    const ruleWins = categorisedBy === "rule"
+    if (isManual && !ruleWins) continue
     if (categoryId !== tx.categoryId) {
       await db
         .update(transactions)

@@ -11,9 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TriageRouteImport } from './routes/triage'
 import { Route as TransactionsRouteImport } from './routes/transactions'
-import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
+import { Route as RecurringRouteImport } from './routes/recurring'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as ComparisonRouteImport } from './routes/comparison'
 import { Route as CategoryTrendsRouteImport } from './routes/category-trends'
@@ -32,11 +32,6 @@ const TransactionsRoute = TransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SubscriptionsRoute = SubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -45,6 +40,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const RulesRoute = RulesRouteImport.update({
   id: '/rules',
   path: '/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecurringRoute = RecurringRouteImport.update({
+  id: '/recurring',
+  path: '/recurring',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogsRoute = LogsRouteImport.update({
@@ -90,9 +90,9 @@ export interface FileRoutesByFullPath {
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
   '/logs': typeof LogsRoute
+  '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/subscriptions': typeof SubscriptionsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -104,9 +104,9 @@ export interface FileRoutesByTo {
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
   '/logs': typeof LogsRoute
+  '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/subscriptions': typeof SubscriptionsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -119,9 +119,9 @@ export interface FileRoutesById {
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
   '/logs': typeof LogsRoute
+  '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/subscriptions': typeof SubscriptionsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -135,9 +135,9 @@ export interface FileRouteTypes {
     | '/category-trends'
     | '/comparison'
     | '/logs'
+    | '/recurring'
     | '/rules'
     | '/settings'
-    | '/subscriptions'
     | '/transactions'
     | '/triage'
     | '/api/gocardless/callback'
@@ -149,9 +149,9 @@ export interface FileRouteTypes {
     | '/category-trends'
     | '/comparison'
     | '/logs'
+    | '/recurring'
     | '/rules'
     | '/settings'
-    | '/subscriptions'
     | '/transactions'
     | '/triage'
     | '/api/gocardless/callback'
@@ -163,9 +163,9 @@ export interface FileRouteTypes {
     | '/category-trends'
     | '/comparison'
     | '/logs'
+    | '/recurring'
     | '/rules'
     | '/settings'
-    | '/subscriptions'
     | '/transactions'
     | '/triage'
     | '/api/gocardless/callback'
@@ -178,9 +178,9 @@ export interface RootRouteChildren {
   CategoryTrendsRoute: typeof CategoryTrendsRoute
   ComparisonRoute: typeof ComparisonRoute
   LogsRoute: typeof LogsRoute
+  RecurringRoute: typeof RecurringRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
-  SubscriptionsRoute: typeof SubscriptionsRoute
   TransactionsRoute: typeof TransactionsRoute
   TriageRoute: typeof TriageRoute
   ApiGocardlessCallbackRoute: typeof ApiGocardlessCallbackRoute
@@ -202,13 +202,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/subscriptions': {
-      id: '/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/subscriptions'
-      preLoaderRoute: typeof SubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -221,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/rules'
       fullPath: '/rules'
       preLoaderRoute: typeof RulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recurring': {
+      id: '/recurring'
+      path: '/recurring'
+      fullPath: '/recurring'
+      preLoaderRoute: typeof RecurringRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logs': {
@@ -282,9 +282,9 @@ const rootRouteChildren: RootRouteChildren = {
   CategoryTrendsRoute: CategoryTrendsRoute,
   ComparisonRoute: ComparisonRoute,
   LogsRoute: LogsRoute,
+  RecurringRoute: RecurringRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
-  SubscriptionsRoute: SubscriptionsRoute,
   TransactionsRoute: TransactionsRoute,
   TriageRoute: TriageRoute,
   ApiGocardlessCallbackRoute: ApiGocardlessCallbackRoute,

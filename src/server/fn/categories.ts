@@ -268,7 +268,7 @@ export const applyRuleToHistory = createServerFn()
     const matching = await db
       .select({ id: transactions.id })
       .from(transactions)
-      .where(and(matchCondition, sql`${transactions.categorisedBy} IS DISTINCT FROM 'manual'`))
+      .where(matchCondition)
 
     if (matching.length === 0) return { updated: 0 }
 

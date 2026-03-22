@@ -94,7 +94,7 @@ const navGroups = [
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/comparison", label: "Comparison", icon: GitCompare },
-      { to: "/subscriptions", label: "Subscriptions", icon: Repeat },
+      { to: "/recurring", label: "Recurring", icon: Repeat },
       { to: "/category-trends", label: "Category Trends", icon: AreaChart },
     ],
   },

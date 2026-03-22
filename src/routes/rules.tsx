@@ -13,10 +13,11 @@ import {
   previewPatterns,
   applyRuleToHistory,
 } from "../server/fn/categories"
+import { recategoriseAll } from "../server/fn/transactions"
 import type { Category, Rule, RulePattern } from "../db/schema"
 import {
   Plus, Trash2, Pencil, Search, ChevronRight, ChevronDown,
-  X, Check, Zap, AlertTriangle, Filter,
+  X, Check, Zap, AlertTriangle, Filter, RefreshCw,
 } from "lucide-react"
 import { formatCurrency, formatDate } from "../lib/utils"
 import { cn } from "@/lib/utils"
@@ -83,6 +84,20 @@ function RulesPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
   const [filterCatId, setFilterCatId] = useState<number | null>(null)
+  const [applying, setApplying] = useState(false)
+  const [applyResult, setApplyResult] = useState<{ updated: number; total: number } | null>(null)
+
+  async function handleApplyAll() {
+    setApplying(true)
+    setApplyResult(null)
+    try {
+      const result = await recategoriseAll()
+      setApplyResult(result)
+      router.invalidate()
+    } finally {
+      setApplying(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     let list = rules as RuleWithMeta[]
@@ -95,7 +110,7 @@ function RulesPage() {
         r.category?.name.toLowerCase().includes(q)
       )
     }
-    return list
+    return [...list].sort((a, b) => a.name.localeCompare(b.name))
   }, [rules, search, filterCatId])
 
   async function handleDelete(id: number) {
@@ -123,10 +138,23 @@ function RulesPage() {
             Auto-categorise transactions by matching patterns against payee or description. Higher priority runs first.
           </p>
         </div>
-        <Button onClick={() => setShowNew(true)} className="shrink-0">
-          <Plus className="h-4 w-4" />
-          New Rule
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col items-end gap-1">
+            <Button variant="outline" onClick={handleApplyAll} disabled={applying}>
+              <RefreshCw className={cn("h-4 w-4", applying && "animate-spin")} />
+              {applying ? "Applying…" : "Apply to history"}
+            </Button>
+            {applyResult && (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                Updated {applyResult.updated} of {applyResult.total} transactions
+              </p>
+            )}
+          </div>
+          <Button onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4" />
+            New Rule
+          </Button>
+        </div>
       </div>
 
       {/* Search + filter */}
@@ -332,7 +360,7 @@ function RuleRow({
               </button>
             )}
             <span className="text-xs text-muted-foreground ml-auto hidden sm:block">
-              Won't overwrite manually categorised transactions
+              Rules override manual categories
             </span>
           </div>
         </div>
@@ -487,9 +515,9 @@ function AddPatternRow({ ruleId, onSaved }: { ruleId: number; onSaved: () => voi
 
   return (
     <div className="rounded-lg border bg-background p-3 space-y-3 mt-1">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Input
-          className="font-mono text-sm flex-1"
+          className="font-mono text-sm flex-1 min-w-lg"
           placeholder="e.g. ALDI"
           value={form.pattern}
           onChange={e => setForm(f => ({ ...f, pattern: e.target.value }))}
