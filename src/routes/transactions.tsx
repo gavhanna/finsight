@@ -1,10 +1,10 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
-import { getTransactions, updateTransactionCategory, bulkCategorise } from "../server/fn/transactions"
+import { useState, useEffect, useRef } from "react"
+import { getTransactions, updateTransactionCategory, bulkCategorise, getTransactionStats } from "../server/fn/transactions"
 import { getCategories } from "../server/fn/categories"
 import { getAccounts } from "../server/fn/insights"
 import { formatDate, formatCurrency } from "../lib/utils"
-import { Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, BarChart2, TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
+import { cn } from "@/lib/utils"
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+} from "recharts"
+
+type ChartStats = Awaited<ReturnType<typeof getTransactionStats>>
+
+function fmtMonth(ym: string) {
+  const [y, m] = ym.split("-")
+  return new Date(Number(y), Number(m) - 1).toLocaleString("default", { month: "short", year: "2-digit" })
+}
 
 const SearchSchema = z.object({
   page: z.coerce.number().default(1),
@@ -46,6 +57,36 @@ function TransactionsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkCatId, setBulkCatId] = useState<string>("")
   const [loading, setLoading] = useState(false)
+  const [searchInput, setSearchInput] = useState(search.search ?? "")
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleSearchChange(value: string) {
+    setSearchInput(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      updateSearch({ search: value || undefined })
+    }, 400)
+  }
+  const [showChart, setShowChart] = useState(false)
+  const [chartStats, setChartStats] = useState<ChartStats | null>(null)
+  const [chartLoading, setChartLoading] = useState(false)
+
+  const hasSearch = !!search.search?.trim()
+
+  useEffect(() => {
+    if (!showChart || !hasSearch) return
+    setChartStats(null)
+    setChartLoading(true)
+    getTransactionStats({
+      data: {
+        search: search.search,
+        dateFrom: search.dateFrom,
+        dateTo: search.dateTo,
+        categoryId: search.categoryId,
+        accountIds: search.accountIds ?? [],
+      },
+    }).then((s) => { setChartStats(s); setChartLoading(false) })
+  }, [showChart, search.search, search.dateFrom, search.dateTo, search.categoryId, search.accountIds])
 
   const { sorted: transactions, sortKey, sortDir, toggle } = useSortable(txData.transactions, "bookingDate", "desc")
   const { total, page, pageSize } = txData
@@ -89,15 +130,27 @@ function TransactionsPage() {
       {/* Filters */}
       <div className="border-b p-3 sm:p-4 space-y-3">
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <div className="relative flex-1 min-w-0 w-full sm:min-w-48 sm:w-auto">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              value={search.search ?? ""}
-              onChange={(e) => updateSearch({ search: e.target.value || undefined })}
-              placeholder="Search transactions…"
-              className="pl-9 w-full"
-            />
+          <div className="relative flex-1 min-w-0 w-full sm:min-w-48 sm:w-auto flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search transactions…"
+                className="pl-9 w-full"
+              />
+            </div>
+            {hasSearch && (
+              <Button
+                variant={showChart ? "secondary" : "outline"}
+                size="icon"
+                onClick={() => setShowChart((v) => !v)}
+                title="Toggle chart view"
+              >
+                <BarChart2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap w-full sm:w-auto">
             <DatePicker
@@ -176,6 +229,62 @@ function TransactionsPage() {
           </div>
         )}
       </div>
+
+      {/* Chart panel */}
+      {showChart && hasSearch && (
+        <div className="border-b px-4 py-4 space-y-4 bg-muted/20">
+          {chartLoading || !chartStats ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>
+          ) : (
+            <>
+              {/* Stat chips */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border bg-card px-3 py-2.5 space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <TrendingDown className="size-3 text-negative" />
+                    Total out
+                  </div>
+                  <p className="font-semibold tabular-nums text-sm">{formatCurrency(Math.abs(chartStats.totalOut))}</p>
+                </div>
+                <div className="rounded-xl border bg-card px-3 py-2.5 space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <TrendingUp className="size-3 text-positive" />
+                    Total in
+                  </div>
+                  <p className="font-semibold tabular-nums text-sm text-positive">{formatCurrency(chartStats.totalIn)}</p>
+                </div>
+                <div className="rounded-xl border bg-card px-3 py-2.5 space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Minus className="size-3" />
+                    Net · {chartStats.count} txns
+                  </div>
+                  <p className={cn("font-semibold tabular-nums text-sm", chartStats.totalAmount >= 0 ? "text-positive" : "")}>
+                    {formatCurrency(chartStats.totalAmount)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Monthly bar chart */}
+              {chartStats.byMonth.length > 1 && (
+                <ResponsiveContainer width="100%" height={160}>
+                  <LineChart data={chartStats.byMonth.map(d => ({ ...d, display: -d.amount }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.08)" vertical={false} />
+                    <XAxis dataKey="month" tickFormatter={fmtMonth} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `€${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v.toFixed(0)}`} />
+                    <ReferenceLine y={0} stroke="oklch(0.5 0 0 / 0.2)" />
+                    <Tooltip
+                      formatter={(v: number) => [formatCurrency(-v), "Amount"]}
+                      labelFormatter={fmtMonth}
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid oklch(0.5 0 0 / 0.15)" }}
+                    />
+                    <Line type="monotone" dataKey="display" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: "var(--color-primary)" }} activeDot={{ r: 4, strokeWidth: 0 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Table */}
       <div className="flex-1 overflow-auto">

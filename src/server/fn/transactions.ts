@@ -16,30 +16,64 @@ const FiltersSchema = z.object({
   pageSize: z.number().default(50),
 })
 
+const StatsFiltersSchema = FiltersSchema.omit({ page: true, pageSize: true })
+
+function buildConditions(filters: z.infer<typeof StatsFiltersSchema>) {
+  const conditions = []
+  if (filters.dateFrom) conditions.push(gte(transactions.bookingDate, filters.dateFrom))
+  if (filters.dateTo) conditions.push(lte(transactions.bookingDate, filters.dateTo))
+  if (filters.accountIds?.length) conditions.push(inArray(transactions.accountId, filters.accountIds))
+  if (filters.categoryId !== undefined) conditions.push(eq(transactions.categoryId, filters.categoryId))
+  if (filters.search) {
+    const term = `%${filters.search}%`
+    conditions.push(
+      sql`(${transactions.creditorName} ILIKE ${term} OR ${transactions.debtorName} ILIKE ${term} OR ${transactions.description} ILIKE ${term})`,
+    )
+  }
+  return conditions
+}
+
+export const getTransactionStats = createServerFn()
+  .inputValidator(StatsFiltersSchema)
+  .handler(async ({ data: filters }) => {
+    const conditions = buildConditions(filters)
+    const where = conditions.length ? and(...conditions) : undefined
+
+    const [totalsRow, byMonth] = await Promise.all([
+      db
+        .select({
+          totalAmount: sql<number>`sum(${transactions.amount})`,
+          totalIn: sql<number>`sum(case when ${transactions.amount} > 0 then ${transactions.amount} else 0 end)`,
+          totalOut: sql<number>`sum(case when ${transactions.amount} < 0 then ${transactions.amount} else 0 end)`,
+          count: sql<number>`count(*)`,
+        })
+        .from(transactions)
+        .where(where),
+      db
+        .select({
+          month: sql<string>`substring(${transactions.bookingDate}, 1, 7)`,
+          amount: sql<number>`sum(${transactions.amount})`,
+          count: sql<number>`count(*)`,
+        })
+        .from(transactions)
+        .where(where)
+        .groupBy(sql`substring(${transactions.bookingDate}, 1, 7)`)
+        .orderBy(sql`substring(${transactions.bookingDate}, 1, 7)`),
+    ])
+
+    return {
+      totalAmount: Number(totalsRow[0]?.totalAmount ?? 0),
+      totalIn: Number(totalsRow[0]?.totalIn ?? 0),
+      totalOut: Number(totalsRow[0]?.totalOut ?? 0),
+      count: Number(totalsRow[0]?.count ?? 0),
+      byMonth: byMonth.map((r) => ({ month: r.month, amount: Number(r.amount), count: Number(r.count) })),
+    }
+  })
+
 export const getTransactions = createServerFn()
   .inputValidator(FiltersSchema)
   .handler(async ({ data: filters }) => {
-    const conditions = []
-
-    if (filters.dateFrom) {
-      conditions.push(gte(transactions.bookingDate, filters.dateFrom))
-    }
-    if (filters.dateTo) {
-      conditions.push(lte(transactions.bookingDate, filters.dateTo))
-    }
-    if (filters.accountIds?.length) {
-      conditions.push(inArray(transactions.accountId, filters.accountIds))
-    }
-    if (filters.categoryId !== undefined) {
-      conditions.push(eq(transactions.categoryId, filters.categoryId))
-    }
-    if (filters.search) {
-      const term = `%${filters.search}%`
-      conditions.push(
-        sql`(${transactions.creditorName} ILIKE ${term} OR ${transactions.debtorName} ILIKE ${term} OR ${transactions.description} ILIKE ${term})`,
-      )
-    }
-
+    const conditions = buildConditions(filters)
     const offset = (filters.page - 1) * filters.pageSize
 
     const rows = await db
