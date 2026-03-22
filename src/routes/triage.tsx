@@ -469,45 +469,45 @@ function TriageFlow({
 
       {/* Category picker */}
       <div className="animate-in stagger-2 space-y-3">
-        <p className="section-label">
-          {ruleMode && rulePattern.trim()
-            ? ruleAction === "add" && selectedRuleId !== null
-              ? "Pick a category — will add pattern to rule"
-              : "Pick a category — will create rule"
-            : categoryId !== null
-              ? "Move to a different category"
-              : "Pick a category"}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="section-label">
+            {ruleMode && rulePattern.trim()
+              ? ruleAction === "add" && selectedRuleId !== null
+                ? "Pick a category — will add pattern to rule"
+                : "Pick a category — will create rule"
+              : categoryId !== null
+                ? "Move to a different category"
+                : "Pick a category"}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { closeRuleMode(); setIndex((i) => i - 1) }}
+              disabled={saving || index === 0}
+              className="text-muted-foreground hover:text-foreground h-7 px-2"
+            >
+              <SkipBack className="size-3.5" />
+              Back
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={advance}
+              disabled={saving || remaining <= 1}
+              className="text-muted-foreground hover:text-foreground h-7 px-2"
+            >
+              <SkipForward className="size-3.5" />
+              Skip
+            </Button>
+          </div>
+        </div>
         <CategoryGrid
           categories={categories}
           currentCategoryId={categoryId}
           onSelect={handleCategorise}
           disabled={saving}
         />
-      </div>
-
-      {/* Skip / Back */}
-      <div className="flex justify-between animate-in stagger-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => { closeRuleMode(); setIndex((i) => i - 1) }}
-          disabled={saving || index === 0}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <SkipBack data-icon="inline-start" />
-          Back
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={advance}
-          disabled={saving || remaining <= 1}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <SkipForward data-icon="inline-start" />
-          Skip
-        </Button>
       </div>
     </div>
   )
