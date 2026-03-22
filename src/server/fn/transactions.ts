@@ -23,7 +23,13 @@ function buildConditions(filters: z.infer<typeof StatsFiltersSchema>) {
   if (filters.dateFrom) conditions.push(gte(transactions.bookingDate, filters.dateFrom))
   if (filters.dateTo) conditions.push(lte(transactions.bookingDate, filters.dateTo))
   if (filters.accountIds?.length) conditions.push(inArray(transactions.accountId, filters.accountIds))
-  if (filters.categoryId !== undefined) conditions.push(eq(transactions.categoryId, filters.categoryId))
+  if (filters.categoryId !== undefined) {
+    if (filters.categoryId === -1) {
+      conditions.push(sql`${transactions.categoryId} IS NULL`)
+    } else {
+      conditions.push(eq(transactions.categoryId, filters.categoryId))
+    }
+  }
   if (filters.search) {
     const term = `%${filters.search}%`
     conditions.push(
