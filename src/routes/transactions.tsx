@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import { getTransactions, updateTransactionCategory, bulkCategorise, getTransactionStats } from "../server/fn/transactions"
 import { getCategories } from "../server/fn/categories"
 import { getAccounts } from "../server/fn/insights"
-import { formatDate, formatCurrency } from "../lib/utils"
+import { formatDate, formatCurrency, formatYearMonth, cn } from "@/lib/utils"
 import { Search, ChevronLeft, ChevronRight, BarChart2, TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
@@ -14,17 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
-import { cn } from "@/lib/utils"
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts"
 
 type ChartStats = Awaited<ReturnType<typeof getTransactionStats>>
-
-function fmtMonth(ym: string) {
-  const [y, m] = ym.split("-")
-  return new Date(Number(y), Number(m) - 1).toLocaleString("default", { month: "short", year: "2-digit" })
-}
 
 const SearchSchema = z.object({
   page: z.coerce.number().default(1),
@@ -107,7 +101,7 @@ function TransactionsPage() {
 
   function toggleAll() {
     if (selected.size === transactions.length) setSelected(new Set())
-    else setSelected(new Set(transactions.map((t: any) => t.id)))
+    else setSelected(new Set(transactions.map((t) => t.id)))
   }
 
   async function handleBulkCategorise() {
@@ -175,13 +169,13 @@ function TransactionsPage() {
                     ? "All categories"
                     : search.categoryId === -1
                     ? "Uncategorised"
-                    : categories.find((c: any) => c.id === search.categoryId)?.name}
+                    : categories.find((c) => c.id === search.categoryId)?.name}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
                 <SelectItem value="-1">Uncategorised</SelectItem>
-                {categories.map((c: any) => (
+                {categories.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -196,7 +190,7 @@ function TransactionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All accounts</SelectItem>
-                  {accounts.map((a: any) => (
+                  {accounts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</SelectItem>
                   ))}
                 </SelectContent>
@@ -215,7 +209,7 @@ function TransactionsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none" disabled>Assign category…</SelectItem>
-                {categories.map((c: any) => (
+                {categories.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -269,12 +263,12 @@ function TransactionsPage() {
                 <ResponsiveContainer width="100%" height={160}>
                   <LineChart data={chartStats.byMonth.map(d => ({ ...d, display: -d.amount }))} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.08)" vertical={false} />
-                    <XAxis dataKey="month" tickFormatter={fmtMonth} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="month" tickFormatter={formatYearMonth} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `€${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v.toFixed(0)}`} />
                     <ReferenceLine y={0} stroke="oklch(0.5 0 0 / 0.2)" />
                     <Tooltip
                       formatter={(v: number) => [formatCurrency(-v), "Amount"]}
-                      labelFormatter={fmtMonth}
+                      labelFormatter={formatYearMonth}
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid oklch(0.5 0 0 / 0.15)" }}
                     />
                     <Line type="monotone" dataKey="display" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: "var(--color-primary)" }} activeDot={{ r: 4, strokeWidth: 0 }} />
@@ -312,7 +306,7 @@ function TransactionsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((tx: any) => (
+              transactions.map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell className="px-3">
                     <Checkbox
@@ -341,7 +335,7 @@ function TransactionsPage() {
                       style={tx.category ? { color: tx.category.color } : undefined}
                     >
                       <option value="">Uncategorised</option>
-                      {categories.map((c: any) => (
+                      {categories.map((c) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>

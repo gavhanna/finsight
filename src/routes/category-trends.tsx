@@ -9,7 +9,7 @@ import {
 } from "recharts"
 import { TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { getSpendingTrends, getAccounts } from "../server/fn/insights"
-import { formatCurrency, daysAgo, startOfYear, todayStr } from "../lib/utils"
+import { formatCurrency, formatYearMonth, daysAgo, startOfYear, todayStr, cn } from "@/lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,7 +17,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
-import { cn } from "@/lib/utils"
 
 type Preset = "3months" | "6months" | "ytd" | "12months" | "all"
 type ChartType = "area" | "bar"
@@ -39,12 +38,6 @@ function getPresetDates(preset: Preset): { dateFrom?: string; dateTo?: string } 
     case "12months":return { dateFrom: daysAgo(365), dateTo: today }
     case "all":     return {}
   }
-}
-
-function formatMonth(ym: string) {
-  const [year, month] = ym.split("-")
-  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-  return `${names[parseInt(month) - 1]} '${year.slice(2)}`
 }
 
 const SearchSchema = z.object({
@@ -304,14 +297,14 @@ function CategoryTrendsPage() {
                       ))}
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
+                    <XAxis dataKey="month" tickFormatter={formatYearMonth} tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `€${(v/1000).toFixed(1)}k`} tick={{ fontSize: 11 }} width={52} />
                     <Tooltip
                       formatter={(v: any, name: any) => {
                         const cat = allCategories.find(c => String(c.id) === name)
                         return [formatCurrency(Number(v)), cat?.name ?? name]
                       }}
-                      labelFormatter={(label: any) => formatMonth(String(label))}
+                      labelFormatter={(label: any) => formatYearMonth(String(label))}
                     />
                     {!isSingle && <Legend formatter={name => allCategories.find(c => String(c.id) === name)?.name ?? name} />}
                     {visibleCategories.map(cat => (
@@ -353,14 +346,14 @@ function CategoryTrendsPage() {
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
+                    <XAxis dataKey="month" tickFormatter={formatYearMonth} tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `€${(v/1000).toFixed(1)}k`} tick={{ fontSize: 11 }} width={52} />
                     <Tooltip
                       formatter={(v: any, name: any) => {
                         const cat = allCategories.find(c => String(c.id) === name)
                         return [formatCurrency(Number(v)), cat?.name ?? name]
                       }}
-                      labelFormatter={(label: any) => formatMonth(String(label))}
+                      labelFormatter={(label: any) => formatYearMonth(String(label))}
                     />
                     {!isSingle && <Legend formatter={name => allCategories.find(c => String(c.id) === name)?.name ?? name} />}
                     {visibleCategories.map(cat => (
@@ -432,7 +425,7 @@ function CategoryTrendsPage() {
                       <TableCell className="text-right hidden md:table-cell">
                         {cat.peak ? (
                           <span className="tabular-nums text-sm">
-                            <span className="text-muted-foreground">{formatMonth(cat.peak.month)}</span>
+                            <span className="text-muted-foreground">{formatYearMonth(cat.peak.month)}</span>
                             {" "}<span className="font-medium">{formatCurrency(cat.peak.total)}</span>
                           </span>
                         ) : "—"}

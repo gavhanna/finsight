@@ -1,14 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { getRecurringTransactions, type RecurringItem } from "../server/fn/insights"
-import { formatCurrency, formatDate } from "../lib/utils"
+import { formatCurrency, formatDate, cn } from "@/lib/utils"
 import { Repeat, CalendarClock, TrendingDown } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
-import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/recurring")({
   component: RecurringPage,

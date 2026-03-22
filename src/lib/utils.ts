@@ -53,3 +53,10 @@ export function startOfYear(date = new Date()) {
 export function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }
+
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+
+export function formatYearMonth(ym: string): string {
+  const [year, month] = ym.split("-")
+  return `${MONTH_NAMES[parseInt(month, 10) - 1]} '${year.slice(2)}`
+}

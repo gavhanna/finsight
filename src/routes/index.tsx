@@ -10,7 +10,7 @@ import {
   getAccounts,
   generateNarrative,
 } from "../server/fn/insights"
-import { formatCurrency, startOfMonth, daysAgo, startOfYear, todayStr } from "../lib/utils"
+import { formatCurrency, formatYearMonth, startOfMonth, daysAgo, startOfYear, todayStr, cn } from "@/lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
 import {
   PieChart,
@@ -35,15 +35,8 @@ import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
 
 type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
-
-function formatMonth(yearMonth: string): string {
-  const [year, month] = yearMonth.split("-")
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-  return `${monthNames[parseInt(month, 10) - 1]} '${year.slice(2)}`
-}
 
 const SearchSchema = z.object({
   dateFrom: z.string().optional(),
@@ -606,7 +599,7 @@ function SpendingTrendsChart({
         <XAxis dataKey="month" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
         <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
         <Tooltip
-          content={<ChartTooltip labelFormatter={formatMonth} />}
+          content={<ChartTooltip labelFormatter={formatYearMonth} />}
         />
         <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: "11px" }} />
         {categories.map((cat) => (
@@ -640,7 +633,7 @@ function IncomeExpensesChart({
   }))
 
   const interval = data.length > 6 ? Math.floor(data.length / 6) : 0
-  const formatted = dataWithRate.map((d) => ({ ...d, month: formatMonth(d.month) }))
+  const formatted = dataWithRate.map((d) => ({ ...d, month: formatYearMonth(d.month) }))
 
   const hasRateData = data.filter((d) => d.income > 0).length >= 2
 
@@ -723,7 +716,7 @@ function CashFlowTable({
               const savingsPositive = row.income > 0 && net > 0
               return (
                 <TableRow key={row.month} className="hover:bg-muted/30">
-                  <TableCell className="pl-5 font-medium">{formatMonth(row.month)}</TableCell>
+                  <TableCell className="pl-5 font-medium">{formatYearMonth(row.month)}</TableCell>
                   <TableCell className="text-right text-positive tabular-nums">{formatCurrency(row.income)}</TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">{formatCurrency(row.expenses)}</TableCell>
                   <TableCell className={cn("text-right tabular-nums font-semibold", net >= 0 ? "text-positive" : "text-negative")}>

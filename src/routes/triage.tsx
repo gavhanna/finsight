@@ -3,12 +3,11 @@ import { useState, useCallback, useEffect } from "react"
 import { CheckCheck, SkipForward, SkipBack, Inbox, Zap, X, ArrowLeft, Loader2 } from "lucide-react"
 import { getTransactionsForTriage, updateTransactionCategory } from "../server/fn/transactions"
 import { getCategories, createRule, addPattern, getAllRules } from "../server/fn/categories"
-import { formatCurrency, formatDate } from "../lib/utils"
+import { formatCurrency, formatDate, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import type { Category, Transaction } from "../db/schema"
 
 export const Route = createFileRoute("/triage")({

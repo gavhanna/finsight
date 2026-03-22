@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
 import { categories, rules, rulePatterns, transactions } from "../../db/schema"
-import { eq, and, sql, inArray } from "drizzle-orm"
+import { eq, and, sql, inArray, type SQL } from "drizzle-orm"
 import { z } from "zod"
 import { invalidateCategoryCache } from "../services/categoriser.server"
 import { log } from "../../lib/logger.server"
@@ -161,6 +161,35 @@ export const deletePattern = createServerFn()
 
 // ── Preview & apply ───────────────────────────────────────────────────────────
 
+async function runPreview(condition: SQL) {
+  const rows = await db
+    .select({
+      id: transactions.id,
+      bookingDate: transactions.bookingDate,
+      amount: transactions.amount,
+      currency: transactions.currency,
+      creditorName: transactions.creditorName,
+      debtorName: transactions.debtorName,
+      description: transactions.description,
+      categoryId: transactions.categoryId,
+      categorisedBy: transactions.categorisedBy,
+    })
+    .from(transactions)
+    .where(condition)
+    .orderBy(transactions.bookingDate)
+    .limit(200)
+
+  const cats = await db.select().from(categories)
+  return {
+    count: rows.length,
+    capped: rows.length === 200,
+    transactions: rows.map((r) => ({
+      ...r,
+      category: cats.find((c) => c.id === r.categoryId) ?? null,
+    })),
+  }
+}
+
 function buildPatternCondition(
   pattern: string,
   field: "description" | "creditorName" | "debtorName" | "merchantCategoryCode",
@@ -184,33 +213,7 @@ export const previewRule = createServerFn()
     matchType: MatchTypeSchema,
   }))
   .handler(async ({ data: { pattern, field, matchType } }) => {
-    const condition = buildPatternCondition(pattern, field, matchType)
-    const rows = await db
-      .select({
-        id: transactions.id,
-        bookingDate: transactions.bookingDate,
-        amount: transactions.amount,
-        currency: transactions.currency,
-        creditorName: transactions.creditorName,
-        debtorName: transactions.debtorName,
-        description: transactions.description,
-        categoryId: transactions.categoryId,
-        categorisedBy: transactions.categorisedBy,
-      })
-      .from(transactions)
-      .where(condition)
-      .orderBy(transactions.bookingDate)
-      .limit(200)
-
-    const cats = await db.select().from(categories)
-    return {
-      count: rows.length,
-      capped: rows.length === 200,
-      transactions: rows.map((r) => ({
-        ...r,
-        category: cats.find((c) => c.id === r.categoryId) ?? null,
-      })),
-    }
+    return runPreview(buildPatternCondition(pattern, field, matchType))
   })
 
 const PatternInput = z.object({
@@ -224,32 +227,7 @@ export const previewPatterns = createServerFn()
   .handler(async ({ data: { patterns: pats } }) => {
     const conditions = pats.map(p => buildPatternCondition(p.pattern, p.field, p.matchType))
     const condition = conditions.length === 1 ? conditions[0] : sql`(${sql.join(conditions, sql` OR `)})`
-    const rows = await db
-      .select({
-        id: transactions.id,
-        bookingDate: transactions.bookingDate,
-        amount: transactions.amount,
-        currency: transactions.currency,
-        creditorName: transactions.creditorName,
-        debtorName: transactions.debtorName,
-        description: transactions.description,
-        categoryId: transactions.categoryId,
-        categorisedBy: transactions.categorisedBy,
-      })
-      .from(transactions)
-      .where(condition)
-      .orderBy(transactions.bookingDate)
-      .limit(200)
-
-    const cats = await db.select().from(categories)
-    return {
-      count: rows.length,
-      capped: rows.length === 200,
-      transactions: rows.map((r) => ({
-        ...r,
-        category: cats.find((c) => c.id === r.categoryId) ?? null,
-      })),
-    }
+    return runPreview(condition)
   })
 
 export const applyRuleToHistory = createServerFn()

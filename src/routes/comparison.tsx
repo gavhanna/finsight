@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
 import { getSpendingTrends, getIncomeVsExpenses, getAccounts } from "../server/fn/insights"
-import { formatCurrency, todayStr } from "../lib/utils"
+import { formatCurrency, formatYearMonth, todayStr } from "@/lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
@@ -102,12 +102,6 @@ export const Route = createFileRoute("/comparison")({
   },
 })
 
-function formatMonth(month: string): string {
-  const [year, m] = month.split("-")
-  const date = new Date(Number(year), Number(m) - 1, 1)
-  return date.toLocaleDateString("en-IE", { month: "short", year: "2-digit" })
-}
-
 function ComparisonPage() {
   const { trends, incomeVsExp, accounts } = Route.useLoaderData()
   const search = Route.useSearch()
@@ -149,14 +143,14 @@ function ComparisonPage() {
   const monthlyTotals = useMemo(() => {
     return months.map((month) => ({
       month,
-      label: formatMonth(month),
+      label: formatYearMonth(month),
       total: categories.reduce((sum, cat) => sum + (cat.byMonth.get(month) ?? 0), 0),
     }))
   }, [months, categories])
 
   const stackedData = useMemo(() => {
     return months.map((month) => {
-      const row: Record<string, any> = { month, label: formatMonth(month) }
+      const row: Record<string, any> = { month, label: formatYearMonth(month) }
       for (const cat of categories) {
         row[cat.name] = cat.byMonth.get(month) ?? 0
       }
@@ -288,7 +282,7 @@ function ComparisonPage() {
                   </TableHead>
                   {months.map((month) => (
                     <TableHead key={month} className="text-right px-4 py-3 whitespace-nowrap min-w-[110px]">
-                      {formatMonth(month)}
+                      {formatYearMonth(month)}
                     </TableHead>
                   ))}
                   <TableHead className="text-right px-4 py-3 text-muted-foreground whitespace-nowrap min-w-[90px]">

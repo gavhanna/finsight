@@ -8,7 +8,7 @@ import {
   deleteConnection,
 } from "../server/fn/accounts"
 import type { GoCardlessInstitution } from "../server/services/gocardless.server"
-import { formatDate } from "../lib/utils"
+import { formatDate } from "@/lib/utils"
 import { Building2, RefreshCw, Trash2, Plus, AlertCircle, CheckCircle, X } from "lucide-react"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
