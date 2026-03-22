@@ -43,7 +43,7 @@ async function getCategories() {
   return categoriesCache
 }
 
-function matchesField(
+export function matchesField(
   pattern: RulePattern,
   tx: TransactionData,
 ): boolean {

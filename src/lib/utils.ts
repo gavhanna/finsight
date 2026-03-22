@@ -28,30 +28,30 @@ export function formatDate(date: string | Date) {
   })
 }
 
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
 export function startOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), 1)
-    .toISOString()
-    .slice(0, 10)
+  return localDateStr(new Date(date.getFullYear(), date.getMonth(), 1))
 }
 
 export function endOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
-    .toISOString()
-    .slice(0, 10)
+  return localDateStr(new Date(date.getFullYear(), date.getMonth() + 1, 0))
 }
 
 export function daysAgo(n: number) {
   const d = new Date()
   d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
+  return localDateStr(d)
 }
 
 export function startOfYear(date = new Date()) {
-  return new Date(date.getFullYear(), 0, 1).toISOString().slice(0, 10)
+  return localDateStr(new Date(date.getFullYear(), 0, 1))
 }
 
 export function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return localDateStr(new Date())
 }
 
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
