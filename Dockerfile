@@ -10,12 +10,9 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
-# Bundle the migration script into a standalone .mjs (esbuild is available via Vite)
-RUN node_modules/.bin/esbuild src/db/migrate.ts \
-  --bundle \
-  --platform=node \
-  --format=esm \
-  --outfile=migrate.mjs
+# Bundle the migration script into a standalone .mjs
+RUN pnpm exec esbuild src/db/migrate.ts \
+  --bundle --platform=node --format=esm --outfile=migrate.mjs
 
 # ── Production stage ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
