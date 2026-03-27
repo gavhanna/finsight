@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState, useCallback, useEffect, useRef } from "react"
+import { toast } from "sonner"
 import { CheckCheck, SkipForward, SkipBack, Inbox, Zap, X, ArrowLeft, Loader2 } from "lucide-react"
 import { getTransactionsForTriage, updateTransactionCategory } from "../server/fn/transactions"
 import { getCategories, createRule, addPattern, getAllRules } from "../server/fn/categories"
@@ -192,8 +193,9 @@ function TriageFlow({
   async function handleCategorise(newCategoryId: number) {
     if (!current || saving) return
     setSaving(true)
+    const snapshot = current
     try {
-      await updateTransactionCategory({ data: { id: current.id, categoryId: newCategoryId } })
+      await updateTransactionCategory({ data: { id: snapshot.id, categoryId: newCategoryId } })
 
       if (ruleMode && rulePattern.trim()) {
         const patternText = rulePattern.trim()
@@ -214,6 +216,18 @@ function TriageFlow({
         }
       }
 
+      const catName = categories.find((c) => c.id === newCategoryId)?.name ?? "category"
+      const withRule = ruleMode && rulePattern.trim()
+      toast.success(`Categorised as ${catName}${withRule ? " + rule saved" : ""}`, {
+        action: withRule ? undefined : {
+          label: "Undo",
+          onClick: async () => {
+            await updateTransactionCategory({ data: { id: snapshot.id, categoryId: snapshot.categoryId } })
+            setDoneCount((n) => n - 1)
+            setQueue((q) => [snapshot, ...q])
+          },
+        },
+      })
       setDoneCount((n) => n + 1)
       setQueue((q) => q.filter((_, i) => i !== index))
       closeRuleMode()
