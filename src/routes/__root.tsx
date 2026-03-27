@@ -110,9 +110,9 @@ const navGroups = [
   {
     label: "Manage",
     items: [
-        { to: "/categories", label: "Categories", icon: Tag },
-        { to: "/rules", label: "Rules", icon: Filter },
-        { to: "/accounts", label: "Accounts", icon: Building2 },
+      { to: "/categories", label: "Categories", icon: Tag },
+      { to: "/rules", label: "Rules", icon: Filter },
+      { to: "/accounts", label: "Accounts", icon: Building2 },
     ],
   },
   {
@@ -242,7 +242,7 @@ function RootLayout() {
         <SidebarInset className="overflow-hidden">
           <header className="header-frosted flex h-12 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-10">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mx-1 h-4" />
+            <Separator orientation="vertical" />
             <div className="flex items-center gap-2 min-w-0">
               <NavIcon className="size-3.5 text-muted-foreground shrink-0" />
               <span className="font-semibold text-sm truncate">{currentNav.label}</span>

@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
+import { toast } from "sonner"
 
 type RuleWithMeta = Rule & { category: Category | null; patterns: RulePattern[] }
 type PreviewTx = {
@@ -40,16 +41,16 @@ type PatternDraft = {
 }
 
 const FIELDS = [
-  { value: "description",           label: "Description" },
-  { value: "creditorName",          label: "Creditor name" },
-  { value: "debtorName",            label: "Debtor name" },
-  { value: "merchantCategoryCode",  label: "MCC" },
+  { value: "description", label: "Description" },
+  { value: "creditorName", label: "Creditor name" },
+  { value: "debtorName", label: "Debtor name" },
+  { value: "merchantCategoryCode", label: "MCC" },
 ] as const
 
 const MATCH_TYPES = [
-  { value: "contains",    label: "contains" },
-  { value: "exact",       label: "exact" },
-  { value: "startsWith",  label: "starts with" },
+  { value: "contains", label: "contains" },
+  { value: "exact", label: "exact" },
+  { value: "startsWith", label: "starts with" },
 ] as const
 
 export const Route = createFileRoute("/rules")({
@@ -93,6 +94,7 @@ function RulesPage() {
       const result = await recategoriseAll()
       setApplyResult(result)
       router.invalidate()
+      toast.success(`Updated ${result.updated} of ${result.total} transactions`)
     } finally {
       setApplying(false)
     }
@@ -130,93 +132,90 @@ function RulesPage() {
   return (
     <div className="p-4 sm:p-6 max-w-4xl">
       {/* Header */}
-      <div className="animate-in flex items-start justify-between gap-3 mb-6">
-        <div>
+      <div className="animate-in  gap-3 mb-6">
+        <div className="flex items-start justify-between">
           <h1 className="text-xl font-bold tracking-tight">Rules</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Auto-categorise transactions by matching patterns against payee or description. Higher priority runs first.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" onClick={handleApplyAll} disabled={applying}>
               <RefreshCw className={cn("h-4 w-4", applying && "animate-spin")} />
               {applying ? "Applying…" : "Apply to history"}
             </Button>
-            {applyResult && (
-              <p className="text-xs text-muted-foreground tabular-nums">
-                Updated {applyResult.updated} of {applyResult.total} transactions
-              </p>
-            )}
+            <Button onClick={() => setShowNew(true)}>
+              <Plus className="h-4 w-4" />
+              New Rule
+            </Button>
           </div>
-          <Button onClick={() => setShowNew(true)}>
-            <Plus className="h-4 w-4" />
-            New Rule
-          </Button>
         </div>
+        <p className="text-sm text-muted-foreground mt-6">
+          Auto-categorise transactions by matching patterns against payee or description. Higher priority runs first.
+        </p>
       </div>
 
       {/* Search + filter */}
-      {(rules as RuleWithMeta[]).length > 3 && (
-        <div className="flex gap-2 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search rules or patterns…"
-              className="pl-9"
-            />
+      {
+        (rules as RuleWithMeta[]).length > 3 && (
+          <div className="flex gap-2 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search rules or patterns…"
+                className="pl-9"
+              />
+            </div>
+            {ruleCategories.length > 1 && (
+              <Select
+                value={filterCatId !== null ? String(filterCatId) : "all"}
+                onValueChange={v => setFilterCatId(v === "all" ? null : Number(v))}
+              >
+                <SelectTrigger className="w-44">
+                  <Filter className="size-3.5 text-muted-foreground mr-1" />
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {ruleCategories.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      <span className="flex items-center gap-2">
+                        <CategoryDot category={c} />
+                        {c.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          {ruleCategories.length > 1 && (
-            <Select
-              value={filterCatId !== null ? String(filterCatId) : "all"}
-              onValueChange={v => setFilterCatId(v === "all" ? null : Number(v))}
-            >
-              <SelectTrigger className="w-44">
-                <Filter className="size-3.5 text-muted-foreground mr-1" />
-                <SelectValue placeholder="All categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {ruleCategories.map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    <span className="flex items-center gap-2">
-                      <CategoryDot category={c} />
-                      {c.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      )}
+        )
+      }
 
       {/* List */}
-      {filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 text-center">
-          <p className="text-muted-foreground text-sm">
-            {search || filterCatId !== null
-              ? "No rules match your filters."
-              : "No rules yet. Add one to start auto-categorising transactions."}
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-xl border overflow-hidden divide-y">
-          {filtered.map((rule) => (
-            <RuleRow
-              key={rule.id}
-              rule={rule}
-              categories={categories}
-              isExpanded={expandedId === rule.id}
-              onToggle={() => setExpandedId(expandedId === rule.id ? null : rule.id)}
-              onDelete={() => handleDelete(rule.id)}
-              onRefresh={() => router.invalidate()}
-            />
-          ))}
-        </div>
-      )}
+      {
+        filtered.length === 0 ? (
+          <div className="rounded-lg border border-dashed p-12 text-center">
+            <p className="text-muted-foreground text-sm">
+              {search || filterCatId !== null
+                ? "No rules match your filters."
+                : "No rules yet. Add one to start auto-categorising transactions."}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border overflow-hidden divide-y">
+            {filtered.map((rule) => (
+              <RuleRow
+                key={rule.id}
+                rule={rule}
+                categories={categories}
+                isExpanded={expandedId === rule.id}
+                onToggle={() => setExpandedId(expandedId === rule.id ? null : rule.id)}
+                onDelete={() => handleDelete(rule.id)}
+                onRefresh={() => router.invalidate()}
+              />
+            ))}
+          </div>
+        )
+      }
 
       <RuleDialog
         open={showNew}
@@ -224,7 +223,7 @@ function RulesPage() {
         categories={categories}
         onSaved={() => { setShowNew(false); router.invalidate() }}
       />
-    </div>
+    </div >
   )
 }
 
@@ -823,10 +822,10 @@ function PreviewTable({ preview, previewing, manualCount, patternCount }: {
                     <TableCell className="py-1.5 text-xs">
                       {tx.category
                         ? <span className="flex items-center gap-1.5">
-                            <span className="size-1.5 rounded-full shrink-0 inline-block" style={{ backgroundColor: tx.category.color }} />
-                            {tx.category.name}
-                            {tx.categorisedBy === "manual" && <span className="text-muted-foreground">(manual)</span>}
-                          </span>
+                          <span className="size-1.5 rounded-full shrink-0 inline-block" style={{ backgroundColor: tx.category.color }} />
+                          {tx.category.name}
+                          {tx.categorisedBy === "manual" && <span className="text-muted-foreground">(manual)</span>}
+                        </span>
                         : <span className="text-muted-foreground">Uncategorised</span>}
                     </TableCell>
                   </TableRow>
