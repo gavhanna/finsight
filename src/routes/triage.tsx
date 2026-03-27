@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { CheckCheck, SkipForward, SkipBack, Inbox, Zap, X, ArrowLeft, Loader2 } from "lucide-react"
 import { getTransactionsForTriage, updateTransactionCategory } from "../server/fn/transactions"
 import { getCategories, createRule, addPattern, getAllRules } from "../server/fn/categories"
@@ -140,6 +140,7 @@ function TriageFlow({
   rules: RuleWithPatterns[]
   onBack: () => void
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const [queue, setQueue] = useState<Transaction[]>(initialQueue)
   const [index, setIndex] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -216,6 +217,7 @@ function TriageFlow({
       setDoneCount((n) => n + 1)
       setQueue((q) => q.filter((_, i) => i !== index))
       closeRuleMode()
+      containerRef.current?.scrollIntoView({ block: "start", behavior: "instant" })
     } finally {
       setSaving(false)
     }
@@ -272,7 +274,7 @@ function TriageFlow({
   const progress = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
   return (
-    <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-5">
+    <div ref={containerRef} className="p-4 sm:p-6 max-w-xl mx-auto space-y-5">
       {/* Header + progress */}
       <div className="animate-in space-y-2">
         <div className="flex items-center justify-between">
