@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
 import { getSpendingTrends, getIncomeVsExpenses, getAccounts } from "../server/fn/insights"
-import { formatCurrency, formatYearMonth, todayStr } from "@/lib/utils"
+import { formatYearMonth, todayStr } from "@/lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
 import {
-  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"

@@ -1,23 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
 import { z } from "zod"
-import {
-  AreaChart, Area,
-  BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  ReferenceLine, Label,
-} from "recharts"
-import { TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { getSpendingTrends, getAccounts } from "../server/fn/insights"
 import { getCategoryGroups, getCategories } from "../server/fn/categories"
-import { formatCurrency, formatYearMonth, daysAgo, startOfYear, todayStr, cn } from "@/lib/utils"
+import { daysAgo, startOfYear, todayStr } from "@/lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
-import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useSortable } from "@/hooks/use-sortable"
-import { SortableHead } from "@/components/ui/sortable-head"
+import { TrendsChart } from "@/components/category-trends/trends-chart"
+import { SummaryTable } from "@/components/category-trends/summary-table"
 
 type Preset = "3months" | "6months" | "ytd" | "12months" | "all"
 type ChartType = "area" | "bar"
@@ -33,11 +24,11 @@ const PRESET_LABELS: Record<Preset, string> = {
 function getPresetDates(preset: Preset): { dateFrom?: string; dateTo?: string } {
   const today = todayStr()
   switch (preset) {
-    case "3months": return { dateFrom: daysAgo(90), dateTo: today }
-    case "6months": return { dateFrom: daysAgo(180), dateTo: today }
-    case "ytd":     return { dateFrom: startOfYear(), dateTo: today }
-    case "12months":return { dateFrom: daysAgo(365), dateTo: today }
-    case "all":     return {}
+    case "3months":  return { dateFrom: daysAgo(90), dateTo: today }
+    case "6months":  return { dateFrom: daysAgo(180), dateTo: today }
+    case "ytd":      return { dateFrom: startOfYear(), dateTo: today }
+    case "12months": return { dateFrom: daysAgo(365), dateTo: today }
+    case "all":      return {}
   }
 }
 
@@ -84,7 +75,6 @@ function CategoryTrendsPage() {
   const chartType: ChartType = search.chart ?? "area"
   const viewMode = search.viewMode ?? "categories"
 
-  // Build a map from categoryId -> groupId for client-side aggregation
   const catGroupMap = useMemo(() => {
     const m = new Map<number, number>()
     for (const c of categoryList) {
@@ -93,7 +83,6 @@ function CategoryTrendsPage() {
     return m
   }, [categoryList])
 
-  // All categories present in this period
   const allCategories = useMemo(() => {
     const seen = new Map<string, { id: number | null; name: string; color: string; total: number }>()
     for (const row of trends) {
@@ -109,7 +98,6 @@ function CategoryTrendsPage() {
     return [...seen.values()].sort((a, b) => b.total - a.total)
   }, [trends])
 
-  // All groups present in this period (based on which categories have data)
   const allGroups = useMemo(() => {
     const seen = new Map<string, { id: number; name: string; color: string; total: number }>()
     for (const cat of allCategories) {
@@ -122,13 +110,10 @@ function CategoryTrendsPage() {
     return [...seen.values()].sort((a, b) => b.total - a.total)
   }, [allCategories, catGroupMap, groups])
 
-  // Items shown in chips/chart depend on view mode
   const allItems = viewMode === "groups" ? allGroups : allCategories
 
-  // Selected IDs (null = "Uncategorised" in category mode, 0 = "Ungrouped" in group mode)
   const [selected, setSelected] = useState<Set<string>>(() => new Set(allItems.map(c => String(c.id))))
 
-  // Sync selection when item list changes (new data loaded or mode switched)
   const allKeys = allItems.map(c => String(c.id)).join(",")
   useMemo(() => {
     setSelected(new Set(allItems.map(c => String(c.id))))
@@ -147,28 +132,19 @@ function CategoryTrendsPage() {
     })
   }
 
-  function isolate(key: string) {
-    setSelected(new Set([key]))
-  }
-
-  function selectAll() {
-    setSelected(new Set(allItems.map(c => String(c.id))))
-  }
+  function isolate(key: string) { setSelected(new Set([key])) }
+  function selectAll() { setSelected(new Set(allItems.map(c => String(c.id)))) }
 
   const visibleItems = allItems.filter(c => selected.has(String(c.id)))
   const isSingle = visibleItems.length === 1
-
-  // Pivot data for categories mode
   const months = useMemo(() => [...new Set(trends.map(t => t.month))].sort(), [trends])
 
   const chartData = useMemo(() => {
     if (viewMode === "groups") {
-      // Aggregate by group per month
       return months.map(month => {
         const row: Record<string, any> = { month }
         for (const group of visibleItems) {
           const groupId = group.id as number
-          // Sum all categories in this group for this month
           const total = trends
             .filter(t => t.month === month)
             .filter(t => {
@@ -181,7 +157,6 @@ function CategoryTrendsPage() {
         return row
       })
     }
-    // Categories mode
     return months.map(month => {
       const row: Record<string, any> = { month }
       for (const cat of visibleItems) {
@@ -193,17 +168,14 @@ function CategoryTrendsPage() {
     })
   }, [months, visibleItems, trends, viewMode, catGroupMap])
 
-  // Per-item summary stats
   const summaryStats = useMemo(() => {
     if (viewMode === "groups") {
       return visibleItems.map(group => {
         const groupId = group.id as number
-        // Collect all trend rows belonging to this group
         const groupRows = trends.filter(t => {
           const catGroupId = t.categoryId != null ? (catGroupMap.get(t.categoryId) ?? 0) : 0
           return catGroupId === groupId
         })
-        // Aggregate by month
         const byMonth = new Map<string, number>()
         for (const r of groupRows) {
           byMonth.set(r.month, (byMonth.get(r.month) ?? 0) + r.total)
@@ -240,18 +212,9 @@ function CategoryTrendsPage() {
 
   const avgByKey = useMemo(() => {
     const map = new Map<string, number>()
-    for (const s of summaryStats) {
-      map.set(String(s.id), s.avgPerMonth)
-    }
+    for (const s of summaryStats) map.set(String(s.id), s.avgPerMonth)
     return map
   }, [summaryStats])
-
-  function setPreset(p: Preset) {
-    navigate({ search: { ...search, ...getPresetDates(p), preset: p } })
-  }
-
-  const { sorted: sortedStats, sortKey: statsSortKey, sortDir: statsSortDir, toggle: statsToggle } =
-    useSortable(summaryStats, "total", "desc")
 
   const noData = trends.length === 0
 
@@ -262,7 +225,7 @@ function CategoryTrendsPage() {
         <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
 
         <div className="overflow-x-auto">
-          <Tabs value={preset} onValueChange={v => v && setPreset(v as Preset)}>
+          <Tabs value={preset} onValueChange={v => v && navigate({ search: { ...search, ...getPresetDates(v as Preset), preset: v as Preset } })}>
             <TabsList>
               {(Object.entries(PRESET_LABELS) as [Preset, string][]).map(([key, label]) => (
                 <TabsTrigger key={key} value={key} className="whitespace-nowrap">{label}</TabsTrigger>
@@ -307,246 +270,32 @@ function CategoryTrendsPage() {
         </div>
       ) : (
         <div className="space-y-5">
-          {/* Chart card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {isSingle ? visibleItems[0].name : viewMode === "groups" ? "Spending by Group" : "Spending by Category"}
-              </CardTitle>
-              <CardAction>
-                <div className="flex items-center gap-2">
-                  {groups.length > 0 && (
-                    <Tabs value={viewMode} onValueChange={v => navigate({ search: { ...search, viewMode: v as "categories" | "groups" } })}>
-                      <TabsList>
-                        <TabsTrigger value="categories">Categories</TabsTrigger>
-                        <TabsTrigger value="groups">Groups</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  )}
-                  <Tabs value={chartType} onValueChange={v => navigate({ search: { ...search, chart: v as ChartType } })}>
-                    <TabsList>
-                      <TabsTrigger value="area">Area</TabsTrigger>
-                      <TabsTrigger value="bar">Bar</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Chips */}
-              <div className="flex flex-wrap gap-1.5">
-                {allItems.map(item => {
-                  const key = String(item.id)
-                  const active = selected.has(key)
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => toggleItem(key)}
-                      onDoubleClick={() => isolate(key)}
-                      title="Click to toggle · Double-click to isolate"
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all",
-                        active
-                          ? "border-transparent text-foreground"
-                          : "border-border bg-transparent text-muted-foreground opacity-40",
-                      )}
-                      style={active ? { backgroundColor: item.color + "22", borderColor: item.color + "66" } : {}}
-                    >
-                      <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: active ? item.color : undefined, background: active ? item.color : "currentColor" }} />
-                      {item.name}
-                    </button>
-                  )
-                })}
-                {selected.size < allItems.length && (
-                  <button
-                    onClick={selectAll}
-                    className="inline-flex items-center rounded-full border border-dashed px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Show all
-                  </button>
-                )}
-              </div>
+          <TrendsChart
+            chartData={chartData}
+            visibleItems={visibleItems}
+            allItems={allItems}
+            selected={selected}
+            months={months}
+            avgByKey={avgByKey}
+            chartType={chartType}
+            viewMode={viewMode}
+            isSingle={isSingle}
+            hasGroups={groups.length > 0}
+            onToggleItem={toggleItem}
+            onIsolateItem={isolate}
+            onSelectAll={selectAll}
+            onChartTypeChange={(t) => navigate({ search: { ...search, chart: t } })}
+            onViewModeChange={(v) => navigate({ search: { ...search, viewMode: v } })}
+          />
 
-              {/* Chart */}
-              {chartType === "area" ? (
-                <div className="overflow-x-auto">
-                <div style={{ minWidth: Math.max(480, chartData.length * 56) }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                    <defs>
-                      {visibleItems.map(item => (
-                        <linearGradient key={item.id} id={`grad-${item.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={item.color} stopOpacity={isSingle ? 0.25 : 0.12} />
-                          <stop offset="95%" stopColor={item.color} stopOpacity={0} />
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" tickFormatter={formatYearMonth} tick={{ fontSize: 11 }} />
-                    <YAxis tickFormatter={v => `€${(v/1000).toFixed(1)}k`} tick={{ fontSize: 11 }} width={52} />
-                    <Tooltip
-                      formatter={(v: any, name: any) => {
-                        const item = allItems.find(c => String(c.id) === name)
-                        return [formatCurrency(Number(v)), item?.name ?? name]
-                      }}
-                      labelFormatter={(label: any) => formatYearMonth(String(label))}
-                    />
-                    {!isSingle && <Legend formatter={name => allItems.find(c => String(c.id) === name)?.name ?? name} />}
-                    {visibleItems.map(item => (
-                      <Area
-                        key={item.id}
-                        type="monotone"
-                        dataKey={String(item.id)}
-                        stroke={item.color}
-                        strokeWidth={isSingle ? 2.5 : 1.5}
-                        fill={`url(#grad-${item.id})`}
-                        dot={isSingle ? { r: 3, fill: item.color } : false}
-                      />
-                    ))}
-                    {months.length >= 3 && visibleItems.map((item) => {
-                      const avg = avgByKey.get(String(item.id))
-                      if (!avg) return null
-                      return (
-                        <ReferenceLine
-                          key={`avg-${item.id}`}
-                          y={avg}
-                          stroke={item.color}
-                          strokeOpacity={0.6}
-                          strokeWidth={1}
-                          strokeDasharray="4 4"
-                        >
-                          {isSingle && (
-                            <Label value="avg" position="insideRight" fontSize={10} fill={item.color} fillOpacity={0.7} />
-                          )}
-                        </ReferenceLine>
-                      )
-                    })}
-                  </AreaChart>
-                </ResponsiveContainer>
-                </div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                <div style={{ minWidth: Math.max(480, chartData.length * 56) }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" tickFormatter={formatYearMonth} tick={{ fontSize: 11 }} />
-                    <YAxis tickFormatter={v => `€${(v/1000).toFixed(1)}k`} tick={{ fontSize: 11 }} width={52} />
-                    <Tooltip
-                      formatter={(v: any, name: any) => {
-                        const item = allItems.find(c => String(c.id) === name)
-                        return [formatCurrency(Number(v)), item?.name ?? name]
-                      }}
-                      labelFormatter={(label: any) => formatYearMonth(String(label))}
-                    />
-                    {!isSingle && <Legend formatter={name => allItems.find(c => String(c.id) === name)?.name ?? name} />}
-                    {visibleItems.map(item => (
-                      <Bar key={item.id} dataKey={String(item.id)} fill={item.color} radius={[3,3,0,0]} maxBarSize={40} />
-                    ))}
-                    {months.length >= 3 && visibleItems.map((item) => {
-                      const avg = avgByKey.get(String(item.id))
-                      if (!avg) return null
-                      return (
-                        <ReferenceLine
-                          key={`avg-${item.id}`}
-                          y={avg}
-                          stroke={item.color}
-                          strokeOpacity={0.6}
-                          strokeWidth={1}
-                          strokeDasharray="4 4"
-                        >
-                          {isSingle && (
-                            <Label value="avg" position="insideRight" fontSize={10} fill={item.color} fillOpacity={0.7} />
-                          )}
-                        </ReferenceLine>
-                      )
-                    })}
-                  </BarChart>
-                </ResponsiveContainer>
-                </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Summary table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortableHead id="name" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle}>{viewMode === "groups" ? "Group" : "Category"}</SortableHead>
-                    <SortableHead id="total" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle} className="text-right">Total</SortableHead>
-                    <SortableHead id="avgPerMonth" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle} className="text-right hidden sm:table-cell">Avg / month</SortableHead>
-                    <TableHead className="text-right hidden md:table-cell">Peak month</TableHead>
-                    <SortableHead id="trendPct" sortKey={statsSortKey} sortDir={statsSortDir} onSort={statsToggle} className="text-right">Trend</SortableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedStats.map(cat => (
-                    <TableRow
-                      key={cat.id}
-                      className="cursor-pointer"
-                      onClick={() => toggleItem(String(cat.id))}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                          <span className={cn("font-medium", !selected.has(String(cat.id)) && "text-muted-foreground line-through")}>
-                            {cat.name}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums font-medium">
-                        {formatCurrency(cat.total)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground hidden sm:table-cell">
-                        {formatCurrency(cat.avgPerMonth)}
-                      </TableCell>
-                      <TableCell className="text-right hidden md:table-cell">
-                        {cat.peak ? (
-                          <span className="tabular-nums text-sm">
-                            <span className="text-muted-foreground">{formatYearMonth(cat.peak.month)}</span>
-                            {" "}<span className="font-medium">{formatCurrency(cat.peak.total)}</span>
-                          </span>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <TrendBadge pct={cat.trendPct} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <SummaryTable
+            items={summaryStats}
+            selected={selected}
+            viewMode={viewMode}
+            onToggle={toggleItem}
+          />
         </div>
       )}
     </div>
-  )
-}
-
-function TrendBadge({ pct }: { pct: number | null }) {
-  if (pct === null) return <span className="text-muted-foreground/40 text-xs">—</span>
-  const abs = Math.abs(pct)
-  if (abs < 1) return (
-    <span className="text-muted-foreground text-xs inline-flex items-center gap-0.5 justify-end">
-      <Minus className="size-3" />0%
-    </span>
-  )
-  // Spending up = bad (negative), spending down = good (positive)
-  if (pct > 0) return (
-    <span className="text-negative text-xs inline-flex items-center gap-0.5 justify-end">
-      <TrendingUp className="size-3" />+{abs.toFixed(0)}%
-    </span>
-  )
-  return (
-    <span className="text-positive text-xs inline-flex items-center gap-0.5 justify-end">
-      <TrendingDown className="size-3" />-{abs.toFixed(0)}%
-    </span>
   )
 }

@@ -1,4 +1,4 @@
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
