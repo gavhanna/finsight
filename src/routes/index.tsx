@@ -139,7 +139,7 @@ function DashboardPage() {
   const hasData = byCat.length > 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 max-w-7xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto w-full">
       {/* Filters bar */}
       <div className="animate-in space-y-3">
         <div className="overflow-x-auto">

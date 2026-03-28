@@ -120,7 +120,7 @@ function ComparisonPage() {
   const hasData = trends.length > 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto w-full">
       {/* Header + Filters */}
       <div className="animate-in space-y-3">
         <h1 className="text-xl font-bold tracking-tight">Monthly Comparison</h1>

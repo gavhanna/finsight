@@ -64,9 +64,9 @@ function AccountsPage() {
   const today = new Date().toISOString().slice(0, 10)
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
-        <h1 className="text-2xl font-semibold">Bank Accounts</h1>
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto w-full space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold tracking-tight">Bank Accounts</h1>
         <Button onClick={() => setShowPicker(true)} className="shrink-0">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Connect Bank</span>

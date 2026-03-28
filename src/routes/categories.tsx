@@ -25,11 +25,11 @@ function CategoriesPage() {
   function refresh() { router.invalidate() }
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl space-y-8">
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto w-full space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Categories</h1>
+          <h1 className="text-xl font-bold tracking-tight">Categories</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage spending categories. Add keyword rules under <strong>Rules</strong>.
           </p>

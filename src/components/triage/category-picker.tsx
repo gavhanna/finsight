@@ -11,7 +11,7 @@ export function CategoryPicker({
   return (
     <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-5">
       <div className="animate-in space-y-1">
-        <h2 className="font-semibold text-lg">Review transactions</h2>
+        <h2 className="text-xl font-bold tracking-tight">Review transactions</h2>
         <p className="text-sm text-muted-foreground">Pick a category to go through and fix.</p>
       </div>
       <div className="animate-in stagger-1 grid grid-cols-2 sm:grid-cols-3 gap-2">

@@ -219,7 +219,7 @@ function CategoryTrendsPage() {
   const noData = trends.length === 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 max-w-7xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="animate-in space-y-3">
         <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
