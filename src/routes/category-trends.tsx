@@ -229,7 +229,7 @@ function CategoryTrendsPage() {
             <p>Shows how your spending per category (or group) has changed month by month over the selected period.</p>
             <p><strong className="text-foreground">Area vs Bar</strong> — area chart shows cumulative stacked spending; bar chart makes it easier to compare individual months side by side.</p>
             <p><strong className="text-foreground">Categories vs Groups</strong> — switch between individual categories or rolled-up category groups for a higher-level view.</p>
-            <p><strong className="text-foreground">Legend</strong> — click a category in the legend to toggle it. Click again to isolate it. Use "All" to reset.</p>
+            <p><strong className="text-foreground">Legend</strong> — click a category in the legend to toggle it. Double click to isolate it. Use "All" to reset.</p>
           </PageHelp>
         </div>
 
