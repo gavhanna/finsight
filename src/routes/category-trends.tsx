@@ -33,7 +33,12 @@ const SearchSchema = z.object({
 
 export const Route = createFileRoute("/category-trends")({
   validateSearch: SearchSchema,
-  loaderDeps: ({ search }) => search,
+  loaderDeps: ({ search }) => {
+    const dates = !search.dateFrom && !search.dateTo
+      ? getPresetDates((search.preset ?? "6months") as Preset)
+      : { dateFrom: search.dateFrom, dateTo: search.dateTo }
+    return { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo }
+  },
   loader: async ({ deps }) => {
     const filters = {
       dateFrom: deps.dateFrom,
@@ -64,6 +69,11 @@ function CategoryTrendsPage() {
   const preset = search.preset ?? "6months"
   const chartType: ChartType = search.chart ?? "area"
   const viewMode = search.viewMode ?? "categories"
+
+  // Resolved dates — fall back to preset when no explicit dates in URL
+  const resolvedDates = !search.dateFrom && !search.dateTo
+    ? getPresetDates(preset as Preset)
+    : { dateFrom: search.dateFrom, dateTo: search.dateTo }
 
   const catGroupMap = useMemo(() => {
     const m = new Map<number, number>()
@@ -230,12 +240,12 @@ function CategoryTrendsPage() {
 
         <div className="flex flex-wrap gap-2 items-center">
           <DatePicker
-            value={search.dateFrom}
+            value={resolvedDates.dateFrom}
             onChange={v => navigate({ search: { ...search, dateFrom: v, preset: undefined } })}
             placeholder="From date"
           />
           <DatePicker
-            value={search.dateTo}
+            value={resolvedDates.dateTo}
             onChange={v => navigate({ search: { ...search, dateTo: v, preset: undefined } })}
             placeholder="To date"
           />
