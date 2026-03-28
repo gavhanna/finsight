@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { getSettings, saveSettings } from "../server/fn/settings"
+import { getSettings, saveSettings, getOllamaModels } from "../server/fn/settings"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR — Euro" },
@@ -38,6 +40,23 @@ function SettingsPage() {
 
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
+  const [ollamaModels, setOllamaModels] = useState<string[]>([])
+  const [modelFetchError, setModelFetchError] = useState<string | null>(null)
+  const [fetchingModels, setFetchingModels] = useState(false)
+
+  async function handleFetchModels() {
+    if (!formData.ollama_url) return
+    setFetchingModels(true)
+    setModelFetchError(null)
+    const result = await getOllamaModels({ data: formData.ollama_url })
+    setFetchingModels(false)
+    if (result.error) {
+      setModelFetchError(result.error)
+    } else {
+      setOllamaModels(result.models)
+      // If current model isn't in the list, keep it as a manual entry
+    }
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -119,14 +138,45 @@ function SettingsPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ollama-model">Model</Label>
-              <Input
-              className="max-w-xl"
-                id="ollama-model"
-                type="text"
-                value={formData.ollama_model}
-                onChange={(e) => setFormData((f) => ({ ...f, ollama_model: e.target.value }))}
-                placeholder="llama3"
-              />
+              <div className="flex max-w-xl gap-2">
+                {ollamaModels.length > 0 ? (
+                  <Select
+                    value={formData.ollama_model}
+                    onValueChange={(v) => setFormData((f) => ({ ...f, ollama_model: v }))}
+                  >
+                    <SelectTrigger id="ollama-model" className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ollamaModels.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="ollama-model"
+                    type="text"
+                    className="flex-1"
+                    value={formData.ollama_model}
+                    onChange={(e) => setFormData((f) => ({ ...f, ollama_model: e.target.value }))}
+                    placeholder="llama3"
+                  />
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={!formData.ollama_url || fetchingModels}
+                  onClick={handleFetchModels}
+                  title="Fetch available models from Ollama"
+                >
+                  <RefreshCw className={cn("size-4", fetchingModels && "animate-spin")} />
+                </Button>
+              </div>
+              {modelFetchError && (
+                <p className="text-xs text-destructive">{modelFetchError}</p>
+              )}
             </div>
           </div>
         </section>

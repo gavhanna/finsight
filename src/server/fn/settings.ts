@@ -33,6 +33,19 @@ export const setSetting = createServerFn()
       })
   })
 
+export const getOllamaModels = createServerFn()
+  .inputValidator(z.string().url())
+  .handler(async ({ data: ollamaUrl }) => {
+    try {
+      const res = await fetch(`${ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(5000) })
+      if (!res.ok) return { models: [], error: "Ollama returned an error." }
+      const json = await res.json() as { models: { name: string }[] }
+      return { models: json.models.map((m) => m.name).sort(), error: null }
+    } catch {
+      return { models: [], error: "Could not reach Ollama. Check the URL and that it is running." }
+    }
+  })
+
 export const saveSettings = createServerFn()
   .inputValidator(
     z.object({
