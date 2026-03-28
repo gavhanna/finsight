@@ -73,11 +73,11 @@ const PRESET_LABELS: Record<DatePreset, string> = {
 function getPresetDates(preset: DatePreset): { dateFrom?: string; dateTo?: string } {
   const today = todayStr()
   switch (preset) {
-    case "month":    return { dateFrom: startOfMonth(), dateTo: today }
-    case "3months":  return { dateFrom: daysAgo(90), dateTo: today }
-    case "6months":  return { dateFrom: daysAgo(180), dateTo: today }
-    case "ytd":      return { dateFrom: startOfYear(), dateTo: today }
-    case "all":      return {}
+    case "month": return { dateFrom: startOfMonth(), dateTo: today }
+    case "3months": return { dateFrom: daysAgo(90), dateTo: today }
+    case "6months": return { dateFrom: daysAgo(180), dateTo: today }
+    case "ytd": return { dateFrom: startOfYear(), dateTo: today }
+    case "all": return {}
   }
 }
 
@@ -139,7 +139,7 @@ function DashboardPage() {
   const hasData = byCat.length > 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto w-full">
+    <div className="p-4 sm:p-6 space-y-6 mx-auto w-full">
       {/* Filters bar */}
       <div className="animate-in space-y-3">
         <div className="overflow-x-auto">

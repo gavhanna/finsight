@@ -24,11 +24,11 @@ const PRESET_LABELS: Record<Preset, string> = {
 function getPresetDates(preset: Preset): { dateFrom?: string; dateTo?: string } {
   const today = todayStr()
   switch (preset) {
-    case "3months":  return { dateFrom: daysAgo(90), dateTo: today }
-    case "6months":  return { dateFrom: daysAgo(180), dateTo: today }
-    case "ytd":      return { dateFrom: startOfYear(), dateTo: today }
+    case "3months": return { dateFrom: daysAgo(90), dateTo: today }
+    case "6months": return { dateFrom: daysAgo(180), dateTo: today }
+    case "ytd": return { dateFrom: startOfYear(), dateTo: today }
     case "12months": return { dateFrom: daysAgo(365), dateTo: today }
-    case "all":      return {}
+    case "all": return {}
   }
 }
 
@@ -36,9 +36,9 @@ const SearchSchema = z.object({
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   accountIds: z.array(z.string()).optional(),
-  preset: z.enum(["3months","6months","ytd","12months","all"]).optional(),
-  chart: z.enum(["area","bar"]).optional(),
-  viewMode: z.enum(["categories","groups"]).optional(),
+  preset: z.enum(["3months", "6months", "ytd", "12months", "all"]).optional(),
+  chart: z.enum(["area", "bar"]).optional(),
+  viewMode: z.enum(["categories", "groups"]).optional(),
 })
 
 export const Route = createFileRoute("/category-trends")({
@@ -219,7 +219,7 @@ function CategoryTrendsPage() {
   const noData = trends.length === 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto w-full">
+    <div className="p-4 sm:p-6 space-y-6 mx-auto w-full">
       {/* Header */}
       <div className="animate-in space-y-3">
         <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
