@@ -3,6 +3,7 @@ import { useState } from "react"
 import { getRecurringTransactions, type RecurringItem } from "../server/fn/insights"
 import { formatCurrency, formatDate, cn } from "@/lib/utils"
 import { Repeat, CalendarClock, TrendingDown } from "lucide-react"
+import { PageHelp } from "@/components/ui/page-help"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -38,6 +39,17 @@ function RecurringPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <h1 className="text-xl font-bold tracking-tight">Recurring</h1>
+        <PageHelp title="Recurring Transactions">
+          <p>This page detects payees that charge you on a regular cadence — subscriptions, bills, rent, etc.</p>
+          <p><strong className="text-foreground">How it works</strong> — transactions from the same payee are grouped and analysed for a consistent interval (weekly, fortnightly, monthly, etc.).</p>
+          <p><strong className="text-foreground">Active vs inactive</strong> — a payee is considered active if a charge has occurred within the last two expected cycles. Older patterns are shown as inactive.</p>
+          <p><strong className="text-foreground">Monthly equivalent</strong> — all frequencies are normalised to a monthly cost so you can compare them easily.</p>
+        </PageHelp>
+      </div>
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <Card className="accent-negative">

@@ -3,6 +3,7 @@ import { useState, useMemo } from "react"
 import { getAllRules, getCategories, deleteRule } from "../server/fn/categories"
 import { recategoriseAll } from "../server/fn/transactions"
 import { Plus, Search, Filter, RefreshCw } from "lucide-react"
+import { PageHelp } from "@/components/ui/page-help"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -75,7 +76,15 @@ function RulesPage() {
       {/* Header */}
       <div className="animate-in space-y-1">
         <div className="flex items-start justify-between">
-          <h1 className="text-xl font-bold tracking-tight">Rules</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight">Rules</h1>
+            <PageHelp title="Categorisation Rules">
+              <p>Rules automatically assign a category to transactions based on patterns matched against the payee name or description.</p>
+              <p><strong className="text-foreground">Priority</strong> — rules are evaluated from highest to lowest. The first match wins. Drag to reorder.</p>
+              <p><strong className="text-foreground">Patterns</strong> — each rule can have multiple patterns. A transaction matches if <em>any</em> pattern is found (case-insensitive substring match).</p>
+              <p><strong className="text-foreground">Apply to history</strong> — re-runs all rules over every transaction, updating categories in bulk. Manually set categories are preserved.</p>
+            </PageHelp>
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" onClick={handleApplyAll} disabled={applying}>
               <RefreshCw className={cn("h-4 w-4", applying && "animate-spin")} />

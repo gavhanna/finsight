@@ -4,6 +4,7 @@ import {
   getCategoriesWithRules, createCategory, getCategoryGroups,
 } from "../server/fn/categories"
 import { Plus } from "lucide-react"
+import { PageHelp } from "@/components/ui/page-help"
 import { Button } from "@/components/ui/button"
 import { GroupsSection } from "@/components/categories/groups-section"
 import { NewCategoryForm } from "@/components/categories/new-category-form"
@@ -29,7 +30,15 @@ function CategoriesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Categories</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight">Categories</h1>
+            <PageHelp title="Categories">
+              <p>Categories are the labels you assign to transactions — e.g. Groceries, Transport, Dining Out.</p>
+              <p><strong className="text-foreground">Groups</strong> — optionally organise categories into groups (e.g. "Living Costs") for rolled-up reporting in charts.</p>
+              <p><strong className="text-foreground">Colour</strong> — each category has a colour used in charts and throughout the app.</p>
+              <p>Head to <strong className="text-foreground">Rules</strong> to set up automatic matching so transactions are categorised on import.</p>
+            </PageHelp>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Manage spending categories. Add keyword rules under <strong>Rules</strong>.
           </p>

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendsChart } from "@/components/category-trends/trends-chart"
 import { SummaryTable } from "@/components/category-trends/summary-table"
+import { PageHelp } from "@/components/ui/page-help"
 
 type Preset = "3months" | "6months" | "ytd" | "12months" | "all"
 type ChartType = "area" | "bar"
@@ -222,7 +223,15 @@ function CategoryTrendsPage() {
     <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="animate-in space-y-3">
-        <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
+          <PageHelp title="Category Trends">
+            <p>Shows how your spending per category (or group) has changed month by month over the selected period.</p>
+            <p><strong className="text-foreground">Area vs Bar</strong> — area chart shows cumulative stacked spending; bar chart makes it easier to compare individual months side by side.</p>
+            <p><strong className="text-foreground">Categories vs Groups</strong> — switch between individual categories or rolled-up category groups for a higher-level view.</p>
+            <p><strong className="text-foreground">Legend</strong> — click a category in the legend to toggle it. Click again to isolate it. Use "All" to reset.</p>
+          </PageHelp>
+        </div>
 
         <div className="overflow-x-auto">
           <Tabs value={preset} onValueChange={v => {
