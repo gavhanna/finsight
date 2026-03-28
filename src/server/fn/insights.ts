@@ -5,6 +5,8 @@ import { eq, and, gte, lte, inArray, sql, lt } from "drizzle-orm"
 import { z } from "zod"
 import { generateFinancialNarrative } from "../services/ollama.server"
 import { getMedian, classifyInterval, toMonthlyEquiv, type Frequency } from "../../lib/recurring"
+import { createHash } from "crypto"
+import { narrativeCache } from "../../db/schema"
 
 const InsightFilters = z.object({
   dateFrom: z.string().optional(),
@@ -236,19 +238,31 @@ export const generateNarrative = createServerFn()
       expenses: z.number().nullable(),
     }).nullable(),
     currency: z.string().default("EUR"),
+    force: z.boolean().default(false),
   }))
   .handler(async ({ data }) => {
+    const { force, ...cacheInputs } = data
+    const cacheKey = createHash("sha256").update(JSON.stringify(cacheInputs)).digest("hex")
+
+    if (!force) {
+      const cached = await db.select().from(narrativeCache).where(eq(narrativeCache.key, cacheKey)).limit(1)
+      if (cached.length > 0) return { narrative: cached[0].narrative, error: null, cached: true }
+    }
+
     const settingRows = await db.select().from(settings)
     const settingMap = Object.fromEntries(settingRows.map((r) => [r.key, r.value]))
     const ollamaUrl = settingMap["ollama_url"]
     const ollamaModel = settingMap["ollama_model"] ?? "llama3"
 
-    if (!ollamaUrl) return { narrative: null, error: "Ollama is not configured. Add a URL in Settings." }
+    if (!ollamaUrl) return { narrative: null, error: "Ollama is not configured. Add a URL in Settings.", cached: false }
 
     const narrative = await generateFinancialNarrative(data, ollamaUrl, ollamaModel)
-    if (!narrative) return { narrative: null, error: "Ollama did not return a response. Check that it is running." }
+    if (!narrative) return { narrative: null, error: "Ollama did not return a response. Check that it is running.", cached: false }
 
-    return { narrative, error: null }
+    await db.insert(narrativeCache).values({ key: cacheKey, narrative })
+      .onConflictDoUpdate({ target: narrativeCache.key, set: { narrative, createdAt: sql`now()` } })
+
+    return { narrative, error: null, cached: false }
   })
 
 export type RecurringItem = {

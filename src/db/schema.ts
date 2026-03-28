@@ -127,6 +127,14 @@ export const transactions = pgTable(
   ],
 )
 
+export const narrativeCache = pgTable("narrative_cache", {
+  key: text("key").primaryKey(), // SHA-256 of inputs
+  narrative: text("narrative").notNull(),
+  createdAt: timestamp("created_at", { mode: "date" })
+    .notNull()
+    .default(sql`now()`),
+})
+
 export type Setting = typeof settings.$inferSelect
 export type BankConnection = typeof bankConnections.$inferSelect
 export type Account = typeof accounts.$inferSelect

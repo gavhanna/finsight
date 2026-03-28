@@ -22,10 +22,11 @@ export function NarrativeCard({
   const [narrative, setNarrative] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [fromCache, setFromCache] = useState(false)
 
   const savingsRate = stats.totalIncome > 0 ? (stats.net / stats.totalIncome) * 100 : null
 
-  async function handleGenerate() {
+  async function handleGenerate(force = false) {
     setLoading(true)
     setNarrative(null)
     setError(null)
@@ -41,10 +42,15 @@ export function NarrativeCard({
           topCategories: byCat.slice(0, 5).map((c) => ({ name: c.categoryName, total: c.total })),
           periodDelta: periodDelta ?? null,
           currency,
+          force,
         },
       })
-      if (result.error) setError(result.error)
-      else setNarrative(result.narrative)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setNarrative(result.narrative)
+        setFromCache(result.cached ?? false)
+      }
     } finally {
       setLoading(false)
     }
@@ -58,16 +64,30 @@ export function NarrativeCard({
             <Sparkles className="size-3.5" />
           </div>
           AI Financial Summary
+          {fromCache && (
+            <span className="text-xs font-normal text-muted-foreground/60 ml-1">cached</span>
+          )}
         </CardTitle>
         <CardAction>
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 rounded-md px-2 py-1 hover:bg-primary/8"
-          >
-            <RefreshCw className={cn("size-3", loading && "animate-spin")} />
-            {narrative ? "Regenerate" : "Generate"}
-          </button>
+          {narrative ? (
+            <button
+              onClick={() => handleGenerate(true)}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 rounded-md px-2 py-1 hover:bg-primary/8"
+            >
+              <RefreshCw className={cn("size-3", loading && "animate-spin")} />
+              Regenerate
+            </button>
+          ) : (
+            <button
+              onClick={() => handleGenerate(false)}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 rounded-md px-2 py-1 hover:bg-primary/8"
+            >
+              <RefreshCw className={cn("size-3", loading && "animate-spin")} />
+              Generate
+            </button>
+          )}
         </CardAction>
       </CardHeader>
       <CardContent>
