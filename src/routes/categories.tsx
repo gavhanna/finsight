@@ -25,7 +25,7 @@ function CategoriesPage() {
   function refresh() { router.invalidate() }
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto w-full space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>

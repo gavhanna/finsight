@@ -181,7 +181,7 @@ export function TriageFlow({
   const progress = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
   return (
-    <div ref={containerRef} className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
+    <div ref={containerRef} className="p-4 sm:p-6 space-y-5">
       {/* Header + progress */}
       <div className="animate-in space-y-2">
         <div className="flex items-center justify-between">

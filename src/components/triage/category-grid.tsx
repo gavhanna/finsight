@@ -13,7 +13,7 @@ export function CategoryGrid({
   disabled: boolean
 }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2">
       {categories.map((cat, i) => {
         const isCurrent = cat.id === currentCategoryId
         return (

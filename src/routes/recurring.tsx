@@ -37,7 +37,7 @@ function RecurringPage() {
   const hasData = data.length > 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 mx-auto w-full">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <Card className="accent-negative">

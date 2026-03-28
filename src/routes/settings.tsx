@@ -60,6 +60,7 @@ function SettingsPage() {
             <div className="space-y-1.5">
               <Label htmlFor="secret-id">Secret ID</Label>
               <Input
+              className="max-w-xl"
                 id="secret-id"
                 type="text"
                 value={formData.gocardless_secret_id}
@@ -70,6 +71,7 @@ function SettingsPage() {
             <div className="space-y-1.5">
               <Label htmlFor="secret-key">Secret Key</Label>
               <Input
+              className="max-w-xl"
                 id="secret-key"
                 type="password"
                 value={formData.gocardless_secret_key}
@@ -91,6 +93,7 @@ function SettingsPage() {
             <div className="space-y-1.5">
               <Label htmlFor="ollama-url">Ollama URL</Label>
               <Input
+              className="max-w-xl"
                 id="ollama-url"
                 type="url"
                 value={formData.ollama_url}
@@ -101,6 +104,7 @@ function SettingsPage() {
             <div className="space-y-1.5">
               <Label htmlFor="ollama-model">Model</Label>
               <Input
+              className="max-w-xl"
                 id="ollama-model"
                 type="text"
                 value={formData.ollama_model}
