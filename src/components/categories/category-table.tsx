@@ -125,7 +125,11 @@ export function CategoryTable({
                     onValueChange={(v) => handleAssignGroup(cat.id, v === "none" ? null : Number(v))}
                   >
                     <SelectTrigger className="h-7 w-32 text-xs border-0 shadow-none px-1.5 focus:ring-0">
-                      <SelectValue placeholder="—" />
+                      <SelectValue placeholder="—">
+                        {cat.groupId != null
+                          ? (() => { const g = groups.find(g => g.id === cat.groupId); return g ? <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} />{g.name}</span> : "—" })()
+                          : <span className="text-muted-foreground">—</span>}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none"><span className="text-muted-foreground">—</span></SelectItem>
