@@ -5,7 +5,7 @@ import { formatYearMonth, todayStr } from "@/lib/utils"
 import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -99,15 +99,14 @@ function ComparisonPage() {
     }))
   }, [months, categories])
 
-  const stackedData = useMemo(() => {
-    return months.map((month) => {
-      const row: Record<string, any> = { month, label: formatYearMonth(month) }
-      for (const cat of categories) {
-        row[cat.name] = cat.byMonth.get(month) ?? 0
-      }
-      return row
-    })
-  }, [months, categories])
+  const incomeExpenseData = useMemo(() => {
+    return incomeVsExp.map((row) => ({
+      month: row.month,
+      label: formatYearMonth(row.month),
+      Income: row.income,
+      Expenses: row.expenses,
+    }))
+  }, [incomeVsExp])
 
   const incomeByMonth = useMemo(() => {
     const map = new Map<string, number>()
@@ -179,25 +178,27 @@ function ComparisonPage() {
             <Card>
               <CardContent className="pt-5">
                 <div className="chart-bg p-3 -mx-1 overflow-x-auto">
-                  <div style={{ minWidth: Math.max(480, stackedData.length * 56) }}>
+                  <div style={{ minWidth: Math.max(480, incomeExpenseData.length * 56) }}>
                     <ResponsiveContainer width="100%" height={180}>
-                      <BarChart data={stackedData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                      <AreaChart data={incomeExpenseData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="oklch(0.7 0.15 162)" stopOpacity={0.18} />
+                            <stop offset="95%" stopColor="oklch(0.7 0.15 162)" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="gradExpenses" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="oklch(0.65 0.18 25)" stopOpacity={0.18} />
+                            <stop offset="95%" stopColor="oklch(0.65 0.18 25)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.08)" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                         <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 10 }} width={48} tickLine={false} axisLine={false} />
                         <Tooltip content={<ChartTooltip />} />
                         <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: "11px" }} />
-                        {categories.map((cat, i) => (
-                          <Bar
-                            key={cat.name}
-                            dataKey={cat.name}
-                            stackId="a"
-                            fill={cat.color}
-                            radius={i === categories.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
-                            maxBarSize={40}
-                          />
-                        ))}
-                      </BarChart>
+                        <Area type="monotone" dataKey="Income" stroke="oklch(0.7 0.15 162)" strokeWidth={2} fill="url(#gradIncome)" dot={false} activeDot={{ r: 4 }} />
+                        <Area type="monotone" dataKey="Expenses" stroke="oklch(0.65 0.18 25)" strokeWidth={2} fill="url(#gradExpenses)" dot={false} activeDot={{ r: 4 }} />
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
