@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
 import { getSpendingTrends, getIncomeVsExpenses, getAccounts } from "../server/fn/insights"
-import { formatYearMonth, todayStr } from "@/lib/utils"
+import { formatYearMonth } from "@/lib/utils"
+import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
 import {
@@ -21,17 +22,6 @@ const PRESET_LABELS: Record<Preset, string> = {
   "12months": "Last 12 Months",
 }
 
-function startOfMonthsAgo(n: number): string {
-  const d = new Date()
-  d.setDate(1)
-  d.setMonth(d.getMonth() - n + 1)
-  return d.toISOString().slice(0, 10)
-}
-
-function getPresetDates(preset: Preset) {
-  const n = preset === "3months" ? 3 : preset === "6months" ? 6 : 12
-  return { dateFrom: startOfMonthsAgo(n), dateTo: todayStr() }
-}
 
 const SearchSchema = z.object({
   dateFrom: z.string().optional(),

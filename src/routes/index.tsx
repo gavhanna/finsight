@@ -8,7 +8,8 @@ import {
   getSummaryStats,
   getAccounts,
 } from "../server/fn/insights"
-import { formatCurrency, startOfMonth, daysAgo, startOfYear, todayStr } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
+import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
 import { TrendingDown, TrendingUp, ArrowLeftRight, Hash } from "lucide-react"
 import { z } from "zod"
@@ -70,16 +71,6 @@ const PRESET_LABELS: Record<DatePreset, string> = {
   all: "All Time",
 }
 
-function getPresetDates(preset: DatePreset): { dateFrom?: string; dateTo?: string } {
-  const today = todayStr()
-  switch (preset) {
-    case "month": return { dateFrom: startOfMonth(), dateTo: today }
-    case "3months": return { dateFrom: daysAgo(90), dateTo: today }
-    case "6months": return { dateFrom: daysAgo(180), dateTo: today }
-    case "ytd": return { dateFrom: startOfYear(), dateTo: today }
-    case "all": return {}
-  }
-}
 
 function DashboardPage() {
   const { byCat, trends, merchants, incomeVsExp, stats, accounts } = Route.useLoaderData()

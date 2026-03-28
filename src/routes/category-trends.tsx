@@ -3,7 +3,7 @@ import { useMemo, useState } from "react"
 import { z } from "zod"
 import { getSpendingTrends, getAccounts } from "../server/fn/insights"
 import { getCategoryGroups, getCategories } from "../server/fn/categories"
-import { daysAgo, startOfYear, todayStr } from "@/lib/utils"
+import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -21,16 +21,6 @@ const PRESET_LABELS: Record<Preset, string> = {
   all: "All Time",
 }
 
-function getPresetDates(preset: Preset): { dateFrom?: string; dateTo?: string } {
-  const today = todayStr()
-  switch (preset) {
-    case "3months": return { dateFrom: daysAgo(90), dateTo: today }
-    case "6months": return { dateFrom: daysAgo(180), dateTo: today }
-    case "ytd": return { dateFrom: startOfYear(), dateTo: today }
-    case "12months": return { dateFrom: daysAgo(365), dateTo: today }
-    case "all": return {}
-  }
-}
 
 const SearchSchema = z.object({
   dateFrom: z.string().optional(),
