@@ -40,6 +40,7 @@ export const saveSettings = createServerFn()
       gocardless_secret_key: z.string().optional(),
       ollama_url: z.string().optional(),
       ollama_model: z.string().optional(),
+      preferred_currency: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {

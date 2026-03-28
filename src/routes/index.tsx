@@ -8,6 +8,7 @@ import {
   getSummaryStats,
   getAccounts,
 } from "../server/fn/insights"
+import { getSetting } from "../server/fn/settings"
 import { formatCurrency } from "@/lib/utils"
 import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -50,7 +51,7 @@ export const Route = createFileRoute("/")({
       dateTo: deps.dateTo,
       accountIds: deps.accountIds ?? [],
     }
-    const [byCat, trends, merchants, incomeVsExp, stats, accounts] =
+    const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency] =
       await Promise.all([
         getSpendingByCategory({ data: filters }),
         getSpendingTrends({ data: filters }),
@@ -58,8 +59,9 @@ export const Route = createFileRoute("/")({
         getIncomeVsExpenses({ data: filters }),
         getSummaryStats({ data: filters }),
         getAccounts(),
+        getSetting({ data: "preferred_currency" }),
       ])
-    return { byCat, trends, merchants, incomeVsExp, stats, accounts }
+    return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR" }
   },
 })
 
@@ -73,7 +75,7 @@ const PRESET_LABELS: Record<DatePreset, string> = {
 
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
@@ -179,7 +181,7 @@ function DashboardPage() {
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label="Total Spend"
-          value={formatCurrency(stats.totalExpenses)}
+          value={formatCurrency(stats.totalExpenses, currency)}
           icon={<TrendingDown className="h-4 w-4 text-negative" />}
           sub="outgoing"
           delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
@@ -188,7 +190,7 @@ function DashboardPage() {
         />
         <StatCard
           label="Total Income"
-          value={formatCurrency(stats.totalIncome)}
+          value={formatCurrency(stats.totalIncome, currency)}
           icon={<TrendingUp className="h-4 w-4 text-positive" />}
           sub="incoming"
           delta={periodDelta?.income}
@@ -197,7 +199,7 @@ function DashboardPage() {
         />
         <StatCard
           label="Net Balance"
-          value={formatCurrency(stats.net)}
+          value={formatCurrency(stats.net, currency)}
           icon={<ArrowLeftRight className="h-4 w-4 text-neutral-data" />}
           sub={stats.net >= 0 ? "surplus" : "deficit"}
           valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
@@ -223,6 +225,7 @@ function DashboardPage() {
             periodDelta={periodDelta}
             dateFrom={search.dateFrom}
             dateTo={search.dateTo}
+            currency={currency}
           />
         </div>
       )}
@@ -245,7 +248,7 @@ function DashboardPage() {
             <Card>
               <CardContent className="pt-5">
                 <div className="chart-bg p-3 -mx-1">
-                  <IncomeExpensesChart data={incomeVsExp} />
+                  <IncomeExpensesChart data={incomeVsExp} currency={currency} />
                 </div>
               </CardContent>
             </Card>
@@ -265,10 +268,10 @@ function DashboardPage() {
                     </Tabs>
                   </div>
                   {chartType === "pie" ? (
-                    <SpendingPieChart data={byCat} />
+                    <SpendingPieChart data={byCat} currency={currency} />
                   ) : (
                     <div className="chart-bg p-2 -mx-1">
-                      <SpendingBarChart data={byCat} />
+                      <SpendingBarChart data={byCat} currency={currency} />
                     </div>
                   )}
                 </CardContent>
@@ -280,7 +283,7 @@ function DashboardPage() {
               <Card>
                 <CardContent className="pt-5">
                   <div className="chart-bg p-2 -mx-1">
-                    <SpendingTrendsChart data={trendData} categories={trendCategories} />
+                    <SpendingTrendsChart data={trendData} categories={trendCategories} currency={currency} />
                   </div>
                 </CardContent>
               </Card>
@@ -289,7 +292,7 @@ function DashboardPage() {
 
           <div className="space-y-2">
             <p className="section-label px-0.5">Month by Month</p>
-            <CashFlowTable data={incomeVsExp} stats={stats} />
+            <CashFlowTable data={incomeVsExp} stats={stats} currency={currency} />
           </div>
 
           <div className="space-y-2">
@@ -297,7 +300,7 @@ function DashboardPage() {
             <Card>
               <CardContent className="pt-5">
                 <div className="chart-bg p-2 -mx-1">
-                  <TopMerchantsChart data={merchants} />
+                  <TopMerchantsChart data={merchants} currency={currency} />
                 </div>
               </CardContent>
             </Card>

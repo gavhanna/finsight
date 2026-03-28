@@ -10,12 +10,14 @@ export function NarrativeCard({
   periodDelta,
   dateFrom,
   dateTo,
+  currency = "EUR",
 }: {
   stats: { totalIncome: number; totalExpenses: number; net: number }
   byCat: { categoryName: string; total: number }[]
   periodDelta: { income: number | null; expenses: number | null } | null
   dateFrom?: string
   dateTo?: string
+  currency?: string
 }) {
   const [narrative, setNarrative] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +40,7 @@ export function NarrativeCard({
           savingsRate,
           topCategories: byCat.slice(0, 5).map((c) => ({ name: c.categoryName, total: c.total })),
           periodDelta: periodDelta ?? null,
-          currency: "EUR",
+          currency,
         },
       })
       if (result.error) setError(result.error)

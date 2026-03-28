@@ -4,6 +4,21 @@ import { getSettings, saveSettings } from "../server/fn/settings"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+const CURRENCIES = [
+  { code: "EUR", label: "EUR — Euro" },
+  { code: "GBP", label: "GBP — British Pound" },
+  { code: "USD", label: "USD — US Dollar" },
+  { code: "CHF", label: "CHF — Swiss Franc" },
+  { code: "SEK", label: "SEK — Swedish Krona" },
+  { code: "NOK", label: "NOK — Norwegian Krone" },
+  { code: "DKK", label: "DKK — Danish Krone" },
+  { code: "PLN", label: "PLN — Polish Zloty" },
+  { code: "CAD", label: "CAD — Canadian Dollar" },
+  { code: "AUD", label: "AUD — Australian Dollar" },
+  { code: "JPY", label: "JPY — Japanese Yen" },
+]
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -18,6 +33,7 @@ function SettingsPage() {
     gocardless_secret_key: settings["gocardless_secret_key"] ?? "",
     ollama_url: settings["ollama_url"] ?? "",
     ollama_model: settings["ollama_model"] ?? "llama3",
+    preferred_currency: settings["preferred_currency"] ?? "EUR",
   })
 
   const [saved, setSaved] = useState(false)
@@ -112,6 +128,31 @@ function SettingsPage() {
                 placeholder="llama3"
               />
             </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-medium">Display</h2>
+            <p className="text-sm text-muted-foreground">
+              Formatting preferences for amounts and values.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="preferred-currency">Currency</Label>
+            <Select
+              value={formData.preferred_currency}
+              onValueChange={(v) => setFormData((f) => ({ ...f, preferred_currency: v }))}
+            >
+              <SelectTrigger id="preferred-currency" className="max-w-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </section>
 

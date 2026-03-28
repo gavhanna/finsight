@@ -11,11 +11,12 @@ export const CHART_COLORS = [
   "var(--color-chart-8)",
 ]
 
-export function ChartTooltip({ active, payload, label, labelFormatter }: {
+export function ChartTooltip({ active, payload, label, labelFormatter, currency = "EUR" }: {
   active?: boolean
   payload?: Array<{ name: string; value: number; color: string }>
   label?: string
   labelFormatter?: (label: string) => string
+  currency?: string
 }) {
   if (!active || !payload?.length) return null
   const displayLabel = labelFormatter ? labelFormatter(label ?? "") : label
@@ -32,7 +33,7 @@ export function ChartTooltip({ active, payload, label, labelFormatter }: {
               <span className="text-muted-foreground text-xs">{entry.name}</span>
             </div>
             <span className="font-semibold tabular-nums text-xs text-foreground">
-              {formatCurrency(Number(entry.value))}
+              {formatCurrency(Number(entry.value), currency)}
             </span>
           </div>
         ))}
