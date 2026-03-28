@@ -215,7 +215,11 @@ function CategoryTrendsPage() {
         <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
 
         <div className="overflow-x-auto">
-          <Tabs value={preset} onValueChange={v => v && navigate({ search: { ...search, ...getPresetDates(v as Preset), preset: v as Preset } })}>
+          <Tabs value={preset} onValueChange={v => {
+            if (!v) return
+            const dates = getPresetDates(v as Preset)
+            navigate({ search: { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo, preset: v as Preset } })
+          }}>
             <TabsList>
               {(Object.entries(PRESET_LABELS) as [Preset, string][]).map(([key, label]) => (
                 <TabsTrigger key={key} value={key} className="whitespace-nowrap">{label}</TabsTrigger>
