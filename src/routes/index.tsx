@@ -7,6 +7,7 @@ import {
   getIncomeVsExpenses,
   getSummaryStats,
   getAccounts,
+  getYearOverYearComparison,
 } from "../server/fn/insights"
 import { getSetting } from "../server/fn/settings"
 import { formatCurrency } from "@/lib/utils"
@@ -25,6 +26,7 @@ import { SpendingTrendsChart } from "@/components/dashboard/spending-trends-char
 import { IncomeExpensesChart } from "@/components/dashboard/income-expenses-chart"
 import { TopMerchantsChart } from "@/components/dashboard/top-merchants-chart"
 import { CashFlowTable } from "@/components/dashboard/cash-flow-table"
+import { YearOverYearChart } from "@/components/dashboard/year-over-year-chart"
 
 type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
 
@@ -51,7 +53,7 @@ export const Route = createFileRoute("/")({
       dateTo: deps.dateTo,
       accountIds: deps.accountIds ?? [],
     }
-    const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency] =
+    const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy] =
       await Promise.all([
         getSpendingByCategory({ data: filters }),
         getSpendingTrends({ data: filters }),
@@ -60,8 +62,9 @@ export const Route = createFileRoute("/")({
         getSummaryStats({ data: filters }),
         getAccounts(),
         getSetting({ data: "preferred_currency" }),
+        getYearOverYearComparison({ data: filters }),
       ])
-    return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR" }
+    return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy }
   },
 })
 
@@ -75,7 +78,7 @@ const PRESET_LABELS: Record<DatePreset, string> = {
 
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
@@ -249,6 +252,17 @@ function DashboardPage() {
               <CardContent className="pt-5">
                 <div className="chart-bg p-3 -mx-1">
                   <IncomeExpensesChart data={incomeVsExp} currency={currency} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-2">
+            <p className="section-label px-0.5">Year over Year</p>
+            <Card>
+              <CardContent className="pt-5">
+                <div className="chart-bg p-3 -mx-1">
+                  <YearOverYearChart current={yoy.current} lastYear={yoy.lastYear} currency={currency} />
                 </div>
               </CardContent>
             </Card>

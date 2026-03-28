@@ -164,6 +164,60 @@ export const getSummaryStats = createServerFn()
     }
   })
 
+export const getYearOverYearComparison = createServerFn()
+  .inputValidator(InsightFilters)
+  .handler(async ({ data: filters }) => {
+    const today = new Date()
+
+    // When no date range given (all time), default to current calendar year vs last
+    let currentFrom = filters.dateFrom
+    let currentTo = filters.dateTo
+    if (!currentFrom && !currentTo) {
+      currentFrom = `${today.getFullYear()}-01-01`
+      currentTo = today.toISOString().slice(0, 10)
+    }
+
+    function shiftOneYear(dateStr: string, direction: -1 | 1): string {
+      const d = new Date(dateStr)
+      d.setFullYear(d.getFullYear() + direction)
+      return d.toISOString().slice(0, 10)
+    }
+
+    const lastYearFrom = currentFrom ? shiftOneYear(currentFrom, -1) : undefined
+    const lastYearTo = currentTo ? shiftOneYear(currentTo, -1) : undefined
+
+    async function fetchMonthly(dateFrom?: string, dateTo?: string) {
+      const conditions = buildConditions({ dateFrom, dateTo, accountIds: filters.accountIds })
+      const rows = await db
+        .select({
+          month: monthExpr,
+          income: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`,
+          expenses: sql<number>`SUM(CASE WHEN ${transactions.amount} < 0 THEN ${transactions.amount} ELSE 0 END)`,
+        })
+        .from(transactions)
+        .where(conditions.length ? and(...conditions) : undefined)
+        .groupBy(monthExpr)
+        .orderBy(monthExpr)
+
+      return rows.map((r) => ({
+        month: r.month,
+        income: r.income ?? 0,
+        expenses: Math.abs(r.expenses ?? 0),
+        net: (r.income ?? 0) + (r.expenses ?? 0),
+      }))
+    }
+
+    const [current, lastYear] = await Promise.all([
+      fetchMonthly(currentFrom, currentTo),
+      fetchMonthly(lastYearFrom, lastYearTo),
+    ])
+
+    console.log("[yoy] current period:", currentFrom, "→", currentTo, "rows:", current.length)
+    console.log("[yoy] last year period:", lastYearFrom, "→", lastYearTo, "rows:", lastYear.length)
+
+    return { current, lastYear }
+  })
+
 export const getAccounts = createServerFn().handler(async () => {
   return db.select().from(accounts)
 })
