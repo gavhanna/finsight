@@ -9,7 +9,7 @@ import { nitro } from "nitro/vite"
 const config = defineConfig({
   plugins: [
     devtools(),
-    nitro(),
+    nitro({ plugins: ["./src/server/plugins/cron.ts"] }),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
