@@ -1,4 +1,4 @@
-import { schedule } from "node-cron"
+import { Cron } from "croner"
 import { syncAllAccounts } from "../services/sync.server"
 import { log } from "../../lib/logger.server"
 
@@ -19,7 +19,7 @@ async function runSync() {
 
 export default function () {
   for (const expr of SCHEDULES) {
-    schedule(expr, runSync, { timezone: "UTC" })
+    new Cron(expr, { timezone: "UTC" }, runSync)
   }
   log.info("cron.scheduled", { schedules: SCHEDULES })
 }
