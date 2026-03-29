@@ -20,6 +20,8 @@ import { Route as CategoryTrendsRouteImport } from './routes/category-trends'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MerchantsIndexRouteImport } from './routes/merchants/index'
+import { Route as MerchantsMerchantRouteImport } from './routes/merchants/$merchant'
 import { Route as ApiGocardlessCallbackRouteImport } from './routes/api/gocardless/callback'
 
 const TriageRoute = TriageRouteImport.update({
@@ -77,6 +79,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MerchantsIndexRoute = MerchantsIndexRouteImport.update({
+  id: '/merchants/',
+  path: '/merchants/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MerchantsMerchantRoute = MerchantsMerchantRouteImport.update({
+  id: '/merchants/$merchant',
+  path: '/merchants/$merchant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGocardlessCallbackRoute = ApiGocardlessCallbackRouteImport.update({
   id: '/api/gocardless/callback',
   path: '/api/gocardless/callback',
@@ -95,6 +107,8 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
+  '/merchants/$merchant': typeof MerchantsMerchantRoute
+  '/merchants/': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +123,8 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
+  '/merchants/$merchant': typeof MerchantsMerchantRoute
+  '/merchants': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
 }
 export interface FileRoutesById {
@@ -124,6 +140,8 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
+  '/merchants/$merchant': typeof MerchantsMerchantRoute
+  '/merchants/': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +158,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/triage'
+    | '/merchants/$merchant'
+    | '/merchants/'
     | '/api/gocardless/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +174,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/triage'
+    | '/merchants/$merchant'
+    | '/merchants'
     | '/api/gocardless/callback'
   id:
     | '__root__'
@@ -168,6 +190,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/triage'
+    | '/merchants/$merchant'
+    | '/merchants/'
     | '/api/gocardless/callback'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +207,8 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
   TriageRoute: typeof TriageRoute
+  MerchantsMerchantRoute: typeof MerchantsMerchantRoute
+  MerchantsIndexRoute: typeof MerchantsIndexRoute
   ApiGocardlessCallbackRoute: typeof ApiGocardlessCallbackRoute
 }
 
@@ -265,6 +291,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/merchants/': {
+      id: '/merchants/'
+      path: '/merchants'
+      fullPath: '/merchants/'
+      preLoaderRoute: typeof MerchantsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/merchants/$merchant': {
+      id: '/merchants/$merchant'
+      path: '/merchants/$merchant'
+      fullPath: '/merchants/$merchant'
+      preLoaderRoute: typeof MerchantsMerchantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gocardless/callback': {
       id: '/api/gocardless/callback'
       path: '/api/gocardless/callback'
@@ -287,6 +327,8 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
   TriageRoute: TriageRoute,
+  MerchantsMerchantRoute: MerchantsMerchantRoute,
+  MerchantsIndexRoute: MerchantsIndexRoute,
   ApiGocardlessCallbackRoute: ApiGocardlessCallbackRoute,
 }
 export const routeTree = rootRouteImport
