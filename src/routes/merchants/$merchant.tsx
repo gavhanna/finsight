@@ -53,7 +53,7 @@ export const Route = createFileRoute("/merchants/$merchant")({
       }),
       getSetting({ data: "preferred_currency" }),
     ])
-    return { detail, currency: currency ?? "GBP", merchantName: params.merchant }
+    return { detail, currency: currency ?? "EUR", merchantName: params.merchant }
   },
   component: MerchantDetailPage,
 })

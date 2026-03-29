@@ -70,7 +70,7 @@ export const Route = createFileRoute("/merchants/")({
       getAccounts(),
       getSetting({ data: "preferred_currency" }),
     ])
-    return { merchants, accounts, currency: currency ?? "GBP" }
+    return { merchants, accounts, currency: currency ?? "EUR" }
   },
   component: MerchantsPage,
 })
