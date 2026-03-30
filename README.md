@@ -23,6 +23,8 @@ A personal finance management application that connects to your real bank accoun
 
 Rules have a live preview — you can see which historical transactions a new rule would match before applying it.
 
+**Transaction list** — View all transactions and see a line chart of spending when filtering by string search.
+
 **Categories & Groups** — Full CRUD for categories (expense / income / transfer), with colour coding and the ability to group related categories together (e.g. "Food & Drink" containing Groceries, Restaurants, Coffee).
 
 **Recurring Transactions** — Automatically detects recurring payments using median interval analysis. Classifies them as daily / weekly / fortnightly / monthly / quarterly / annual and shows monthly and annual cost equivalents.
@@ -31,7 +33,13 @@ Rules have a live preview — you can see which historical transactions a new ru
 
 **Comparison** — Side-by-side monthly income vs. expenses bar chart, with per-category breakdowns.
 
+**Merchants** — Aggregated spending view grouped by merchant, showing transaction counts, total spend, average transaction value, and category breakdown per merchant.
+
 **Triage** — A focused workflow view for reviewing and categorising uncategorised transactions.
+
+**Logs** — Sync and system event log for monitoring account sync history and diagnosing issues.
+
+**Automated Sync** — Cron-based scheduled sync using [croner](https://github.com/hexagon/croner). Accounts can be synced automatically on a configurable schedule without manual intervention.
 
 ---
 
@@ -47,6 +55,7 @@ Rules have a live preview — you can see which historical transactions a new ru
 | Database | PostgreSQL via [Drizzle ORM](https://orm.drizzle.team/) |
 | Validation | Zod |
 | Bank API | [GoCardless Open Banking](https://gocardless.com/bank-account-data/) (Nordigen SDK) |
+| Cron | [croner](https://github.com/hexagon/croner) (automated account sync scheduling) |
 | Testing | Vitest |
 | Language | TypeScript 5.7 (strict) |
 
@@ -61,6 +70,8 @@ Rules have a live preview — you can see which historical transactions a new ru
 **Categorisation as a service.** The categorisation engine is a standalone module that the sync pipeline calls. It keeps an in-memory cache of rules and categories so repeated categorisations during a bulk sync don't hammer the database.
 
 **Deduplication.** Each transaction gets a deterministic hash of its key fields on ingestion. A unique constraint on that hash means the sync is idempotent — run it ten times, get the same result.
+
+**Automated sync via cron.** Account syncing is scheduled using croner as a Nitro plugin, so the app can keep transactions up-to-date in the background without manual triggers.
 
 **Semantic design tokens.** The Tailwind theme has financial-domain tokens like `text-positive`, `text-negative`, and `accent-*` chart colours so components express intent rather than raw hex values.
 
@@ -133,4 +144,4 @@ Actively developed as a personal tool. The core features are stable and in daily
 
 ## Why I Built This
 
-I wanted full ownership of my financial data and more flexibility than the analytics built into consumer banking apps. Building it myself also meant I could make deliberate choices about the tech — TanStack Start and Drizzle were both things I wanted to learn properly, and a real project is the best way to do that.
+I wanted get insights into my spending habits and wasn't imediately interested in budgeting. Building my own insights app allowed me to add features as I discovered I needed them, such as the merchant breakdown and recurring transaction detection. I didnt want to pay for YNAB because i barely used it. I tried Revolut and AnPost Money Manager but they were too basic and didnt offer the level of detail i wanted. 
