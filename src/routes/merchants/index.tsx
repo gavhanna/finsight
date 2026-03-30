@@ -187,79 +187,81 @@ function MerchantsPage() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
-            <TableRow>
-              <TableHead>Merchant</TableHead>
-              <SortableHead id="total" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">
-                Total Spent
-              </SortableHead>
-              <SortableHead id="count" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right hidden sm:table-cell">
-                Transactions
-              </SortableHead>
-              <SortableHead id="avgAmount" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right hidden md:table-cell">
-                Avg
-              </SortableHead>
-              <SortableHead id="lastSeen" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right hidden lg:table-cell">
-                Last Seen
-              </SortableHead>
-              <TableHead className="w-8" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginated.length === 0 ? (
+        <div className="min-w-[600px]">
+          <Table>
+            <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
-                  <Store className="size-8 opacity-30 mx-auto mb-2" />
-                  No merchants found for this period.
-                </TableCell>
+                <TableHead>Merchant</TableHead>
+                <SortableHead id="total" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">
+                  Total Spent
+                </SortableHead>
+                <SortableHead id="count" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">
+                  Transactions
+                </SortableHead>
+                <SortableHead id="avgAmount" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">
+                  Avg
+                </SortableHead>
+                <SortableHead id="lastSeen" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">
+                  Last Seen
+                </SortableHead>
+                <TableHead className="w-8" />
               </TableRow>
-            ) : (
-              paginated.map((m) => (
-                <TableRow
-                  key={m.name}
-                  className="cursor-pointer"
-                  onClick={() =>
-                    navigate({
-                      to: "/merchants/$merchant",
-                      params: { merchant: m.name },
-                      search: {
-                        dateFrom: search.dateFrom,
-                        dateTo: search.dateTo,
-                        preset: search.preset,
-                        accountIds: search.accountIds,
-                      },
-                    })
-                  }
-                >
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <div className="size-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <Store className="size-3.5 text-muted-foreground" />
-                      </div>
-                      {m.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCurrency(m.total, currency)}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground hidden sm:table-cell">
-                    {m.count}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground tabular-nums hidden md:table-cell">
-                    {formatCurrency(m.avgAmount, currency)}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground hidden lg:table-cell">
-                    {formatDate(m.lastSeen)}
-                  </TableCell>
-                  <TableCell>
-                    <ChevronRight className="size-3.5 text-muted-foreground" />
+            </TableHeader>
+            <TableBody>
+              {paginated.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
+                    <Store className="size-8 opacity-30 mx-auto mb-2" />
+                    No merchants found for this period.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                paginated.map((m) => (
+                  <TableRow
+                    key={m.name}
+                    className="cursor-pointer"
+                    onClick={() =>
+                      navigate({
+                        to: "/merchants/$merchant",
+                        params: { merchant: m.name },
+                        search: {
+                          dateFrom: search.dateFrom,
+                          dateTo: search.dateTo,
+                          preset: search.preset,
+                          accountIds: search.accountIds,
+                        },
+                      })
+                    }
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="size-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <Store className="size-3.5 text-muted-foreground" />
+                        </div>
+                        {m.name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCurrency(m.total, currency)}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {m.count}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground tabular-nums">
+                      {formatCurrency(m.avgAmount, currency)}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatDate(m.lastSeen)}
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight className="size-3.5 text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Pagination */}
