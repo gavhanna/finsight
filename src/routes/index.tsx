@@ -9,7 +9,6 @@ import {
   getAccounts,
   getYearOverYearComparison,
 } from "../server/fn/insights"
-import { getMonthlyFinanceScore } from "../server/fn/analytics"
 import { getSetting } from "../server/fn/settings"
 import { formatCurrency } from "@/lib/utils"
 import { getPresetDates } from "@/lib/presets"
@@ -21,7 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { NarrativeCard } from "@/components/dashboard/narrative-card"
-import { FinanceScoreCard } from "@/components/dashboard/finance-score-card"
 import { WhatIfCalculator } from "@/components/dashboard/what-if-calculator"
 import { SpendingPieChart } from "@/components/dashboard/spending-pie-chart"
 import { SpendingBarChart } from "@/components/dashboard/spending-bar-chart"
@@ -56,7 +54,7 @@ export const Route = createFileRoute("/")({
       dateTo: deps.dateTo,
       accountIds: deps.accountIds ?? [],
     }
-    const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, score] =
+    const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy] =
       await Promise.all([
         getSpendingByCategory({ data: filters }),
         getSpendingTrends({ data: filters }),
@@ -66,9 +64,8 @@ export const Route = createFileRoute("/")({
         getAccounts(),
         getSetting({ data: "preferred_currency" }),
         getYearOverYearComparison({ data: filters }),
-        getMonthlyFinanceScore(),
       ])
-    return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, score }
+    return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy }
   },
 })
 
@@ -82,7 +79,7 @@ const PRESET_LABELS: Record<DatePreset, string> = {
 
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, score } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
@@ -232,14 +229,9 @@ function DashboardPage() {
         />
       </div>
 
-      {/* Finance Score */}
-      <div className="animate-in stagger-5">
-        <FinanceScoreCard data={score} />
-      </div>
-
       {/* AI Narrative */}
       {hasData && (
-        <div className="animate-in stagger-6">
+        <div className="animate-in stagger-5">
           <NarrativeCard
             stats={stats}
             byCat={byCat}
