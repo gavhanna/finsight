@@ -77,7 +77,9 @@ export function WhatIfCalculator({
               onValueChange={setSelectedId}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select…" />
+                <SelectValue>
+                  {(items.find((i) => i.id === (selectedId || items[0]?.id)))?.label ?? "Select…"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {items.map((item) => (

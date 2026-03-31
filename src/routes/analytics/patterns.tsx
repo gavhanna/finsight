@@ -130,7 +130,11 @@ function PatternsPage() {
           onValueChange={setCategory}
         >
           <SelectTrigger className="w-auto min-w-[160px] h-8 text-xs">
-            <SelectValue placeholder="All categories" />
+            <SelectValue>
+              {categoryId != null
+                ? (categories.find((c) => c.id === categoryId)?.name ?? "All categories")
+                : "All categories"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
