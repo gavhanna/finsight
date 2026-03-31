@@ -18,6 +18,12 @@ import {
   TrendingUp,
   Repeat,
   Store,
+  PiggyBank,
+  Activity,
+  Telescope,
+  CreditCard,
+  CalendarDays,
+  BarChart2,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { cn } from "@/lib/utils"
@@ -100,6 +106,17 @@ const navGroups = [
       { to: "/recurring", label: "Recurring", icon: Repeat },
       { to: "/category-trends", label: "Category Trends", icon: AreaChart },
       { to: "/merchants", label: "Merchants", icon: Store },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
+      { to: "/analytics/savings-rate",        label: "Savings Rate",    icon: PiggyBank },
+      { to: "/analytics/inflation",           label: "Inflation Rate",  icon: Activity },
+      { to: "/analytics/forecast",            label: "Forecast",        icon: Telescope },
+      { to: "/analytics/subscriptions",       label: "Subscriptions",   icon: CreditCard },
+      { to: "/analytics/cash-flow-calendar",  label: "Cash Calendar",   icon: CalendarDays },
+      { to: "/analytics/patterns",            label: "Patterns",        icon: BarChart2 },
     ],
   },
   {

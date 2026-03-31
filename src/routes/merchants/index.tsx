@@ -28,6 +28,8 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { SortableHead } from "@/components/ui/sortable-head"
 import { useSortable } from "@/hooks/use-sortable"
 import { Store, ChevronRight, ChevronLeft, Search } from "lucide-react"
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { Card, CardContent } from "@/components/ui/card"
 
 type Preset = "month" | "3months" | "6months" | "ytd" | "12months" | "all"
 
@@ -288,6 +290,156 @@ function MerchantsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Concentration Analysis */}
+      {merchants.length > 0 && (
+        <ConcentrationSection merchants={merchants} totalSpend={totalSpend} currency={currency} />
+      )}
+    </div>
+  )
+}
+
+function ConcentrationSection({
+  merchants,
+  totalSpend,
+  currency,
+}: {
+  merchants: Array<{ name: string; total: number; count: number }>
+  totalSpend: number
+  currency: string
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  const withPct = merchants
+    .map((m) => ({ ...m, pct: totalSpend > 0 ? (m.total / totalSpend) * 100 : 0 }))
+    .sort((a, b) => b.total - a.total)
+
+  // Herfindahl-Hirschman Index (0–10000)
+  const hhi = withPct.reduce((s, m) => s + Math.pow(m.pct, 2), 0)
+  const hhiLabel = hhi >= 2500 ? "High" : hhi >= 1500 ? "Moderate" : "Low"
+  const hhiColor = hhi >= 2500 ? "text-negative" : hhi >= 1500 ? "text-amber-500" : "text-positive"
+
+  const top10 = withPct.slice(0, 10)
+  const otherTotal = withPct.slice(10).reduce((s, m) => s + m.total, 0)
+  const otherPct = withPct.slice(10).reduce((s, m) => s + m.pct, 0)
+  const pieData = [
+    ...top10.map((m) => ({ name: m.name, value: m.total, pct: m.pct })),
+    ...(otherTotal > 0 ? [{ name: "Other", value: otherTotal, pct: otherPct }] : []),
+  ]
+
+  const COLORS = [
+    "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)",
+    "#6366f1", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#94a3b8",
+  ]
+
+  return (
+    <div className="border-t p-4 sm:p-5 space-y-4">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
+      >
+        <span>{expanded ? "▾" : "▸"}</span>
+        Concentration Analysis
+        <span className={`ml-auto text-xs font-semibold ${hhiColor}`}>
+          {hhiLabel} concentration · HHI {Math.round(hhi)}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 animate-in">
+          {/* Pie chart */}
+          <Card>
+            <CardContent className="pt-4">
+              <p className="section-label mb-3">Spend Distribution</p>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={95}
+                    paddingAngle={2}
+                  >
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, _name: string, props: { payload?: { pct?: number } }) => [
+                      `${formatCurrency(value, currency)} (${(props.payload?.pct ?? 0).toFixed(1)}%)`,
+                      "",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Legend
+                    formatter={(value) => (
+                      <span className="text-xs text-muted-foreground truncate">{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* HHI explanation + top merchants */}
+          <div className="space-y-3">
+            <Card>
+              <CardContent className="p-4">
+                <p className="section-label mb-1">Concentration Score (HHI)</p>
+                <div className="flex items-end gap-3 mt-2">
+                  <span className={`text-4xl font-bold tabular-nums ${hhiColor}`}>
+                    {Math.round(hhi)}
+                  </span>
+                  <span className={`text-sm font-medium mb-1 ${hhiColor}`}>{hhiLabel}</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2 mt-3">
+                  <div
+                    className={`h-2 rounded-full transition-all ${hhi >= 2500 ? "bg-negative" : hhi >= 1500 ? "bg-amber-500" : "bg-positive"}`}
+                    style={{ width: `${Math.min(100, (hhi / 10000) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Below 1500 = diversified · 1500–2500 = moderate · Above 2500 = concentrated
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-0">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="pl-4 py-2.5 text-left font-medium text-muted-foreground">Merchant</th>
+                      <th className="pr-4 py-2.5 text-right font-medium text-muted-foreground">% of spend</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {top10.slice(0, 6).map((m, i) => (
+                      <tr key={m.name} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="pl-4 py-2 flex items-center gap-2">
+                          <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                          <span className="truncate max-w-[160px]">{m.name}</span>
+                        </td>
+                        <td className="pr-4 py-2 text-right tabular-nums font-medium">
+                          {m.pct.toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

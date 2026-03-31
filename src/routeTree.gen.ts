@@ -22,6 +22,12 @@ import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MerchantsIndexRouteImport } from './routes/merchants/index'
 import { Route as MerchantsMerchantRouteImport } from './routes/merchants/$merchant'
+import { Route as AnalyticsSubscriptionsRouteImport } from './routes/analytics/subscriptions'
+import { Route as AnalyticsSavingsRateRouteImport } from './routes/analytics/savings-rate'
+import { Route as AnalyticsPatternsRouteImport } from './routes/analytics/patterns'
+import { Route as AnalyticsInflationRouteImport } from './routes/analytics/inflation'
+import { Route as AnalyticsForecastRouteImport } from './routes/analytics/forecast'
+import { Route as AnalyticsCashFlowCalendarRouteImport } from './routes/analytics/cash-flow-calendar'
 import { Route as ApiGocardlessCallbackRouteImport } from './routes/api/gocardless/callback'
 
 const TriageRoute = TriageRouteImport.update({
@@ -89,6 +95,37 @@ const MerchantsMerchantRoute = MerchantsMerchantRouteImport.update({
   path: '/merchants/$merchant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsSubscriptionsRoute = AnalyticsSubscriptionsRouteImport.update({
+  id: '/analytics/subscriptions',
+  path: '/analytics/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsSavingsRateRoute = AnalyticsSavingsRateRouteImport.update({
+  id: '/analytics/savings-rate',
+  path: '/analytics/savings-rate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsPatternsRoute = AnalyticsPatternsRouteImport.update({
+  id: '/analytics/patterns',
+  path: '/analytics/patterns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsInflationRoute = AnalyticsInflationRouteImport.update({
+  id: '/analytics/inflation',
+  path: '/analytics/inflation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsForecastRoute = AnalyticsForecastRouteImport.update({
+  id: '/analytics/forecast',
+  path: '/analytics/forecast',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsCashFlowCalendarRoute =
+  AnalyticsCashFlowCalendarRouteImport.update({
+    id: '/analytics/cash-flow-calendar',
+    path: '/analytics/cash-flow-calendar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiGocardlessCallbackRoute = ApiGocardlessCallbackRouteImport.update({
   id: '/api/gocardless/callback',
   path: '/api/gocardless/callback',
@@ -107,6 +144,12 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
+  '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
+  '/analytics/forecast': typeof AnalyticsForecastRoute
+  '/analytics/inflation': typeof AnalyticsInflationRoute
+  '/analytics/patterns': typeof AnalyticsPatternsRoute
+  '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
+  '/analytics/subscriptions': typeof AnalyticsSubscriptionsRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/merchants/': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -123,6 +166,12 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
+  '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
+  '/analytics/forecast': typeof AnalyticsForecastRoute
+  '/analytics/inflation': typeof AnalyticsInflationRoute
+  '/analytics/patterns': typeof AnalyticsPatternsRoute
+  '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
+  '/analytics/subscriptions': typeof AnalyticsSubscriptionsRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/merchants': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -140,6 +189,12 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
+  '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
+  '/analytics/forecast': typeof AnalyticsForecastRoute
+  '/analytics/inflation': typeof AnalyticsInflationRoute
+  '/analytics/patterns': typeof AnalyticsPatternsRoute
+  '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
+  '/analytics/subscriptions': typeof AnalyticsSubscriptionsRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/merchants/': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -158,6 +213,12 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/triage'
+    | '/analytics/cash-flow-calendar'
+    | '/analytics/forecast'
+    | '/analytics/inflation'
+    | '/analytics/patterns'
+    | '/analytics/savings-rate'
+    | '/analytics/subscriptions'
     | '/merchants/$merchant'
     | '/merchants/'
     | '/api/gocardless/callback'
@@ -174,6 +235,12 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/triage'
+    | '/analytics/cash-flow-calendar'
+    | '/analytics/forecast'
+    | '/analytics/inflation'
+    | '/analytics/patterns'
+    | '/analytics/savings-rate'
+    | '/analytics/subscriptions'
     | '/merchants/$merchant'
     | '/merchants'
     | '/api/gocardless/callback'
@@ -190,6 +257,12 @@ export interface FileRouteTypes {
     | '/settings'
     | '/transactions'
     | '/triage'
+    | '/analytics/cash-flow-calendar'
+    | '/analytics/forecast'
+    | '/analytics/inflation'
+    | '/analytics/patterns'
+    | '/analytics/savings-rate'
+    | '/analytics/subscriptions'
     | '/merchants/$merchant'
     | '/merchants/'
     | '/api/gocardless/callback'
@@ -207,6 +280,12 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
   TriageRoute: typeof TriageRoute
+  AnalyticsCashFlowCalendarRoute: typeof AnalyticsCashFlowCalendarRoute
+  AnalyticsForecastRoute: typeof AnalyticsForecastRoute
+  AnalyticsInflationRoute: typeof AnalyticsInflationRoute
+  AnalyticsPatternsRoute: typeof AnalyticsPatternsRoute
+  AnalyticsSavingsRateRoute: typeof AnalyticsSavingsRateRoute
+  AnalyticsSubscriptionsRoute: typeof AnalyticsSubscriptionsRoute
   MerchantsMerchantRoute: typeof MerchantsMerchantRoute
   MerchantsIndexRoute: typeof MerchantsIndexRoute
   ApiGocardlessCallbackRoute: typeof ApiGocardlessCallbackRoute
@@ -305,6 +384,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantsMerchantRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics/subscriptions': {
+      id: '/analytics/subscriptions'
+      path: '/analytics/subscriptions'
+      fullPath: '/analytics/subscriptions'
+      preLoaderRoute: typeof AnalyticsSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics/savings-rate': {
+      id: '/analytics/savings-rate'
+      path: '/analytics/savings-rate'
+      fullPath: '/analytics/savings-rate'
+      preLoaderRoute: typeof AnalyticsSavingsRateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics/patterns': {
+      id: '/analytics/patterns'
+      path: '/analytics/patterns'
+      fullPath: '/analytics/patterns'
+      preLoaderRoute: typeof AnalyticsPatternsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics/inflation': {
+      id: '/analytics/inflation'
+      path: '/analytics/inflation'
+      fullPath: '/analytics/inflation'
+      preLoaderRoute: typeof AnalyticsInflationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics/forecast': {
+      id: '/analytics/forecast'
+      path: '/analytics/forecast'
+      fullPath: '/analytics/forecast'
+      preLoaderRoute: typeof AnalyticsForecastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics/cash-flow-calendar': {
+      id: '/analytics/cash-flow-calendar'
+      path: '/analytics/cash-flow-calendar'
+      fullPath: '/analytics/cash-flow-calendar'
+      preLoaderRoute: typeof AnalyticsCashFlowCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gocardless/callback': {
       id: '/api/gocardless/callback'
       path: '/api/gocardless/callback'
@@ -327,6 +448,12 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
   TriageRoute: TriageRoute,
+  AnalyticsCashFlowCalendarRoute: AnalyticsCashFlowCalendarRoute,
+  AnalyticsForecastRoute: AnalyticsForecastRoute,
+  AnalyticsInflationRoute: AnalyticsInflationRoute,
+  AnalyticsPatternsRoute: AnalyticsPatternsRoute,
+  AnalyticsSavingsRateRoute: AnalyticsSavingsRateRoute,
+  AnalyticsSubscriptionsRoute: AnalyticsSubscriptionsRoute,
   MerchantsMerchantRoute: MerchantsMerchantRoute,
   MerchantsIndexRoute: MerchantsIndexRoute,
   ApiGocardlessCallbackRoute: ApiGocardlessCallbackRoute,
