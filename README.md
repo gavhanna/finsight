@@ -5,7 +5,7 @@
 
 # FinSight
 
-A personal finance management application that connects to your real bank accounts via the GoCardless Open Banking API. Built as a side project to scratch my own itch — I wanted a self-hosted alternative to Monzo's spending analytics and YNAB, with full control over my data.
+A personal finance management application that connects to your real bank accounts via the GoCardless Open Banking API. Built as a side project to scratch my own itch — I wanted a self-hosted alternative to Revolut's spending analytics and YNAB, with full control over my data.
 
 ## Features
 
