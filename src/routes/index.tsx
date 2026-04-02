@@ -20,7 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { NarrativeCard } from "@/components/dashboard/narrative-card"
-import { WhatIfCalculator } from "@/components/dashboard/what-if-calculator"
 import { SpendingPieChart } from "@/components/dashboard/spending-pie-chart"
 import { SpendingBarChart } from "@/components/dashboard/spending-bar-chart"
 import { SpendingTrendsChart } from "@/components/dashboard/spending-trends-chart"
@@ -330,15 +329,6 @@ function DashboardPage() {
             </Card>
           </div>
 
-          <div className="space-y-2">
-            <p className="section-label px-0.5">What If?</p>
-            <WhatIfCalculator
-              byCat={byCat}
-              merchants={merchants}
-              currency={currency}
-              monthsCovered={monthsCovered}
-            />
-          </div>
         </div>
       )}
     </div>
