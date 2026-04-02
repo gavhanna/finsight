@@ -22,7 +22,6 @@ import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MerchantsIndexRouteImport } from './routes/merchants/index'
 import { Route as MerchantsMerchantRouteImport } from './routes/merchants/$merchant'
-import { Route as AnalyticsSubscriptionsRouteImport } from './routes/analytics/subscriptions'
 import { Route as AnalyticsSavingsRateRouteImport } from './routes/analytics/savings-rate'
 import { Route as AnalyticsPatternsRouteImport } from './routes/analytics/patterns'
 import { Route as AnalyticsInflationRouteImport } from './routes/analytics/inflation'
@@ -95,11 +94,6 @@ const MerchantsMerchantRoute = MerchantsMerchantRouteImport.update({
   path: '/merchants/$merchant',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnalyticsSubscriptionsRoute = AnalyticsSubscriptionsRouteImport.update({
-  id: '/analytics/subscriptions',
-  path: '/analytics/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AnalyticsSavingsRateRoute = AnalyticsSavingsRateRouteImport.update({
   id: '/analytics/savings-rate',
   path: '/analytics/savings-rate',
@@ -149,7 +143,6 @@ export interface FileRoutesByFullPath {
   '/analytics/inflation': typeof AnalyticsInflationRoute
   '/analytics/patterns': typeof AnalyticsPatternsRoute
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
-  '/analytics/subscriptions': typeof AnalyticsSubscriptionsRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/merchants/': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -171,7 +164,6 @@ export interface FileRoutesByTo {
   '/analytics/inflation': typeof AnalyticsInflationRoute
   '/analytics/patterns': typeof AnalyticsPatternsRoute
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
-  '/analytics/subscriptions': typeof AnalyticsSubscriptionsRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/merchants': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -194,7 +186,6 @@ export interface FileRoutesById {
   '/analytics/inflation': typeof AnalyticsInflationRoute
   '/analytics/patterns': typeof AnalyticsPatternsRoute
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
-  '/analytics/subscriptions': typeof AnalyticsSubscriptionsRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/merchants/': typeof MerchantsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
@@ -218,7 +209,6 @@ export interface FileRouteTypes {
     | '/analytics/inflation'
     | '/analytics/patterns'
     | '/analytics/savings-rate'
-    | '/analytics/subscriptions'
     | '/merchants/$merchant'
     | '/merchants/'
     | '/api/gocardless/callback'
@@ -240,7 +230,6 @@ export interface FileRouteTypes {
     | '/analytics/inflation'
     | '/analytics/patterns'
     | '/analytics/savings-rate'
-    | '/analytics/subscriptions'
     | '/merchants/$merchant'
     | '/merchants'
     | '/api/gocardless/callback'
@@ -262,7 +251,6 @@ export interface FileRouteTypes {
     | '/analytics/inflation'
     | '/analytics/patterns'
     | '/analytics/savings-rate'
-    | '/analytics/subscriptions'
     | '/merchants/$merchant'
     | '/merchants/'
     | '/api/gocardless/callback'
@@ -285,7 +273,6 @@ export interface RootRouteChildren {
   AnalyticsInflationRoute: typeof AnalyticsInflationRoute
   AnalyticsPatternsRoute: typeof AnalyticsPatternsRoute
   AnalyticsSavingsRateRoute: typeof AnalyticsSavingsRateRoute
-  AnalyticsSubscriptionsRoute: typeof AnalyticsSubscriptionsRoute
   MerchantsMerchantRoute: typeof MerchantsMerchantRoute
   MerchantsIndexRoute: typeof MerchantsIndexRoute
   ApiGocardlessCallbackRoute: typeof ApiGocardlessCallbackRoute
@@ -384,13 +371,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantsMerchantRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/analytics/subscriptions': {
-      id: '/analytics/subscriptions'
-      path: '/analytics/subscriptions'
-      fullPath: '/analytics/subscriptions'
-      preLoaderRoute: typeof AnalyticsSubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/analytics/savings-rate': {
       id: '/analytics/savings-rate'
       path: '/analytics/savings-rate'
@@ -453,7 +433,6 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsInflationRoute: AnalyticsInflationRoute,
   AnalyticsPatternsRoute: AnalyticsPatternsRoute,
   AnalyticsSavingsRateRoute: AnalyticsSavingsRateRoute,
-  AnalyticsSubscriptionsRoute: AnalyticsSubscriptionsRoute,
   MerchantsMerchantRoute: MerchantsMerchantRoute,
   MerchantsIndexRoute: MerchantsIndexRoute,
   ApiGocardlessCallbackRoute: ApiGocardlessCallbackRoute,

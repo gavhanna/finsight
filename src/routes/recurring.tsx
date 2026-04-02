@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { getRecurringTransactions, type RecurringItem } from "../server/fn/insights"
+import { getSetting } from "../server/fn/settings"
 import { formatCurrency, formatDate, cn } from "@/lib/utils"
 import { Repeat, CalendarClock, TrendingDown } from "lucide-react"
 import { PageHelp } from "@/components/ui/page-help"
@@ -9,16 +10,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
 
 export const Route = createFileRoute("/recurring")({
   component: RecurringPage,
-  loader: async () => getRecurringTransactions(),
+  loader: async () => {
+    const [recurring, currency] = await Promise.all([
+      getRecurringTransactions(),
+      getSetting({ data: "preferred_currency" }),
+    ])
+    return { recurring, currency: currency ?? "EUR" }
+  },
 })
 
 type FreqFilter = "all" | "monthly" | "weekly" | "other"
 
 function RecurringPage() {
-  const data = Route.useLoaderData()
+  const { recurring: data, currency } = Route.useLoaderData()
   const [freqFilter, setFreqFilter] = useState<FreqFilter>("all")
   const [showInactive, setShowInactive] = useState(false)
 
@@ -27,6 +35,14 @@ function RecurringPage() {
 
   const totalMonthly = active.reduce((s, d) => s + d.monthlyEquiv, 0)
   const totalAnnual = active.reduce((s, d) => s + d.annualCost, 0)
+
+  const byCat = new Map<string, { name: string; color: string; monthly: number }>()
+  for (const item of active) {
+    const key = item.categoryName
+    if (!byCat.has(key)) byCat.set(key, { name: key, color: item.categoryColor, monthly: 0 })
+    byCat.get(key)!.monthly += item.monthlyEquiv
+  }
+  const pieData = Array.from(byCat.values()).sort((a, b) => b.monthly - a.monthly)
 
   const filtered = active.filter((item) => {
     if (freqFilter === "all") return true
@@ -60,7 +76,7 @@ function RecurringPage() {
                 <TrendingDown className="h-4 w-4 text-negative" />
               </div>
             </div>
-            <p className="metric-number">{formatCurrency(totalMonthly)}</p>
+            <p className="metric-number">{formatCurrency(totalMonthly, currency)}</p>
             <p className="text-xs text-muted-foreground">active recurring</p>
           </CardContent>
         </Card>
@@ -72,7 +88,7 @@ function RecurringPage() {
                 <CalendarClock className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
-            <p className="metric-number">{formatCurrency(totalAnnual)}</p>
+            <p className="metric-number">{formatCurrency(totalAnnual, currency)}</p>
             <p className="text-xs text-muted-foreground">per year</p>
           </CardContent>
         </Card>
@@ -102,6 +118,49 @@ function RecurringPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          {/* Category breakdown */}
+          {pieData.length > 1 && (
+            <div className="space-y-2">
+              <p className="section-label px-0.5">By Category</p>
+              <Card>
+                <CardContent className="pt-5">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="monthly"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={2}
+                      >
+                        {pieData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => [formatCurrency(value, currency) + "/mo", ""]}
+                        contentStyle={{
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                      />
+                      <Legend
+                        formatter={(value) => (
+                          <span className="text-xs text-muted-foreground">{value}</span>
+                        )}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Frequency filter */}
           <div className="overflow-x-auto">
             <Tabs value={freqFilter} onValueChange={(v) => v && setFreqFilter(v as FreqFilter)}>
@@ -115,7 +174,7 @@ function RecurringPage() {
           </div>
 
           {/* Active recurring table */}
-          <RecurringTable items={filtered} />
+          <RecurringTable items={filtered} currency={currency} />
 
           {/* Possibly cancelled (collapsed) */}
           {inactive.length > 0 && (
@@ -127,7 +186,7 @@ function RecurringPage() {
                 <span>{showInactive ? "▾" : "▸"}</span>
                 Possibly cancelled ({inactive.length})
               </button>
-              {showInactive && <RecurringTable items={inactive} dimmed />}
+              {showInactive && <RecurringTable items={inactive} currency={currency} dimmed />}
             </div>
           )}
         </div>
@@ -136,7 +195,7 @@ function RecurringPage() {
   )
 }
 
-function RecurringTable({ items, dimmed }: { items: RecurringItem[]; dimmed?: boolean }) {
+function RecurringTable({ items, currency, dimmed }: { items: RecurringItem[]; currency: string; dimmed?: boolean }) {
   const { sorted, sortKey, sortDir, toggle } = useSortable(items, "monthlyEquiv", "desc")
   const today = new Date()
 
@@ -178,14 +237,14 @@ function RecurringTable({ items, dimmed }: { items: RecurringItem[]; dimmed?: bo
                       <span className="text-xs text-muted-foreground">{item.frequency}</span>
                     </TableCell>
                     <TableCell className="text-right tabular-nums hidden md:table-cell">
-                      {formatCurrency(item.avgAmount)}
+                      {formatCurrency(item.avgAmount, currency)}
                       {isVariable && <span className="text-xs text-muted-foreground ml-1">(variable)</span>}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
-                      {formatCurrency(item.monthlyEquiv)}
+                      {formatCurrency(item.monthlyEquiv, currency)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground hidden lg:table-cell">
-                      {formatCurrency(item.annualCost)}
+                      {formatCurrency(item.annualCost, currency)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground text-xs hidden sm:table-cell">
                       {formatDate(item.lastSeen)}
