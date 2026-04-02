@@ -23,6 +23,7 @@ import {
   Telescope,
   CalendarDays,
   BarChart2,
+  Lightbulb,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { cn } from "@/lib/utils"
@@ -113,6 +114,7 @@ const navGroups = [
       { to: "/analytics/savings-rate",        label: "Savings Rate",    icon: PiggyBank },
       { to: "/analytics/inflation",           label: "Inflation Rate",  icon: Activity },
       { to: "/analytics/forecast",            label: "Forecast",        icon: Telescope },
+      { to: "/analytics/what-if",              label: "What If?",        icon: Lightbulb },
       { to: "/analytics/cash-flow-calendar",  label: "Cash Calendar",   icon: CalendarDays },
       { to: "/analytics/patterns",            label: "Patterns",        icon: BarChart2 },
     ],
