@@ -1,5 +1,4 @@
 import { cn, formatCurrency, formatYearMonth } from "@/lib/utils"
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { TrendBadge } from "@/components/trend-badge"
 
 export function ComparisonTable({
@@ -14,27 +13,27 @@ export function ComparisonTable({
   incomeByMonth: Map<string, number>
 }) {
   return (
-    <div className="rounded-lg border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="sticky left-0 z-20 bg-muted/80 backdrop-blur px-4 py-3 min-w-[160px]">
+    <div className="rounded-lg border overflow-auto max-h-[75vh]">
+      <table className="w-full caption-bottom text-sm">
+        <thead>
+          <tr className="border-b">
+            <th className="sticky top-0 left-0 z-40 bg-card px-4 py-3 min-w-[160px] text-left font-medium whitespace-nowrap">
               Category
-            </TableHead>
+            </th>
             {months.map((month) => (
-              <TableHead key={month} className="text-right px-4 py-3 whitespace-nowrap min-w-[110px]">
+              <th key={month} className="sticky top-0 z-30 text-right px-4 py-3 whitespace-nowrap min-w-[110px] bg-card font-medium">
                 {formatYearMonth(month)}
-              </TableHead>
+              </th>
             ))}
-            <TableHead className="text-right px-4 py-3 text-muted-foreground whitespace-nowrap min-w-[90px]">
+            <th className="sticky top-0 z-30 text-right px-4 py-3 whitespace-nowrap min-w-[90px] bg-card font-medium text-muted-foreground">
               Avg / mo
-            </TableHead>
-            <TableHead className="text-right px-4 py-3 text-muted-foreground whitespace-nowrap min-w-[80px]">
+            </th>
+            <th className="sticky top-0 z-30 text-right px-4 py-3 whitespace-nowrap min-w-[80px] bg-card font-medium text-muted-foreground">
               Trend
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+            </th>
+          </tr>
+        </thead>
+        <tbody className="[&_tr:last-child]:border-0">
           {categories.map((cat) => {
             const values = months.map((m) => cat.byMonth.get(m) ?? 0)
             const nonZeroValues = values.filter((v) => v > 0)
@@ -46,76 +45,76 @@ export function ComparisonTable({
             const trendPct = first > 0 ? ((last - first) / first) * 100 : 0
 
             return (
-              <TableRow key={cat.name} className="group">
-                <TableCell className="sticky left-0 z-10 bg-background group-hover:bg-muted/30 px-4 py-2.5 font-medium">
+              <tr key={cat.name} className="group border-b transition-colors hover:bg-muted/50">
+                <td className="sticky left-0 z-10 bg-background group-hover:bg-muted/50 px-4 py-2.5 font-medium whitespace-nowrap align-middle">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                     <span className="truncate max-w-[130px]">{cat.name}</span>
                   </div>
-                </TableCell>
+                </td>
                 {values.map((val, i) => (
-                  <TableCell key={months[i]} className="text-right px-4 py-2.5 tabular-nums">
+                  <td key={months[i]} className="text-right px-4 py-2.5 tabular-nums align-middle whitespace-nowrap">
                     {val > 0 ? formatCurrency(val) : <span className="text-muted-foreground/30">—</span>}
-                  </TableCell>
+                  </td>
                 ))}
-                <TableCell className="text-right px-4 py-2.5 tabular-nums text-muted-foreground">
+                <td className="text-right px-4 py-2.5 tabular-nums text-muted-foreground align-middle whitespace-nowrap">
                   {avg > 0 ? formatCurrency(avg) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
-                <TableCell className="text-right px-4 py-2.5">
+                </td>
+                <td className="text-right px-4 py-2.5 align-middle whitespace-nowrap">
                   <TrendBadge pct={trendPct} hasData={nonZeroValues.length > 1} />
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             )
           })}
-        </TableBody>
-        <TableFooter>
-          <TableRow className="border-t-2 font-semibold">
-            <TableCell className="sticky left-0 z-10 bg-muted/80 backdrop-blur px-4 py-3">
+        </tbody>
+        <tfoot className="border-t bg-muted/50 font-medium">
+          <tr className="border-t-2 font-semibold border-b">
+            <td className="sticky left-0 z-10 bg-muted/80 backdrop-blur px-4 py-3 align-middle whitespace-nowrap">
               Total Spending
-            </TableCell>
+            </td>
             {monthlyTotals.map(({ month, total }) => (
-              <TableCell key={month} className="text-right px-4 py-3 tabular-nums">
+              <td key={month} className="text-right px-4 py-3 tabular-nums align-middle whitespace-nowrap">
                 {formatCurrency(total)}
-              </TableCell>
+              </td>
             ))}
-            <TableCell className="text-right px-4 py-3 tabular-nums text-muted-foreground">
+            <td className="text-right px-4 py-3 tabular-nums text-muted-foreground align-middle whitespace-nowrap">
               {formatCurrency(monthlyTotals.reduce((s, m) => s + m.total, 0) / (monthlyTotals.length || 1))}
-            </TableCell>
-            <TableCell />
-          </TableRow>
-          <TableRow>
-            <TableCell className="sticky left-0 z-10 bg-muted/30 px-4 py-3 font-medium text-positive">
+            </td>
+            <td />
+          </tr>
+          <tr className="border-b">
+            <td className="sticky left-0 z-10 bg-muted/95 px-4 py-3 font-medium text-positive align-middle whitespace-nowrap">
               Income
-            </TableCell>
+            </td>
             {months.map((month) => {
               const income = incomeByMonth.get(month) ?? 0
               return (
-                <TableCell key={month} className="text-right px-4 py-3 tabular-nums text-positive">
+                <td key={month} className="text-right px-4 py-3 tabular-nums text-positive align-middle whitespace-nowrap">
                   {income > 0 ? formatCurrency(income) : <span className="text-muted-foreground/30">—</span>}
-                </TableCell>
+                </td>
               )
             })}
-            <TableCell colSpan={2} />
-          </TableRow>
-          <TableRow>
-            <TableCell className="sticky left-0 z-10 bg-muted/30 px-4 py-3 font-medium">Net</TableCell>
+            <td colSpan={2} />
+          </tr>
+          <tr>
+            <td className="sticky left-0 z-10 bg-muted/95 px-4 py-3 font-medium align-middle whitespace-nowrap">Net</td>
             {months.map((month) => {
               const income = incomeByMonth.get(month) ?? 0
               const spending = monthlyTotals.find((m) => m.month === month)?.total ?? 0
               const net = income - spending
               return (
-                <TableCell
+                <td
                   key={month}
-                  className={cn("text-right px-4 py-3 tabular-nums font-medium", net >= 0 ? "text-positive" : "text-negative")}
+                  className={cn("text-right px-4 py-3 tabular-nums font-medium align-middle whitespace-nowrap", net >= 0 ? "text-positive" : "text-negative")}
                 >
                   {formatCurrency(net)}
-                </TableCell>
+                </td>
               )
             })}
-            <TableCell colSpan={2} />
-          </TableRow>
-        </TableFooter>
-      </Table>
+            <td colSpan={2} />
+          </tr>
+        </tfoot>
+      </table>
     </div>
   )
 }
