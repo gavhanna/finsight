@@ -103,12 +103,14 @@ function WhatIfPage() {
   const scenarioResults: ScenarioResult[] = scenarios.map((scenario, idx) => {
     const items =
       scenario.mode === "category"
-        ? byCat.map((c) => ({
-            id: String(c.categoryId ?? "none"),
-            label: c.categoryName,
-            total: c.total,
-            color: c.categoryColor,
-          }))
+        ? byCat
+            .map((c) => ({
+              id: String(c.categoryId ?? "none"),
+              label: c.categoryName,
+              total: c.total,
+              color: c.categoryColor,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label))
         : merchants.map((m, i) => ({
             id: m.name,
             label: m.name,
