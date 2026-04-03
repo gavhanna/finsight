@@ -16,7 +16,7 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { PageHelp } from "@/components/ui/page-help"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ShoppingBag, TrendingDown } from "lucide-react"
+import { ShoppingBag, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   BarChart,
   Bar,
@@ -26,8 +26,9 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts"
+import { Button } from "@/components/ui/button"
 import { z } from "zod"
-import { format, parseISO } from "date-fns"
+import { addDays, format, parseISO } from "date-fns"
 
 type Preset = "this-week" | "last-week" | "last-2-weeks" | "last-month"
 
@@ -120,6 +121,29 @@ function DiscretionaryPage() {
 
   const hasData = data.byCategory.length > 0
 
+  function shiftWeek(direction: -1 | 1) {
+    const from = deps.dateFrom ? parseISO(deps.dateFrom) : new Date()
+    const to = deps.dateTo ? parseISO(deps.dateTo) : new Date()
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        dateFrom: format(addDays(from, direction * 7), "yyyy-MM-dd"),
+        dateTo: format(addDays(to, direction * 7), "yyyy-MM-dd"),
+        preset: undefined,
+      }),
+    })
+  }
+
+  function getPeriodLabel() {
+    if (!deps.dateFrom || !deps.dateTo) return activePreset ? PRESET_LABELS[activePreset] : "Custom range"
+    const from = parseISO(deps.dateFrom)
+    const to = parseISO(deps.dateTo)
+    const sameYear = from.getFullYear() === to.getFullYear()
+    return `${format(from, "d MMM")} – ${format(to, sameYear ? "d MMM" : "d MMM yyyy")}`
+  }
+
+  const canGoForward = !deps.dateTo || deps.dateTo < todayStr()
+
   // Format X-axis label for daily chart based on period length
   const dayCount = data.daily.length
   function formatDayLabel(dateStr: string) {
@@ -154,6 +178,30 @@ function DiscretionaryPage() {
             ))}
           </TabsList>
         </Tabs>
+
+        {/* Week navigator */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => shiftWeek(-1)}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="text-xs font-medium px-2 min-w-[130px] text-center tabular-nums">
+            {getPeriodLabel()}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            disabled={!canGoForward}
+            onClick={() => shiftWeek(1)}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
 
         <div className="flex items-center gap-2">
           <DatePicker
