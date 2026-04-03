@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
 import { transactions, categories } from "../../db/schema"
-import { eq, and, gte, lte, lt, sql, inArray } from "drizzle-orm"
+import { eq, and, gte, lte, lt, sql } from "drizzle-orm"
 import { z } from "zod"
 import { getMedian, classifyInterval, toMonthlyEquiv } from "../../lib/recurring"
 
@@ -13,7 +13,7 @@ function pad(n: number) {
 
 // ─── Shared: fetch recurring items inline (avoids cross-server-fn calls) ────
 
-async function fetchRecurringItems(activeOnly = true) {
+export async function fetchRecurringItems(activeOnly = true) {
   const txns = await db
     .select({
       bookingDate: transactions.bookingDate,

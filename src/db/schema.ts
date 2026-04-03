@@ -135,6 +135,18 @@ export const narrativeCache = pgTable("narrative_cache", {
     .default(sql`now()`),
 })
 
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  preferences: text("preferences").notNull().default(
+    '{"syncCompleted":true,"largeTransactions":true,"recurringReminders":true,"weeklyDigest":true}',
+  ),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
+})
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect
 export type Setting = typeof settings.$inferSelect
 export type BankConnection = typeof bankConnections.$inferSelect
 export type Account = typeof accounts.$inferSelect

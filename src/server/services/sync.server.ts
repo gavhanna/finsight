@@ -5,6 +5,12 @@ import { getAccountTransactions } from "./gocardless.server"
 import { categorise } from "./categoriser.server"
 import { createHash } from "crypto"
 import { log } from "../../lib/logger.server"
+import {
+  notifySyncCompleted,
+  notifyLargeTransactions,
+  checkRecurringReminders,
+  checkWeeklyDigest,
+} from "./notifications.server"
 
 async function getCredentials() {
   const rows = await db.select().from(settings)
@@ -65,6 +71,7 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
 
   let imported = 0
   let skipped = 0
+  const newTxs: Array<{ payee: string; amount: number; bookingDate: string }> = []
   for (const tx of booked) {
     const payeeName = tx.creditorName ?? tx.debtorName ?? ""
     const desc = tx.remittanceInformationUnstructured ?? tx.remittanceInformationStructured ?? ""
@@ -104,6 +111,7 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
         rawData: JSON.stringify(tx),
       })
       imported++
+      newTxs.push({ payee: payeeName, amount, bookingDate: tx.bookingDate })
     } catch (err: any) {
       const pgCode = err?.cause?.code ?? err?.code
       const isDedup = pgCode === "23505"
@@ -136,6 +144,13 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
     .where(eq(bankConnections.id, account.connectionId))
 
   log.info("account.sync.completed", { accountId, fetched: booked.length, imported, skipped })
+
+  if (imported > 0) {
+    const accountName = account.name ?? accountId
+    notifySyncCompleted(accountName, imported).catch(() => {})
+    notifyLargeTransactions(newTxs).catch(() => {})
+  }
+
   return { imported, total: booked.length }
 }
 
@@ -155,4 +170,6 @@ export async function syncAllAccounts(): Promise<void> {
     }
   }
   log.info("cron.sync.finished", { accountCount: allAccounts.length })
+  checkRecurringReminders().catch(() => {})
+  checkWeeklyDigest().catch(() => {})
 }

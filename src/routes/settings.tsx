@@ -1,10 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   getSettings,
   saveSettings,
   getOllamaModels,
 } from "../server/fn/settings";
+import {
+  getVapidPublicKey,
+  savePushSubscription,
+  removePushSubscription,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  sendTestNotification,
+} from "../server/fn/notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Bell, BellOff, BellRing } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  getCurrentPushSubscription,
+  subscribeToPush,
+  serializeSubscription,
+} from "@/lib/push";
+import type { NotificationPreferences } from "../server/services/notifications.server";
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR — Euro" },
@@ -50,6 +64,29 @@ function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  // ── Notification state ───────────────────────────────────────────────────────
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState("");
+  const [pushPrefs, setPushPrefs] = useState<NotificationPreferences>({
+    syncCompleted: true,
+    largeTransactions: true,
+    recurringReminders: true,
+    weeklyDigest: true,
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setPushSupported("serviceWorker" in navigator && "PushManager" in window);
+    getCurrentPushSubscription().then((sub) => {
+      setPushSubscription(sub);
+      if (sub) {
+        getNotificationPreferences({ data: { endpoint: sub.endpoint } }).then(setPushPrefs);
+      }
+    });
+  }, []);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [modelFetchError, setModelFetchError] = useState<string | null>(null);
   const [fetchingModels, setFetchingModels] = useState(false);
@@ -66,6 +103,50 @@ function SettingsPage() {
       setOllamaModels(result.models);
       // If current model isn't in the list, keep it as a manual entry
     }
+  }
+
+  async function handleSubscribe() {
+    setPushLoading(true);
+    setPushError("");
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushError("Notification permission denied. Enable it in your browser settings.");
+        return;
+      }
+      const vapidKey = await getVapidPublicKey();
+      const sub = await subscribeToPush(vapidKey);
+      await savePushSubscription({ data: serializeSubscription(sub) });
+      setPushSubscription(sub);
+      const prefs = await getNotificationPreferences({ data: { endpoint: sub.endpoint } });
+      setPushPrefs(prefs);
+    } catch (err: any) {
+      setPushError(err.message ?? "Failed to enable notifications");
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
+  async function handleUnsubscribe() {
+    if (!pushSubscription) return;
+    setPushLoading(true);
+    setPushError("");
+    try {
+      await pushSubscription.unsubscribe();
+      await removePushSubscription({ data: { endpoint: pushSubscription.endpoint } });
+      setPushSubscription(null);
+    } catch (err: any) {
+      setPushError(err.message ?? "Failed to disable notifications");
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
+  async function handlePrefToggle(key: keyof NotificationPreferences) {
+    if (!pushSubscription) return;
+    const updated = { ...pushPrefs, [key]: !pushPrefs[key] };
+    setPushPrefs(updated);
+    await updateNotificationPreferences({ data: { endpoint: pushSubscription.endpoint, preferences: updated } });
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -256,6 +337,113 @@ function SettingsPage() {
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </form>
+
+      {/* Notifications — outside the form, managed independently */}
+      <section className="space-y-4 border-t pt-8">
+        <div>
+          <h2 className="text-lg font-medium">Notifications</h2>
+          <p className="text-sm text-muted-foreground">
+            Browser push notifications for important financial events.
+          </p>
+        </div>
+
+        {!pushSupported ? (
+          <p className="text-sm text-muted-foreground">
+            Push notifications are not supported in this browser.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {/* Subscribe / unsubscribe */}
+            <div className="flex items-center gap-3">
+              {pushSubscription ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-positive">
+                    <Bell className="size-4" />
+                    <span>Notifications active</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pushLoading}
+                    onClick={handleUnsubscribe}
+                  >
+                    <BellOff className="size-4 mr-1.5" />
+                    Disable
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={pushLoading}
+                    onClick={() => sendTestNotification()}
+                    title="Send a test notification"
+                  >
+                    <BellRing className="size-4 mr-1.5" />
+                    Test
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pushLoading}
+                  onClick={handleSubscribe}
+                >
+                  <Bell className={cn("size-4 mr-1.5", pushLoading && "animate-pulse")} />
+                  Enable notifications
+                </Button>
+              )}
+            </div>
+
+            {pushError && <p className="text-sm text-destructive">{pushError}</p>}
+
+            {/* Per-type toggles */}
+            {pushSubscription && (
+              <div className="space-y-1 max-w-xl">
+                {(
+                  [
+                    {
+                      key: "syncCompleted" as const,
+                      label: "Sync completed",
+                      description: "When new transactions are imported from your bank",
+                    },
+                    {
+                      key: "largeTransactions" as const,
+                      label: "Unusual transactions",
+                      description: "When a transaction is 2× above your usual amount for that merchant",
+                    },
+                    {
+                      key: "recurringReminders" as const,
+                      label: "Upcoming payments",
+                      description: "1 day before an expected recurring payment",
+                    },
+                    {
+                      key: "weeklyDigest" as const,
+                      label: "Weekly discretionary review",
+                      description: "Monday summary of last week's spend, excluding recurring payments",
+                    },
+                  ] as const
+                ).map(({ key, label, description }) => (
+                  <label
+                    key={key}
+                    className="flex items-start gap-3 rounded-lg p-3 hover:bg-muted/50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 accent-primary"
+                      checked={pushPrefs[key]}
+                      onChange={() => handlePrefToggle(key)}
+                    />
+                    <div>
+                      <p className="text-sm font-medium leading-none">{label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

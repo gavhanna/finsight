@@ -16,7 +16,7 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { PageHelp } from "@/components/ui/page-help"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ShoppingBag, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { ShoppingBag, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   BarChart,
   Bar,
