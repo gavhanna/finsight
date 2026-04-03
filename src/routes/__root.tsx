@@ -24,6 +24,7 @@ import {
   CalendarDays,
   BarChart2,
   Lightbulb,
+  ShoppingBag,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { cn } from "@/lib/utils"
@@ -117,6 +118,7 @@ const navGroups = [
       { to: "/analytics/what-if",              label: "What If?",        icon: Lightbulb },
       { to: "/analytics/cash-flow-calendar",  label: "Cash Calendar",   icon: CalendarDays },
       { to: "/analytics/patterns",            label: "Patterns",        icon: BarChart2 },
+      { to: "/analytics/discretionary",      label: "Discretionary",   icon: ShoppingBag },
     ],
   },
   {

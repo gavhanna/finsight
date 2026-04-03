@@ -27,6 +27,7 @@ import { Route as AnalyticsSavingsRateRouteImport } from './routes/analytics/sav
 import { Route as AnalyticsPatternsRouteImport } from './routes/analytics/patterns'
 import { Route as AnalyticsInflationRouteImport } from './routes/analytics/inflation'
 import { Route as AnalyticsForecastRouteImport } from './routes/analytics/forecast'
+import { Route as AnalyticsDiscretionaryRouteImport } from './routes/analytics/discretionary'
 import { Route as AnalyticsCashFlowCalendarRouteImport } from './routes/analytics/cash-flow-calendar'
 import { Route as ApiGocardlessCallbackRouteImport } from './routes/api/gocardless/callback'
 
@@ -120,6 +121,11 @@ const AnalyticsForecastRoute = AnalyticsForecastRouteImport.update({
   path: '/analytics/forecast',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsDiscretionaryRoute = AnalyticsDiscretionaryRouteImport.update({
+  id: '/analytics/discretionary',
+  path: '/analytics/discretionary',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyticsCashFlowCalendarRoute =
   AnalyticsCashFlowCalendarRouteImport.update({
     id: '/analytics/cash-flow-calendar',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
+  '/analytics/discretionary': typeof AnalyticsDiscretionaryRoute
   '/analytics/forecast': typeof AnalyticsForecastRoute
   '/analytics/inflation': typeof AnalyticsInflationRoute
   '/analytics/patterns': typeof AnalyticsPatternsRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
+  '/analytics/discretionary': typeof AnalyticsDiscretionaryRoute
   '/analytics/forecast': typeof AnalyticsForecastRoute
   '/analytics/inflation': typeof AnalyticsInflationRoute
   '/analytics/patterns': typeof AnalyticsPatternsRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
+  '/analytics/discretionary': typeof AnalyticsDiscretionaryRoute
   '/analytics/forecast': typeof AnalyticsForecastRoute
   '/analytics/inflation': typeof AnalyticsInflationRoute
   '/analytics/patterns': typeof AnalyticsPatternsRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/triage'
     | '/analytics/cash-flow-calendar'
+    | '/analytics/discretionary'
     | '/analytics/forecast'
     | '/analytics/inflation'
     | '/analytics/patterns'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/triage'
     | '/analytics/cash-flow-calendar'
+    | '/analytics/discretionary'
     | '/analytics/forecast'
     | '/analytics/inflation'
     | '/analytics/patterns'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/triage'
     | '/analytics/cash-flow-calendar'
+    | '/analytics/discretionary'
     | '/analytics/forecast'
     | '/analytics/inflation'
     | '/analytics/patterns'
@@ -281,6 +293,7 @@ export interface RootRouteChildren {
   TransactionsRoute: typeof TransactionsRoute
   TriageRoute: typeof TriageRoute
   AnalyticsCashFlowCalendarRoute: typeof AnalyticsCashFlowCalendarRoute
+  AnalyticsDiscretionaryRoute: typeof AnalyticsDiscretionaryRoute
   AnalyticsForecastRoute: typeof AnalyticsForecastRoute
   AnalyticsInflationRoute: typeof AnalyticsInflationRoute
   AnalyticsPatternsRoute: typeof AnalyticsPatternsRoute
@@ -419,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsForecastRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics/discretionary': {
+      id: '/analytics/discretionary'
+      path: '/analytics/discretionary'
+      fullPath: '/analytics/discretionary'
+      preLoaderRoute: typeof AnalyticsDiscretionaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analytics/cash-flow-calendar': {
       id: '/analytics/cash-flow-calendar'
       path: '/analytics/cash-flow-calendar'
@@ -449,6 +469,7 @@ const rootRouteChildren: RootRouteChildren = {
   TransactionsRoute: TransactionsRoute,
   TriageRoute: TriageRoute,
   AnalyticsCashFlowCalendarRoute: AnalyticsCashFlowCalendarRoute,
+  AnalyticsDiscretionaryRoute: AnalyticsDiscretionaryRoute,
   AnalyticsForecastRoute: AnalyticsForecastRoute,
   AnalyticsInflationRoute: AnalyticsInflationRoute,
   AnalyticsPatternsRoute: AnalyticsPatternsRoute,

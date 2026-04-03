@@ -15,7 +15,6 @@ import {
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
-  Cell,
 } from "recharts"
 
 // UK CPI reference — update in Settings or hardcode for now

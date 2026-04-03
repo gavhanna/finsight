@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
 import { getCashFlowCalendar } from "../../server/fn/analytics"
 import { getSetting } from "../../server/fn/settings"
 import { formatCurrency, cn } from "@/lib/utils"
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PageHelp } from "@/components/ui/page-help"
@@ -13,6 +12,13 @@ const SearchSchema = z.object({
   year: z.number().optional(),
   month: z.number().optional(),
 })
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+]
+
+const DOW_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 export const Route = createFileRoute("/analytics/cash-flow-calendar")({
   validateSearch: SearchSchema,
@@ -33,12 +39,6 @@ export const Route = createFileRoute("/analytics/cash-flow-calendar")({
   },
 })
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-]
-
-const DOW_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 function CashFlowCalendarPage() {
   const { calData, currency } = Route.useLoaderData()

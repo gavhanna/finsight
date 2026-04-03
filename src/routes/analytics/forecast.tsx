@@ -13,7 +13,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
   Legend,
 } from "recharts"
 
@@ -31,8 +30,6 @@ export const Route = createFileRoute("/analytics/forecast")({
 function ForecastPage() {
   const { forecast, currency } = Route.useLoaderData()
   const { fixedTotal, variableTotal, grandTotal, variableCategories, topRecurring, totalVariance, nextMonthLabel } = forecast
-
-  const confidencePct = grandTotal > 0 ? Math.round((totalVariance / grandTotal) * 100) : 0
 
   const chartData = [
     {
@@ -107,10 +104,11 @@ function ForecastPage() {
                       width={72}
                     />
                     <Tooltip
-                      formatter={(value: number, name: string) => [
-                        formatCurrency(value, currency),
-                        name,
-                      ]}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={((value: number | undefined, name: string) => {
+                        if (value == null) return []
+                        return [formatCurrency(value, currency), name]
+                      }) as any}
                       contentStyle={{
                         backgroundColor: "var(--card)",
                         border: "1px solid var(--border)",

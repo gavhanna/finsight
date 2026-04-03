@@ -1,17 +1,31 @@
 import { cn, formatCurrency, formatYearMonth } from "@/lib/utils"
 import { TrendBadge } from "@/components/trend-badge"
 
+interface Category {
+  name: string
+  color: string
+  byMonth: Map<string, number>
+}
+
+interface MonthlyTotal {
+  month: string
+  label: string
+  total: number
+}
+
+interface ComparisonTableProps {
+  months: string[]
+  categories: Category[]
+  monthlyTotals: MonthlyTotal[]
+  incomeByMonth: Map<string, number>
+}
+
 export function ComparisonTable({
   months,
   categories,
   monthlyTotals,
   incomeByMonth,
-}: {
-  months: string[]
-  categories: { name: string; color: string; byMonth: Map<string, number> }[]
-  monthlyTotals: { month: string; label: string; total: number }[]
-  incomeByMonth: Map<string, number>
-}) {
+}: ComparisonTableProps) {
   return (
     <div className="rounded-lg border overflow-auto max-h-[75vh]">
       <table className="w-full caption-bottom text-sm">
