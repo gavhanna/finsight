@@ -15,7 +15,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  TrendingUp,
   Repeat,
   Store,
   PiggyBank,
@@ -66,6 +65,8 @@ export const Route = createRootRoute({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.json" },
+      { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
+      { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
       { rel: "apple-touch-icon", href: "/icon-192.png" },
     ],
   }),
@@ -191,8 +192,8 @@ function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2.5 px-2 py-1.5">
-              <div className="flex aspect-square size-7 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground flex-shrink-0 shadow-md ring-1 ring-sidebar-primary/25">
-                <TrendingUp className="size-3.5" />
+              <div className="flex aspect-square size-7 items-center justify-center rounded-lg overflow-hidden flex-shrink-0 shadow-md ring-1 ring-sidebar-primary/25">
+                <img src="/icon.svg" alt="FinSight" className="size-7" />
               </div>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                 <span className="font-bold text-sm tracking-tight text-sidebar-foreground leading-none">
