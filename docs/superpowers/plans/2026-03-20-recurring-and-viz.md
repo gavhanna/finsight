@@ -649,8 +649,7 @@ Then replace the existing `BarChart` block inside the "Monthly Spending Overview
         stackId="a"
         fill={cat.color}
         radius={i === categories.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
-        maxBarSize={40}
-      />
+       />
     ))}
   </BarChart>
 </ResponsiveContainer>

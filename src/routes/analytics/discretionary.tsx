@@ -223,21 +223,19 @@ function DiscretionaryPage() {
         <div className="flex items-center rounded-md border bg-muted/40 p-0.5 gap-0.5">
           <button
             onClick={() => setRecurringFilter("active")}
-            className={`text-xs px-2.5 py-1 rounded transition-colors ${
-              search.recurringFilter !== "all"
+            className={`text-xs px-2.5 py-1 rounded transition-colors ${search.recurringFilter !== "all"
                 ? "bg-background shadow-sm font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             Active recurring
           </button>
           <button
             onClick={() => setRecurringFilter("all")}
-            className={`text-xs px-2.5 py-1 rounded transition-colors ${
-              search.recurringFilter === "all"
+            className={`text-xs px-2.5 py-1 rounded transition-colors ${search.recurringFilter === "all"
                 ? "bg-background shadow-sm font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             All recurring
           </button>
@@ -329,7 +327,7 @@ function DiscretionaryPage() {
                             fontSize: "12px",
                           }}
                         />
-                        <Bar dataKey="total" radius={[3, 3, 0, 0]} maxBarSize={32}>
+                        <Bar dataKey="total" radius={[3, 3, 0, 0]} >
                           {data.daily.map((entry) => (
                             <Cell
                               key={entry.date}

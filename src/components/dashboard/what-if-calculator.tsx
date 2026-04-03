@@ -60,11 +60,10 @@ export function WhatIfCalculator({
                 <button
                   key={m}
                   onClick={() => { setMode(m); setSelectedId("") }}
-                  className={`flex-1 py-1.5 capitalize transition-colors ${
-                    mode === m
+                  className={`flex-1 py-1.5 capitalize transition-colors ${mode === m
                       ? "bg-primary text-primary-foreground font-medium"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  }`}
+                    }`}
                 >
                   {m}
                 </button>
@@ -147,10 +146,9 @@ export function WhatIfCalculator({
                     fontSize: "12px",
                   }}
                 />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={64}>
-                  {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.fill} fillOpacity={0.85} />
-                  ))}
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>                 {chartData.map((entry, i) => (
+                  <Cell key={i} fill={entry.fill} fillOpacity={0.85} />
+                ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

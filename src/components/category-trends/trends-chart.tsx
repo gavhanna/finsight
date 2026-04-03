@@ -167,7 +167,7 @@ export function TrendsChart({
                   />
                   {!isSingle && <Legend formatter={name => allItems.find(c => String(c.id) === name)?.name ?? name} />}
                   {visibleItems.map(item => (
-                    <Bar key={item.id} dataKey={String(item.id)} fill={item.color} radius={[3, 3, 0, 0]} maxBarSize={40} />
+                    <Bar key={item.id} dataKey={String(item.id)} fill={item.color} radius={[3, 3, 0, 0]} />
                   ))}
                   {months.length >= 3 && visibleItems.map(item => {
                     const avg = avgByKey.get(String(item.id))

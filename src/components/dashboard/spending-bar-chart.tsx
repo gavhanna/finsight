@@ -12,7 +12,7 @@ export function SpendingBarChart({ data, currency = "EUR" }: {
         <XAxis type="number" tickFormatter={(v) => formatCurrency(v, currency, { notation: "compact", maximumFractionDigits: 1, minimumFractionDigits: 0 })} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
         <YAxis type="category" dataKey="categoryName" tick={{ fontSize: 10 }} width={80} tickLine={false} axisLine={false} />
         <Tooltip content={<ChartTooltip currency={currency} />} />
-        <Bar dataKey="total" radius={[0, 5, 5, 0]} maxBarSize={20}>
+        <Bar dataKey="total" radius={[0, 5, 5, 0]}>
           {data.map((entry, i) => (
             <Cell key={i} fill={entry.categoryColor ?? CHART_COLORS[i % CHART_COLORS.length]} />
           ))}

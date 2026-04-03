@@ -199,7 +199,7 @@ function PatternsPage() {
                           fontSize: "12px",
                         }}
                       />
-                      <Bar dataKey="total" radius={[4, 4, 0, 0]} maxBarSize={48}>
+                      <Bar dataKey="total" radius={[4, 4, 0, 0]}>
                         {dowData.map((entry) => (
                           <Cell
                             key={entry.day}
@@ -264,7 +264,7 @@ function PatternsPage() {
                           }}
                         />
                       )}
-                      <Bar dataKey="total" radius={[3, 3, 0, 0]} maxBarSize={24}>
+                      <Bar dataKey="total" radius={[3, 3, 0, 0]}>
                         {domData.map((entry) => (
                           <Cell
                             key={entry.day}

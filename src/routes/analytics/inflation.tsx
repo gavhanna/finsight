@@ -9,6 +9,7 @@ import { PageHelp } from "@/components/ui/page-help"
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -151,7 +152,7 @@ function InflationPage() {
                           fill: "var(--color-warning, #f59e0b)",
                         }}
                       />
-                      <Bar dataKey="changePercent" radius={[0, 3, 3, 0]} maxBarSize={22}>
+                      <Bar dataKey="changePercent" radius={[0, 3, 3, 0]}>
                         {categories.map((entry) => (
                           <Cell
                             key={entry.categoryName}
