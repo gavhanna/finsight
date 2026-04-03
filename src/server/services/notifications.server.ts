@@ -4,7 +4,7 @@ import { pushSubscriptions, settings, transactions } from "../../db/schema"
 import { eq, and, gte, lt, lte } from "drizzle-orm"
 import { sql } from "drizzle-orm"
 import { log } from "../../lib/logger.server"
-import { fetchRecurringItems } from "../fn/analytics"
+import { fetchRecurringItems } from "./recurring.server"
 
 export type NotificationPreferences = {
   syncCompleted: boolean
