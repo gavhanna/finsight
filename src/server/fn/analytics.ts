@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
 import { transactions, categories } from "../../db/schema"
-import { eq, and, gte, lte, lt, sql } from "drizzle-orm"
+import { eq, and, gte, lte, lt, sql, desc } from "drizzle-orm"
 import { z } from "zod"
 import { fetchRecurringItems } from "../services/recurring.server"
 
@@ -285,6 +285,28 @@ export const getCashFlowCalendar = createServerFn()
   })
 
 export type CalendarData = Awaited<ReturnType<typeof getCashFlowCalendar>>
+
+export const getDayTransactions = createServerFn()
+  .inputValidator(z.object({ date: z.string() }))
+  .handler(async ({ data: { date } }) => {
+    const rows = await db
+      .select({
+        id: transactions.id,
+        amount: transactions.amount,
+        creditorName: transactions.creditorName,
+        debtorName: transactions.debtorName,
+        description: transactions.description,
+        categoryName: categories.name,
+        categoryColor: categories.color,
+      })
+      .from(transactions)
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
+      .where(eq(transactions.bookingDate, date))
+      .orderBy(desc(transactions.amount))
+    return rows
+  })
+
+export type DayTransaction = Awaited<ReturnType<typeof getDayTransactions>>[number]
 
 // ─── Spending Patterns ───────────────────────────────────────────────────────
 

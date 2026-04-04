@@ -1,12 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { getCashFlowCalendar } from "../../server/fn/analytics"
+import { getCashFlowCalendar, getDayTransactions, type DayTransaction } from "../../server/fn/analytics"
 import { getSetting } from "../../server/fn/settings"
 import { formatCurrency, cn } from "@/lib/utils"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PageHelp } from "@/components/ui/page-help"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
 import { z } from "zod"
+import { useState } from "react"
 
 const SearchSchema = z.object({
   year: z.number().optional(),
@@ -45,6 +53,21 @@ function CashFlowCalendarPage() {
   const { days, startOffset, year, month } = calData
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
+
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [dayTxns, setDayTxns] = useState<DayTransaction[]>([])
+  const [isLoadingDay, setIsLoadingDay] = useState(false)
+
+  async function openDay(date: string) {
+    setSelectedDate(date)
+    setIsLoadingDay(true)
+    try {
+      const txns = await getDayTransactions({ data: { date } })
+      setDayTxns(txns)
+    } finally {
+      setIsLoadingDay(false)
+    }
+  }
 
   function changeMonth(delta: number) {
     let newMonth = month + delta
@@ -87,23 +110,23 @@ function CashFlowCalendarPage() {
       </div>
 
       {/* Summary row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 md:p-4">
             <p className="section-label">Income</p>
-            <p className="metric-number text-positive">{formatCurrency(totalIncome, currency)}</p>
+            <p className="metric-number text-sm sm:text-xl text-positive">{formatCurrency(totalIncome, currency)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 md:p-4">
             <p className="section-label">Expenses</p>
-            <p className="metric-number text-negative">{formatCurrency(totalExpenses, currency)}</p>
+            <p className="metric-number text-sm sm:text-xl text-negative">{formatCurrency(totalExpenses, currency)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 md:p-4">
             <p className="section-label">Net</p>
-            <p className={cn("metric-number", netFlow >= 0 ? "text-positive" : "text-negative")}>
+            <p className={cn("metric-number text-sm sm:text-xl", netFlow >= 0 ? "text-positive" : "text-negative")}>
               {formatCurrency(netFlow, currency)}
             </p>
           </CardContent>
@@ -140,10 +163,11 @@ function CashFlowCalendarPage() {
               return (
                 <div
                   key={day.date}
+                  onClick={() => openDay(day.date)}
                   className={cn(
-                    "relative rounded-lg border p-1.5 min-h-[64px] flex flex-col gap-1 transition-colors",
+                    "relative rounded-lg border p-1.5 min-h-[64px] flex flex-col gap-1 transition-colors cursor-pointer",
                     isToday ? "border-primary/60 bg-primary/5" : "border-border/50 hover:border-border",
-                    hasActivity ? "bg-card" : "bg-muted/20",
+                    hasActivity ? "bg-card hover:bg-muted/30" : "bg-muted/20 hover:bg-muted/40",
                   )}
                 >
                   <span className={cn(
@@ -233,7 +257,11 @@ function CashFlowCalendarPage() {
                     {days
                       .filter((d) => d.income > 0 || d.expenses > 0)
                       .map((day) => (
-                        <tr key={day.date} className="border-b last:border-0 hover:bg-muted/30">
+                        <tr
+                          key={day.date}
+                          className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                          onClick={() => openDay(day.date)}
+                        >
                           <td className="pl-5 py-2.5 tabular-nums text-muted-foreground">{day.date}</td>
                           <td className="py-2.5 text-right tabular-nums text-positive">
                             {day.income > 0 ? formatCurrency(day.income, currency) : "—"}
@@ -253,6 +281,93 @@ function CashFlowCalendarPage() {
           </Card>
         </div>
       )}
+
+      {/* Day detail sheet */}
+      {(() => {
+        const selectedDay = days.find((d) => d.date === selectedDate)
+        const expectedDebits = selectedDay?.expectedDebits ?? []
+        return (
+          <Sheet open={selectedDate !== null} onOpenChange={(open) => { if (!open) setSelectedDate(null) }}>
+            <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>{selectedDate}</SheetTitle>
+                <SheetDescription>
+                  {isLoadingDay
+                    ? "Loading transactions…"
+                    : `${dayTxns.length} transaction${dayTxns.length !== 1 ? "s" : ""}${expectedDebits.length > 0 ? ` · ${expectedDebits.length} expected` : ""}`}
+                </SheetDescription>
+              </SheetHeader>
+
+              {isLoadingDay ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="flex flex-col px-4 gap-5">
+                  {dayTxns.length > 0 && (
+                    <div>
+                      <p className="section-label mb-2">Transactions</p>
+                      <div className="flex flex-col divide-y">
+                        {dayTxns.map((tx) => {
+                          const payee = tx.creditorName ?? tx.debtorName ?? tx.description ?? "Unknown"
+                          const isIncome = tx.amount > 0
+                          return (
+                            <div key={tx.id} className="flex items-start justify-between gap-3 py-3">
+                              <div className="flex items-start gap-2.5 min-w-0">
+                                {tx.categoryColor && (
+                                  <div
+                                    className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                                    style={{ backgroundColor: tx.categoryColor }}
+                                  />
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{payee}</p>
+                                  {tx.description && tx.description !== payee && (
+                                    <p className="text-xs text-muted-foreground truncate">{tx.description}</p>
+                                  )}
+                                  {tx.categoryName && (
+                                    <p className="text-xs text-muted-foreground">{tx.categoryName}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <span className={cn("text-sm font-medium tabular-nums shrink-0", isIncome ? "text-positive" : "text-negative")}>
+                                {isIncome ? "+" : "-"}{formatCurrency(Math.abs(tx.amount), currency)}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {expectedDebits.length > 0 && (
+                    <div>
+                      <p className="section-label mb-2">Expected Debits</p>
+                      <div className="flex flex-col divide-y">
+                        {expectedDebits.map((e, i) => (
+                          <div key={i} className="flex items-center justify-between gap-3 py-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500/60" />
+                              <p className="text-sm font-medium truncate">{e.payee}</p>
+                            </div>
+                            <span className="text-sm font-medium tabular-nums shrink-0 text-amber-600 dark:text-amber-400">
+                              -{formatCurrency(e.amount, currency)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {dayTxns.length === 0 && expectedDebits.length === 0 && (
+                    <p className="py-6 text-sm text-muted-foreground">No transactions on this day.</p>
+                  )}
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+        )
+      })()}
     </div>
   )
 }
