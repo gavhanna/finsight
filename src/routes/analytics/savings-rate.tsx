@@ -37,7 +37,7 @@ function SavingsRatePage() {
   const avg12 =
     history.length > 0
       ? history.slice(-12).reduce((s, r) => s + r.savingsRate, 0) /
-        Math.min(history.length, 12)
+      Math.min(history.length, 12)
       : 0
 
   const trend =
@@ -105,7 +105,7 @@ function SavingsRatePage() {
           <p className="section-label px-0.5">Monthly Savings Rate</p>
           <Card>
             <CardContent className="pt-5">
-              <div className="chart-bg p-3 -mx-1">
+              <div className="chart-bg p-3 -ml-8 -mr-4">
                 <ResponsiveContainer width="100%" height={320}>
                   <LineChart data={history} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />

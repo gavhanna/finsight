@@ -110,7 +110,7 @@ export function TrendsChart({
         {/* Chart */}
         <div className="overflow-x-auto">
           <div style={{ minWidth: Math.max(480, chartData.length * 56) }}>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300} className="-ml-2">
               {chartType === "area" ? (
                 <AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                   <defs>

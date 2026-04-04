@@ -167,7 +167,7 @@ function ComparisonPage() {
             <p className="section-label">Monthly Spending Overview</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-3 -mx-1 overflow-x-auto">
+                <div className="chart-bg p-3 -ml-8 -mr-6 overflow-x-auto">
                   <div style={{ minWidth: Math.max(480, incomeExpenseData.length * 56) }}>
                     <ResponsiveContainer width="100%" height={180}>
                       <AreaChart data={incomeExpenseData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
