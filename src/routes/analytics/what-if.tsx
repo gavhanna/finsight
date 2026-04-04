@@ -104,19 +104,19 @@ function WhatIfPage() {
     const items =
       scenario.mode === "category"
         ? byCat
-            .map((c) => ({
-              id: String(c.categoryId ?? "none"),
-              label: c.categoryName,
-              total: c.total,
-              color: c.categoryColor,
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label))
-        : merchants.map((m, i) => ({
-            id: m.name,
-            label: m.name,
-            total: m.total,
-            color: CHART_COLORS[i % CHART_COLORS.length],
+          .map((c) => ({
+            id: String(c.categoryId ?? "none"),
+            label: c.categoryName,
+            total: c.total,
+            color: c.categoryColor,
           }))
+          .sort((a, b) => a.label.localeCompare(b.label))
+        : merchants.map((m, i) => ({
+          id: m.name,
+          label: m.name,
+          total: m.total,
+          color: CHART_COLORS[i % CHART_COLORS.length],
+        }))
 
     const effectiveId = scenario.selectedId || (items[0]?.id ?? "")
     const selected = items.find((i) => i.id === effectiveId) ?? items[0]
@@ -415,25 +415,25 @@ function ScenarioCard({
   const items =
     scenario.mode === "category"
       ? byCat
-          .map((c) => ({
-            id: String(c.categoryId ?? "none"),
-            label: c.categoryName,
-            total: c.total,
-            color: c.categoryColor,
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label))
-      : merchants.map((m) => ({
-          id: m.name,
-          label: m.name,
-          total: m.total,
-          color: undefined as string | undefined,
+        .map((c) => ({
+          id: String(c.categoryId ?? "none"),
+          label: c.categoryName,
+          total: c.total,
+          color: c.categoryColor,
         }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+      : merchants.map((m) => ({
+        id: m.name,
+        label: m.name,
+        total: m.total,
+        color: undefined as string | undefined,
+      }))
 
   const effectiveId = scenario.selectedId || (items[0]?.id ?? "")
 
   return (
     <Card>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground font-medium">Cut #{index + 1}</span>
           {onRemove && (
@@ -449,58 +449,60 @@ function ScenarioCard({
         <div className="grid sm:grid-cols-2 gap-4">
           {/* Controls */}
           <div className="space-y-3">
-            <div className="flex rounded-md overflow-hidden border border-border text-xs">
-              {(["category", "merchant"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => onChange({ mode: m, selectedId: "" })}
-                  className={`flex-1 py-1.5 capitalize transition-colors ${
-                    scenario.mode === m
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex flex-grow-1 rounded-md overflow-hidden border border-border text-xs">
+                {(["category", "merchant"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => onChange({ mode: m, selectedId: "" })}
+                    className={`flex-1 py-1.5 capitalize transition-colors ${scenario.mode === m
                       ? "bg-primary text-primary-foreground font-medium"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
+                      }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
 
-            <Select
-              value={effectiveId ?? undefined}
-              onValueChange={(id) => onChange({ selectedId: id ?? undefined })}
-            >
-              <SelectTrigger>
-                <SelectValue>
-                  <div className="flex items-center gap-2">
-                    {items.find((i) => i.id === effectiveId)?.color && (
-                      <span
-                        className="size-2 rounded-full shrink-0"
-                        style={{ backgroundColor: items.find((i) => i.id === effectiveId)?.color }}
-                      />
-                    )}
-                    {items.find((i) => i.id === effectiveId)?.label ?? "Select…"}
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-[300px]">
-                {items.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    <div className="flex items-center gap-2 w-full">
-                      {item.color && (
+              <Select
+                value={effectiveId ?? undefined}
+                onValueChange={(id) => onChange({ selectedId: id ?? undefined })}
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                      {items.find((i) => i.id === effectiveId)?.color && (
                         <span
                           className="size-2 rounded-full shrink-0"
-                          style={{ backgroundColor: item.color }}
+                          style={{ backgroundColor: items.find((i) => i.id === effectiveId)?.color }}
                         />
                       )}
-                      <span className="flex-1">{item.label}</span>
-                      <span className="text-muted-foreground text-xs tabular-nums">
-                        {formatCurrency(item.total, currency)}
-                      </span>
+                      {items.find((i) => i.id === effectiveId)?.label ?? "Select…"}
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="min-w-[300px]">
+                  {items.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      <div className="flex items-center gap-2 w-full">
+                        {item.color && (
+                          <span
+                            className="size-2 rounded-full shrink-0"
+                            style={{ backgroundColor: item.color }}
+                          />
+                        )}
+                        <span className="flex-1">{item.label}</span>
+                        <span className="text-muted-foreground text-xs tabular-nums">
+                          {formatCurrency(item.total, currency)}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+            </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
