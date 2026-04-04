@@ -251,7 +251,7 @@ function DashboardPage() {
             <p className="section-label px-0.5">Cash Flow</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-3 -mx-1">
+                <div className="chart-bg -ml-10 -mr-4">
                   <IncomeExpensesChart data={incomeVsExp} currency={currency} />
                 </div>
               </CardContent>
@@ -262,7 +262,7 @@ function DashboardPage() {
             <p className="section-label px-0.5">Year over Year</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-3 -mx-1">
+                <div className="chart-bg p-3 -ml-10 -mr-4">
                   <YearOverYearChart current={yoy.current} lastYear={yoy.lastYear} currency={currency} />
                 </div>
               </CardContent>
@@ -285,7 +285,7 @@ function DashboardPage() {
                   {chartType === "pie" ? (
                     <SpendingPieChart data={byCat} currency={currency} />
                   ) : (
-                    <div className="chart-bg p-2 -mx-1">
+                    <div className="chart-bg p-2 -ml-10 -mr-4">
                       <SpendingBarChart data={byCat} currency={currency} />
                     </div>
                   )}
@@ -297,7 +297,7 @@ function DashboardPage() {
               <p className="section-label px-0.5">Spending Trends</p>
               <Card>
                 <CardContent className="pt-5">
-                  <div className="chart-bg p-2 -mx-1">
+                  <div className="chart-bg p-2 -ml-10 -mr-4">
                     <SpendingTrendsChart data={trendData} categories={trendCategories} currency={currency} />
                   </div>
                 </CardContent>
@@ -314,7 +314,7 @@ function DashboardPage() {
             <p className="section-label px-0.5">Top Merchants</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-2 -mx-1">
+                <div className="chart-bg p-2 -ml-4 -mr-4">
                   <TopMerchantsChart data={merchants} currency={currency} />
                 </div>
               </CardContent>
