@@ -170,7 +170,7 @@ function PatternsPage() {
               )}
             </div>
             <Card>
-              <CardContent className="pt-5">
+              <CardContent className="pt-5 -ml-8 -mr-4">
                 <div className="chart-bg p-3 -mx-1">
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={dowData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
@@ -220,7 +220,7 @@ function PatternsPage() {
             <p className="section-label px-0.5">Spend by Day of Month</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-3 -mx-1">
+                <div className="chart-bg p-3 -mx-8 -mr-4">
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={domData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/40" />

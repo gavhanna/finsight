@@ -92,7 +92,7 @@ function ForecastPage() {
           <p className="section-label px-0.5">Forecast Breakdown</p>
           <Card>
             <CardContent className="pt-5">
-              <div className="chart-bg p-3 -mx-1">
+              <div className="chart-bg p-3 -mx-10 ">
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                     <XAxis dataKey="name" tick={{ fontSize: 12 }} tickLine={false} />

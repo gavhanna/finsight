@@ -101,7 +101,7 @@ function InflationPage() {
             <p className="section-label px-0.5">Change by Category ({priorYear} → {currentYear})</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-3 -mx-1">
+                <div className="chart-bg p-3 -mx-10 -mr-4">
                   <ResponsiveContainer width="100%" height={Math.max(280, categories.length * 36)}>
                     <BarChart
                       data={categories}

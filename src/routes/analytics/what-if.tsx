@@ -341,7 +341,7 @@ function WhatIfPage() {
           <div className="space-y-2">
             <p className="section-label px-0.5">Savings projection</p>
             <Card>
-              <CardContent className="pt-5">
+              <CardContent className="pt-5 -ml-10 -mr-2">
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={projectionData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                     <defs>

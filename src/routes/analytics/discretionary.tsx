@@ -291,7 +291,7 @@ function DiscretionaryPage() {
               <p className="section-label px-0.5">Daily Breakdown</p>
               <Card>
                 <CardContent className="pt-5">
-                  <div className="chart-bg p-3 -mx-1">
+                  <div className="chart-bg p-3 -mx-8 -mr-4">
                     <ResponsiveContainer width="100%" height={160}>
                       <BarChart data={data.daily} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                         <XAxis

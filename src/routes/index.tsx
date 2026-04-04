@@ -262,7 +262,7 @@ function DashboardPage() {
             <p className="section-label px-0.5">Year over Year</p>
             <Card>
               <CardContent className="pt-5">
-                <div className="chart-bg p-3 -ml-10 -mr-4">
+                <div className="chart-bg p-3 -ml-8 -mr-4">
                   <YearOverYearChart current={yoy.current} lastYear={yoy.lastYear} currency={currency} />
                 </div>
               </CardContent>
