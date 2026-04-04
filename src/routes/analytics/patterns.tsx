@@ -127,9 +127,9 @@ function PatternsPage() {
         </Tabs>
         <Select
           value={categoryId != null ? String(categoryId) : "all"}
-          onValueChange={setCategory}
+          onValueChange={(v) => setCategory(v ?? "all")}
         >
-          <SelectTrigger className="w-auto min-w-[160px] h-8 text-xs">
+          <SelectTrigger className="w-auto min-w-40 h-8 text-xs">
             <SelectValue>
               {categoryId != null
                 ? (categories.find((c) => c.id === categoryId)?.name ?? "All categories")
@@ -191,7 +191,7 @@ function PatternsPage() {
                         width={64}
                       />
                       <Tooltip
-                        formatter={(value: number) => [formatCurrency(value, currency), "Total spend"]}
+                        formatter={(value: unknown) => [formatCurrency(value as number, currency), "Total spend"]}
                         contentStyle={{
                           backgroundColor: "var(--card)",
                           border: "1px solid var(--border)",
@@ -241,7 +241,7 @@ function PatternsPage() {
                         width={64}
                       />
                       <Tooltip
-                        formatter={(value: number) => [formatCurrency(value, currency), "Total spend"]}
+                        formatter={(value: unknown) => [formatCurrency(value as number, currency), "Total spend"]}
                         labelFormatter={(label) => `Day ${label}`}
                         contentStyle={{
                           backgroundColor: "var(--card)",

@@ -141,7 +141,7 @@ function RecurringPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => [formatCurrency(value, currency) + "/mo", ""]}
+                        formatter={(value: unknown) => [formatCurrency(value as number, currency) + "/mo", ""]}
                         contentStyle={{
                           backgroundColor: "var(--card)",
                           border: "1px solid var(--border)",

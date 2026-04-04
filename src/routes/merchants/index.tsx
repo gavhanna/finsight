@@ -368,8 +368,8 @@ function ConcentrationSection({
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number, _name: string, props: { payload?: { pct?: number } }) => [
-                      `${formatCurrency(value, currency)} (${(props.payload?.pct ?? 0).toFixed(1)}%)`,
+                    formatter={(value: unknown, _name: unknown, props: { payload?: { pct?: number } }) => [
+                      `${formatCurrency(value as number, currency)} (${(props.payload?.pct ?? 0).toFixed(1)}%)`,
                       "",
                     ]}
                     contentStyle={{

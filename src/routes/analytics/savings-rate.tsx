@@ -126,11 +126,11 @@ function SavingsRatePage() {
                       width={44}
                     />
                     <Tooltip
-                      formatter={(value: number, name: string) => [
-                        `${value.toFixed(1)}%`,
+                      formatter={(value: unknown, name: unknown) => [
+                        `${(value as number).toFixed(1)}%`,
                         name === "savingsRate" ? "Savings Rate" : "3-Month Avg",
                       ]}
-                      labelFormatter={formatYearMonth}
+                      labelFormatter={(label: unknown) => formatYearMonth(label as string)}
                       contentStyle={{
                         backgroundColor: "var(--card)",
                         border: "1px solid var(--border)",

@@ -306,7 +306,7 @@ function WhatIfPage() {
                         width={120}
                       />
                       <Tooltip
-                        formatter={(value: number) => [formatCurrency(value, currency), "Monthly saving"]}
+                        formatter={(value: unknown) => [formatCurrency(value as number, currency), "Monthly saving"]}
                         contentStyle={{
                           backgroundColor: "var(--card)",
                           border: "1px solid var(--border)",
@@ -321,8 +321,8 @@ function WhatIfPage() {
                         <LabelList
                           dataKey="monthly"
                           position="right"
-                          formatter={(v: number) =>
-                            formatCurrency(v, currency, {
+                          formatter={(v: unknown) =>
+                            formatCurrency(v as number, currency, {
                               minimumFractionDigits: 0,
                               maximumFractionDigits: 0,
                             }) + "/mo"
@@ -364,7 +364,7 @@ function WhatIfPage() {
                       width={72}
                     />
                     <Tooltip
-                      formatter={(value: number) => [formatCurrency(value, currency), "Accumulated"]}
+                      formatter={(value: unknown) => [formatCurrency(value as number, currency), "Accumulated"]}
                       contentStyle={{
                         backgroundColor: "var(--card)",
                         border: "1px solid var(--border)",
@@ -466,8 +466,8 @@ function ScenarioCard({
             </div>
 
             <Select
-              value={effectiveId}
-              onValueChange={(id) => onChange({ selectedId: id })}
+              value={effectiveId ?? undefined}
+              onValueChange={(id) => onChange({ selectedId: id ?? undefined })}
             >
               <SelectTrigger>
                 <SelectValue>

@@ -189,7 +189,7 @@ function DiscretionaryPage() {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="text-xs font-medium px-2 min-w-[130px] text-center tabular-nums">
+          <span className="text-xs font-medium px-2 min-w-32.5 text-center tabular-nums">
             {getPeriodLabel()}
           </span>
           <Button
@@ -208,14 +208,14 @@ function DiscretionaryPage() {
             value={search.dateFrom}
             onChange={setDateFrom}
             placeholder="From"
-            className="w-[130px] h-8 text-xs"
+            className="w-32.5 h-8 text-xs"
           />
           <span className="text-muted-foreground text-xs">–</span>
           <DatePicker
             value={search.dateTo}
             onChange={setDateTo}
             placeholder="To"
-            className="w-[130px] h-8 text-xs"
+            className="w-32.5 h-8 text-xs"
           />
         </div>
 
@@ -224,8 +224,8 @@ function DiscretionaryPage() {
           <button
             onClick={() => setRecurringFilter("active")}
             className={`text-xs px-2.5 py-1 rounded transition-colors ${search.recurringFilter !== "all"
-                ? "bg-background shadow-sm font-medium text-foreground"
-                : "text-muted-foreground hover:text-foreground"
+              ? "bg-background shadow-sm font-medium text-foreground"
+              : "text-muted-foreground hover:text-foreground"
               }`}
           >
             Active recurring
@@ -233,8 +233,8 @@ function DiscretionaryPage() {
           <button
             onClick={() => setRecurringFilter("all")}
             className={`text-xs px-2.5 py-1 rounded transition-colors ${search.recurringFilter === "all"
-                ? "bg-background shadow-sm font-medium text-foreground"
-                : "text-muted-foreground hover:text-foreground"
+              ? "bg-background shadow-sm font-medium text-foreground"
+              : "text-muted-foreground hover:text-foreground"
               }`}
           >
             All recurring
@@ -315,8 +315,8 @@ function DiscretionaryPage() {
                           width={60}
                         />
                         <Tooltip
-                          formatter={(value: number) => [
-                            formatCurrency(value, currency),
+                          formatter={(value: unknown) => [
+                            formatCurrency(value as number, currency),
                             "Spent",
                           ]}
                           labelFormatter={(label) => formatDate(label)}
@@ -358,15 +358,15 @@ function DiscretionaryPage() {
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             <div
-                              className="size-2.5 rounded-full flex-shrink-0"
+                              className="size-2.5 rounded-full shrink-0"
                               style={{ background: cat.categoryColor }}
                             />
                             <span className="font-medium truncate">{cat.categoryName}</span>
-                            <span className="text-muted-foreground text-xs flex-shrink-0">
+                            <span className="text-muted-foreground text-xs shrink-0">
                               {cat.count} tx
                             </span>
                           </div>
-                          <span className="font-semibold tabular-nums ml-3 flex-shrink-0">
+                          <span className="font-semibold tabular-nums ml-3 shrink-0">
                             {formatCurrency(cat.total, currency)}
                           </span>
                         </div>
@@ -400,12 +400,12 @@ function DiscretionaryPage() {
                         className="flex items-center justify-between py-2.5 border-b last:border-0"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-xs text-muted-foreground w-4 text-right flex-shrink-0">
+                          <span className="text-xs text-muted-foreground w-4 text-right shrink-0">
                             {i + 1}
                           </span>
                           <span className="text-sm font-medium truncate">{merchant.name}</span>
                         </div>
-                        <div className="text-right flex-shrink-0 ml-3">
+                        <div className="text-right shrink-0 ml-3">
                           <div className="text-sm font-semibold tabular-nums">
                             {formatCurrency(merchant.total, currency)}
                           </div>

@@ -106,7 +106,6 @@ function InflationPage() {
                     <BarChart
                       data={categories}
                       layout="vertical"
-                      margin={{ top: 4, right: 48, left: 8, bottom: 4 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border/40" />
                       <XAxis
@@ -127,7 +126,7 @@ function InflationPage() {
                         width={110}
                       />
                       <Tooltip
-                        formatter={(value: number) => [`${value >= 0 ? "+" : ""}${value.toFixed(1)}%`, "Change"]}
+                        formatter={(value: unknown) => { const v = value as number; return [`${v >= 0 ? "+" : ""}${v.toFixed(1)}%`, "Change"] }}
                         contentStyle={{
                           backgroundColor: "var(--card)",
                           border: "1px solid var(--border)",

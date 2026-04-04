@@ -73,7 +73,7 @@ export function WhatIfCalculator({
             {/* Item selector */}
             <Select
               value={selectedId || (items[0]?.id ?? "")}
-              onValueChange={setSelectedId}
+              onValueChange={(v) => setSelectedId(v ?? "")}
             >
               <SelectTrigger>
                 <SelectValue>
@@ -138,7 +138,7 @@ export function WhatIfCalculator({
                   width={68}
                 />
                 <Tooltip
-                  formatter={(value: number) => [formatCurrency(value, currency), "Annual spend"]}
+                  formatter={(value: unknown) => [formatCurrency(value as number, currency), "Annual spend"]}
                   contentStyle={{
                     backgroundColor: "var(--card)",
                     border: "1px solid var(--border)",

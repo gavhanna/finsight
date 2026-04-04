@@ -54,8 +54,8 @@ export function TransactionChartPanel({
                 <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `€${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v.toFixed(0)}`} />
                 <ReferenceLine y={0} stroke="oklch(0.5 0 0 / 0.2)" />
                 <Tooltip
-                  formatter={(v: number) => [formatCurrency(-v), "Amount"]}
-                  labelFormatter={formatYearMonth}
+                  formatter={(v: unknown) => [formatCurrency(-(v as number)), "Amount"]}
+                  labelFormatter={(label: unknown) => formatYearMonth(label as string)}
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid oklch(0.5 0 0 / 0.15)" }}
                 />
                 <Line type="monotone" dataKey="display" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 3, strokeWidth: 0, fill: "var(--color-primary)" }} activeDot={{ r: 4, strokeWidth: 0 }} />

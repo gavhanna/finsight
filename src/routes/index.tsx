@@ -134,14 +134,6 @@ function DashboardPage() {
 
   const hasData = byCat.length > 0
 
-  const PRESET_MONTHS: Record<DatePreset, number> = {
-    month: 1,
-    "3months": 3,
-    "6months": 6,
-    ytd: new Date().getMonth() + 1,
-    all: 12,
-  }
-  const monthsCovered = PRESET_MONTHS[preset] ?? 3
 
   return (
     <div className="p-4 sm:p-6 space-y-6">

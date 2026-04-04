@@ -3,7 +3,6 @@ import { db } from "../../db/index.server"
 import { transactions, categories } from "../../db/schema"
 import { eq, and, gte, lte, lt, sql } from "drizzle-orm"
 import { z } from "zod"
-import { getMedian, classifyInterval, toMonthlyEquiv } from "../../lib/recurring"
 import { fetchRecurringItems } from "../services/recurring.server"
 
 const monthExpr = sql<string>`to_char(${transactions.bookingDate}::date, 'YYYY-MM')`

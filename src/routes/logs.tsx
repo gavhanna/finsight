@@ -136,8 +136,8 @@ function LogsPage() {
         {/* Date selector */}
         <Select
           value={selectedDate as string | undefined}
-          onValueChange={(v: string | undefined) =>
-            navigate({ search: { ...search, date: v } })
+          onValueChange={(v) =>
+            navigate({ search: { ...search, date: v ?? undefined } })
           }
         >
           <SelectTrigger className="w-36 h-8 text-xs font-mono">
