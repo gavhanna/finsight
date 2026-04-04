@@ -7,6 +7,7 @@ import { generateFinancialNarrative } from "../services/ollama.server"
 import { getMedian, classifyInterval, toMonthlyEquiv, type Frequency } from "../../lib/recurring"
 import { createHash } from "crypto"
 import { narrativeCache } from "../../db/schema"
+import { fetchRecurringItems } from "../services/recurring.server"
 
 const InsightFilters = z.object({
   dateFrom: z.string().optional(),
@@ -90,12 +91,22 @@ export const getSpendingTrends = createServerFn()
   })
 
 export const getTopMerchants = createServerFn()
-  .inputValidator(InsightFilters.extend({ limit: z.number().default(10) }))
+  .inputValidator(InsightFilters.extend({ limit: z.number().default(10), excludeRecurring: z.boolean().default(false) }))
   .handler(async ({ data: filters }) => {
     const conditions = [
       ...buildConditions(filters),
       lt(transactions.amount, 0),
     ]
+
+    if (filters.excludeRecurring) {
+      const recurringItems = await fetchRecurringItems(true)
+      const recurringPayees = recurringItems.map((r) => r.payee)
+      if (recurringPayees.length > 0) {
+        conditions.push(
+          sql`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}) NOT IN (${sql.join(recurringPayees.map((p) => sql`${p}`), sql`, `)})` as any,
+        )
+      }
+    }
 
     const payee = sql<string>`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}, 'Unknown')`
 

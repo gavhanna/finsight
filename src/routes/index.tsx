@@ -36,6 +36,7 @@ const SearchSchema = z.object({
   accountIds: z.array(z.string()).optional(),
   preset: z.enum(["month", "3months", "6months", "ytd", "all"]).default("3months"),
   chartType: z.enum(["pie", "bar"]).optional(),
+  excludeRecurring: z.boolean().default(true),
 })
 
 export const Route = createFileRoute("/")({
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/")({
     const dates = !search.dateFrom && !search.dateTo
       ? getPresetDates(search.preset)
       : { dateFrom: search.dateFrom, dateTo: search.dateTo }
-    return { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo }
+    return { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo, excludeRecurring: search.excludeRecurring ?? true }
   },
   loader: async ({ deps }) => {
     const filters = {
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/")({
       await Promise.all([
         getSpendingByCategory({ data: filters }),
         getSpendingTrends({ data: filters }),
-        getTopMerchants({ data: { ...filters, limit: 10 } }),
+        getTopMerchants({ data: { ...filters, limit: 10, excludeRecurring: deps.excludeRecurring } }),
         getIncomeVsExpenses({ data: filters }),
         getSummaryStats({ data: filters }),
         getAccounts(),
@@ -311,7 +312,15 @@ function DashboardPage() {
           </div>
 
           <div className="space-y-2">
-            <p className="section-label px-0.5">Top Merchants</p>
+            <div className="flex items-center justify-between px-0.5">
+              <p className="section-label">Top Merchants</p>
+              <button
+                onClick={() => navigate({ search: { ...search, excludeRecurring: !search.excludeRecurring } })}
+                className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${search.excludeRecurring ? "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30" : "bg-primary text-primary-foreground border-primary"}`}
+              >
+                {search.excludeRecurring ? "Show recurring" : "Hide recurring"}
+              </button>
+            </div>
             <Card>
               <CardContent className="pt-5">
                 <div className="chart-bg p-2 -ml-4 -mr-4">
