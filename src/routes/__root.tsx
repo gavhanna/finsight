@@ -1,4 +1,4 @@
-import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState } from "@tanstack/react-router"
+import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState, type ErrorComponentProps } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
@@ -85,6 +85,7 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootDocument,
   component: RootLayout,
+  errorComponent: RootErrorComponent,
 })
 
 function OfflineBanner() {
@@ -283,6 +284,47 @@ function AppSidebar() {
 
       <SidebarRail />
     </Sidebar>
+  )
+}
+
+function RootErrorComponent({ error }: ErrorComponentProps) {
+  const [offline, setOffline] = useState(typeof navigator !== "undefined" && !navigator.onLine)
+
+  useEffect(() => {
+    const on = () => setOffline(false)
+    const off = () => setOffline(true)
+    window.addEventListener("online", on)
+    window.addEventListener("offline", off)
+    return () => {
+      window.removeEventListener("online", on)
+      window.removeEventListener("offline", off)
+    }
+  }, [])
+
+  return (
+    <TooltipProvider>
+      <SidebarProvider className="h-svh overflow-hidden">
+        <AppSidebar />
+        <SidebarInset className="overflow-hidden">
+          <OfflineBanner />
+          <header className="header-frosted flex h-12 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-10">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" />
+          </header>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+            <WifiOff className="size-8 text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="font-semibold text-sm">No cached data for this page</p>
+              <p className="text-muted-foreground text-sm">
+                {offline
+                  ? "Visit this page while online to enable offline access."
+                  : (error as Error)?.message ?? "Something went wrong."}
+              </p>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }
 

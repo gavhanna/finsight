@@ -136,8 +136,15 @@ async function networkFirstWithOfflineFallback(request) {
     }
     return response
   } catch {
+    // Try the exact cached page first (previously SSR-rendered HTML)
     const cached = await cache.match(request)
     if (cached) return cached
+    // Fall back to the root shell — TanStack Router boots client-side,
+    // navigates to the correct URL, and withOfflineCache / RootErrorComponent
+    // handles the no-data case from within the app rather than a full-screen takeover
+    const shell = await cache.match(new Request("/"))
+    if (shell) return shell
+    // Absolute last resort: nothing has ever been cached (first ever visit offline)
     return caches.match(OFFLINE_URL)
   }
 }
