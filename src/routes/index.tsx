@@ -11,6 +11,7 @@ import {
 } from "../server/fn/insights"
 import { getSetting } from "../server/fn/settings"
 import { formatCurrency } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
 import { TrendingDown, TrendingUp, ArrowLeftRight, Hash } from "lucide-react"
@@ -54,18 +55,20 @@ export const Route = createFileRoute("/")({
       dateTo: deps.dateTo,
       accountIds: deps.accountIds ?? [],
     }
-    const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy] =
-      await Promise.all([
-        getSpendingByCategory({ data: filters }),
-        getSpendingTrends({ data: filters }),
-        getTopMerchants({ data: { ...filters, limit: 10, excludeRecurring: deps.excludeRecurring } }),
-        getIncomeVsExpenses({ data: filters }),
-        getSummaryStats({ data: filters }),
-        getAccounts(),
-        getSetting({ data: "preferred_currency" }),
-        getYearOverYearComparison({ data: filters }),
-      ])
-    return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy }
+    return withOfflineCache("dashboard", async () => {
+      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy] =
+        await Promise.all([
+          getSpendingByCategory({ data: filters }),
+          getSpendingTrends({ data: filters }),
+          getTopMerchants({ data: { ...filters, limit: 10 } }),
+          getIncomeVsExpenses({ data: filters }),
+          getSummaryStats({ data: filters }),
+          getAccounts(),
+          getSetting({ data: "preferred_currency" }),
+          getYearOverYearComparison({ data: filters }),
+        ])
+      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy }
+    })
   },
 })
 

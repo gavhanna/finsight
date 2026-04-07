@@ -1,4 +1,5 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 import {
@@ -26,6 +27,7 @@ import {
   ShoppingBag,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
+import { WifiOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Sidebar,
@@ -84,6 +86,31 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
   component: RootLayout,
 })
+
+function OfflineBanner() {
+  const [offline, setOffline] = useState(false)
+
+  useEffect(() => {
+    setOffline(!navigator.onLine)
+    const on = () => setOffline(false)
+    const off = () => setOffline(true)
+    window.addEventListener("online", on)
+    window.addEventListener("offline", off)
+    return () => {
+      window.removeEventListener("online", on)
+      window.removeEventListener("offline", off)
+    }
+  }, [])
+
+  if (!offline) return null
+
+  return (
+    <div className="flex items-center justify-center gap-2 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-amber-400 text-xs font-medium shrink-0">
+      <WifiOff className="size-3 shrink-0" />
+      You&rsquo;re offline &mdash; showing last cached data
+    </div>
+  )
+}
 
 const themeScript = `(function(){try{var t=localStorage.getItem('theme')||'system';if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();`
 
@@ -273,6 +300,7 @@ function RootLayout() {
       <SidebarProvider className="h-svh overflow-hidden">
         <AppSidebar />
         <SidebarInset className="overflow-hidden">
+          <OfflineBanner />
           <header className="header-frosted flex h-12 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-10">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" />

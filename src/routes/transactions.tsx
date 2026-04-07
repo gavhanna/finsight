@@ -4,6 +4,7 @@ import { getTransactions, updateTransactionCategory, bulkCategorise, getTransact
 import { getCategories } from "../server/fn/categories"
 import { getAccounts } from "../server/fn/insights"
 import { formatDate, formatCurrency } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
@@ -30,14 +31,15 @@ export const Route = createFileRoute("/transactions")({
   validateSearch: SearchSchema,
   component: TransactionsPage,
   loaderDeps: ({ search }) => search,
-  loader: async ({ deps }) => {
-    const [txData, categories, accounts] = await Promise.all([
-      getTransactions({ data: { ...deps, accountIds: deps.accountIds ?? [] } }),
-      getCategories(),
-      getAccounts(),
-    ])
-    return { txData, categories, accounts }
-  },
+  loader: ({ deps }) =>
+    withOfflineCache("transactions", async () => {
+      const [txData, categories, accounts] = await Promise.all([
+        getTransactions({ data: { ...deps, accountIds: deps.accountIds ?? [] } }),
+        getCategories(),
+        getAccounts(),
+      ])
+      return { txData, categories, accounts }
+    }),
 })
 
 function TransactionsPage() {

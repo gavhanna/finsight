@@ -3,6 +3,7 @@ import { getSpendingPatterns } from "../../server/fn/analytics"
 import { getSetting } from "../../server/fn/settings"
 import { getPresetDates, type PresetKey } from "@/lib/presets"
 import { formatCurrency } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { BarChart2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { PageHelp } from "@/components/ui/page-help"
@@ -44,19 +45,20 @@ export const Route = createFileRoute("/analytics/patterns")({
         : { dateFrom: search.dateFrom, dateTo: search.dateTo }
     return { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo }
   },
-  loader: async ({ deps }) => {
-    const [patterns, currency] = await Promise.all([
-      getSpendingPatterns({
-        data: {
-          dateFrom: deps.dateFrom,
-          dateTo: deps.dateTo,
-          categoryId: deps.categoryId,
-        },
-      }),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { patterns, currency: currency ?? "EUR", categoryId: deps.categoryId }
-  },
+  loader: ({ deps }) =>
+    withOfflineCache("analytics:patterns", async () => {
+      const [patterns, currency] = await Promise.all([
+        getSpendingPatterns({
+          data: {
+            dateFrom: deps.dateFrom,
+            dateTo: deps.dateTo,
+            categoryId: deps.categoryId,
+          },
+        }),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { patterns, currency: currency ?? "EUR", categoryId: deps.categoryId }
+    }),
 })
 
 type Preset = "month" | "3months" | "6months" | "ytd" | "12months" | "all"

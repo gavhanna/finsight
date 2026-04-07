@@ -17,16 +17,18 @@ import {
   Legend,
 } from "recharts"
 import { PageHelp } from "@/components/ui/page-help"
+import { withOfflineCache } from "@/lib/loader-cache"
 
 export const Route = createFileRoute("/analytics/savings-rate")({
   component: SavingsRatePage,
-  loader: async () => {
-    const [history, currency] = await Promise.all([
-      getSavingsRateHistory(),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { history, currency: currency ?? "EUR" }
-  },
+  loader: () =>
+    withOfflineCache("analytics:savings-rate", async () => {
+      const [history, currency] = await Promise.all([
+        getSavingsRateHistory(),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { history, currency: currency ?? "EUR" }
+    }),
 })
 
 function SavingsRatePage() {

@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendsChart } from "@/components/category-trends/trends-chart"
 import { SummaryTable } from "@/components/category-trends/summary-table"
 import { PageHelp } from "@/components/ui/page-help"
+import { withOfflineCache } from "@/lib/loader-cache"
 
 type Preset = "3months" | "6months" | "ytd" | "12months" | "all"
 type ChartType = "area" | "bar"
@@ -46,13 +47,15 @@ export const Route = createFileRoute("/category-trends")({
       dateTo: deps.dateTo,
       accountIds: deps.accountIds ?? [],
     }
-    const [trends, accounts, groups, categoryList] = await Promise.all([
-      getSpendingTrends({ data: filters }),
-      getAccounts(),
-      getCategoryGroups(),
-      getCategories(),
-    ])
-    return { trends, accounts, groups, categoryList }
+    return withOfflineCache("category-trends", async () => {
+      const [trends, accounts, groups, categoryList] = await Promise.all([
+        getSpendingTrends({ data: filters }),
+        getAccounts(),
+        getCategoryGroups(),
+        getCategories(),
+      ])
+      return { trends, accounts, groups, categoryList }
+    })
   },
   component: CategoryTrendsPage,
 })

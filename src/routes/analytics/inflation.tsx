@@ -6,6 +6,7 @@ import { Activity, TrendingUp, TrendingDown } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { PageHelp } from "@/components/ui/page-help"
+import { withOfflineCache } from "@/lib/loader-cache"
 import {
   BarChart,
   Bar,
@@ -23,13 +24,14 @@ const CPI_REFERENCE = 2.5
 
 export const Route = createFileRoute("/analytics/inflation")({
   component: InflationPage,
-  loader: async () => {
-    const [data, currency] = await Promise.all([
-      getInflationRate(),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { data, currency: currency ?? "EUR" }
-  },
+  loader: () =>
+    withOfflineCache("analytics:inflation", async () => {
+      const [data, currency] = await Promise.all([
+        getInflationRate(),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { data, currency: currency ?? "EUR" }
+    }),
 })
 
 function InflationPage() {

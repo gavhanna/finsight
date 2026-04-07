@@ -4,6 +4,7 @@ import { getSpendingByCategory, getTopMerchants } from "../../server/fn/insights
 import { getSetting } from "../../server/fn/settings"
 import { getPresetDates } from "@/lib/presets"
 import { formatCurrency, cn } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { Plus, X, TrendingDown, Target, Sparkles } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { PageHelp } from "@/components/ui/page-help"
@@ -64,16 +65,17 @@ function makeId() {
 
 export const Route = createFileRoute("/analytics/what-if")({
   component: WhatIfPage,
-  loader: async () => {
-    const { dateFrom, dateTo } = getPresetDates("6months")
-    const filters = { dateFrom, dateTo, accountIds: [] }
-    const [byCat, merchants, currency] = await Promise.all([
-      getSpendingByCategory({ data: filters }),
-      getTopMerchants({ data: { ...filters, limit: 30 } }),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { byCat, merchants, currency: currency ?? "EUR" }
-  },
+  loader: () =>
+    withOfflineCache("analytics:what-if", async () => {
+      const { dateFrom, dateTo } = getPresetDates("6months")
+      const filters = { dateFrom, dateTo, accountIds: [] }
+      const [byCat, merchants, currency] = await Promise.all([
+        getSpendingByCategory({ data: filters }),
+        getTopMerchants({ data: { ...filters, limit: 30 } }),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { byCat, merchants, currency: currency ?? "EUR" }
+    }),
 })
 
 function WhatIfPage() {

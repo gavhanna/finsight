@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { getCashFlowCalendar, getDayTransactions, type DayTransaction } from "../../server/fn/analytics"
 import { getSetting } from "../../server/fn/settings"
 import { formatCurrency, cn } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,13 +39,14 @@ export const Route = createFileRoute("/analytics/cash-flow-calendar")({
       month: search.month ?? today.getMonth() + 1,
     }
   },
-  loader: async ({ deps }) => {
-    const [calData, currency] = await Promise.all([
-      getCashFlowCalendar({ data: { year: deps.year, month: deps.month } }),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { calData, currency: currency ?? "EUR" }
-  },
+  loader: ({ deps }) =>
+    withOfflineCache("analytics:cash-flow-calendar", async () => {
+      const [calData, currency] = await Promise.all([
+        getCashFlowCalendar({ data: { year: deps.year, month: deps.month } }),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { calData, currency: currency ?? "EUR" }
+    }),
 })
 
 

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { withOfflineCache } from "@/lib/loader-cache"
 import type { Category } from "../db/schema"
 import type { RuleWithMeta } from "@/components/rules/types"
 import { RuleRow } from "@/components/rules/rule-row"
@@ -17,10 +18,11 @@ import { CategoryDot } from "@/components/rules/category-dot"
 
 export const Route = createFileRoute("/rules")({
   component: RulesPage,
-  loader: async () => {
-    const [ruleList, cats] = await Promise.all([getAllRules(), getCategories()])
-    return { rules: ruleList, categories: cats }
-  },
+  loader: () =>
+    withOfflineCache("rules", async () => {
+      const [ruleList, cats] = await Promise.all([getAllRules(), getCategories()])
+      return { rules: ruleList, categories: cats }
+    }),
 })
 
 function RulesPage() {

@@ -4,6 +4,7 @@ import { getMerchantDetail } from "../../server/fn/merchants"
 import { getSetting } from "../../server/fn/settings"
 import { getPresetDates, type PresetKey } from "@/lib/presets"
 import { formatCurrency, formatDate, formatYearMonth } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -41,20 +42,21 @@ export const Route = createFileRoute("/merchants/$merchant")({
         : { dateFrom: search.dateFrom, dateTo: search.dateTo }
     return { ...search, ...dates }
   },
-  loader: async ({ deps, params }) => {
-    const [detail, currency] = await Promise.all([
-      getMerchantDetail({
-        data: {
-          merchantName: params.merchant,
-          dateFrom: deps.dateFrom,
-          dateTo: deps.dateTo,
-          accountIds: deps.accountIds ?? [],
-        },
-      }),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { detail, currency: currency ?? "EUR", merchantName: params.merchant }
-  },
+  loader: ({ deps, params }) =>
+    withOfflineCache(`merchants:${params.merchant}`, async () => {
+      const [detail, currency] = await Promise.all([
+        getMerchantDetail({
+          data: {
+            merchantName: params.merchant,
+            dateFrom: deps.dateFrom,
+            dateTo: deps.dateTo,
+            accountIds: deps.accountIds ?? [],
+          },
+        }),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { detail, currency: currency ?? "EUR", merchantName: params.merchant }
+    }),
   component: MerchantDetailPage,
 })
 

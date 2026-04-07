@@ -3,6 +3,7 @@ import { useState } from "react"
 import { getRecurringTransactions, type RecurringItem } from "../server/fn/insights"
 import { getSetting } from "../server/fn/settings"
 import { formatCurrency, formatDate, cn } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { Repeat, CalendarClock, TrendingDown } from "lucide-react"
 import { PageHelp } from "@/components/ui/page-help"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,13 +15,14 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recha
 
 export const Route = createFileRoute("/recurring")({
   component: RecurringPage,
-  loader: async () => {
-    const [recurring, currency] = await Promise.all([
-      getRecurringTransactions(),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { recurring, currency: currency ?? "EUR" }
-  },
+  loader: () =>
+    withOfflineCache("recurring", async () => {
+      const [recurring, currency] = await Promise.all([
+        getRecurringTransactions(),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { recurring, currency: currency ?? "EUR" }
+    }),
 })
 
 type FreqFilter = "all" | "monthly" | "weekly" | "other"

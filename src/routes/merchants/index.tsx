@@ -6,6 +6,7 @@ import { getAccounts } from "../../server/fn/insights"
 import { getSetting } from "../../server/fn/settings"
 import { getPresetDates, type PresetKey } from "@/lib/presets"
 import { formatCurrency, formatDate } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -60,20 +61,21 @@ export const Route = createFileRoute("/merchants/")({
         : { dateFrom: search.dateFrom, dateTo: search.dateTo }
     return { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo }
   },
-  loader: async ({ deps }) => {
-    const [merchants, accounts, currency] = await Promise.all([
-      getMerchantList({
-        data: {
-          dateFrom: deps.dateFrom,
-          dateTo: deps.dateTo,
-          accountIds: deps.accountIds ?? [],
-        },
-      }),
-      getAccounts(),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { merchants, accounts, currency: currency ?? "EUR" }
-  },
+  loader: ({ deps }) =>
+    withOfflineCache("merchants", async () => {
+      const [merchants, accounts, currency] = await Promise.all([
+        getMerchantList({
+          data: {
+            dateFrom: deps.dateFrom,
+            dateTo: deps.dateTo,
+            accountIds: deps.accountIds ?? [],
+          },
+        }),
+        getAccounts(),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { merchants, accounts, currency: currency ?? "EUR" }
+    }),
   component: MerchantsPage,
 })
 

@@ -4,6 +4,7 @@ import {
   getCategoriesWithRules, createCategory, getCategoryGroups,
 } from "../server/fn/categories"
 import { Plus } from "lucide-react"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { PageHelp } from "@/components/ui/page-help"
 import { Button } from "@/components/ui/button"
 import { GroupsSection } from "@/components/categories/groups-section"
@@ -12,10 +13,11 @@ import { CategoryTable } from "@/components/categories/category-table"
 
 export const Route = createFileRoute("/categories")({
   component: CategoriesPage,
-  loader: async () => {
-    const [categories, groups] = await Promise.all([getCategoriesWithRules(), getCategoryGroups()])
-    return { categories, groups }
-  },
+  loader: () =>
+    withOfflineCache("categories", async () => {
+      const [categories, groups] = await Promise.all([getCategoriesWithRules(), getCategoryGroups()])
+      return { categories, groups }
+    }),
 })
 
 function CategoriesPage() {

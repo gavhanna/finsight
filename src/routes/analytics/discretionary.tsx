@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { getDiscretionarySpending } from "../../server/fn/analytics"
 import { getSetting } from "../../server/fn/settings"
+import { withOfflineCache } from "@/lib/loader-cache"
 import {
   startOfWeek,
   startOfLastWeek,
@@ -75,19 +76,20 @@ export const Route = createFileRoute("/analytics/discretionary")({
       preset: hasCustomDates ? undefined : (search.preset ?? "this-week"),
     }
   },
-  loader: async ({ deps }) => {
-    const [data, currency] = await Promise.all([
-      getDiscretionarySpending({
-        data: {
-          dateFrom: deps.dateFrom,
-          dateTo: deps.dateTo,
-          activeOnly: deps.recurringFilter !== "all",
-        },
-      }),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { data, currency: currency ?? "EUR", deps }
-  },
+  loader: ({ deps }) =>
+    withOfflineCache("analytics:discretionary", async () => {
+      const [data, currency] = await Promise.all([
+        getDiscretionarySpending({
+          data: {
+            dateFrom: deps.dateFrom,
+            dateTo: deps.dateTo,
+            activeOnly: deps.recurringFilter !== "all",
+          },
+        }),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { data, currency: currency ?? "EUR", deps }
+    }),
 })
 
 function DiscretionaryPage() {

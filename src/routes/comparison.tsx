@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
 import { getSpendingTrends, getIncomeVsExpenses, getAccounts } from "../server/fn/insights"
 import { formatYearMonth } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
 import { z } from "zod"
@@ -42,12 +43,14 @@ export const Route = createFileRoute("/comparison")({
       dateTo: deps.dateTo ?? defaultDates.dateTo,
       accountIds: deps.accountIds ?? [],
     }
-    const [trends, incomeVsExp, accounts] = await Promise.all([
-      getSpendingTrends({ data: filters }),
-      getIncomeVsExpenses({ data: filters }),
-      getAccounts(),
-    ])
-    return { trends, incomeVsExp, accounts }
+    return withOfflineCache("comparison", async () => {
+      const [trends, incomeVsExp, accounts] = await Promise.all([
+        getSpendingTrends({ data: filters }),
+        getIncomeVsExpenses({ data: filters }),
+        getAccounts(),
+      ])
+      return { trends, incomeVsExp, accounts }
+    })
   },
 })
 

@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { getConnections, syncAccount, deleteConnection } from "../server/fn/accounts"
 import { formatDate } from "@/lib/utils"
+import { withOfflineCache } from "@/lib/loader-cache"
 import { Building2, RefreshCw, Trash2, Plus, AlertCircle, CheckCircle, X } from "lucide-react"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/accounts")({
     error: z.string().optional(),
   }),
   component: AccountsPage,
-  loader: () => getConnections(),
+  loader: () => withOfflineCache("accounts", () => getConnections()),
 })
 
 const STATUS_CLASSES: Record<string, string> = {

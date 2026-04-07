@@ -6,6 +6,7 @@ import { Telescope, TrendingDown, Repeat } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { PageHelp } from "@/components/ui/page-help"
+import { withOfflineCache } from "@/lib/loader-cache"
 import {
   BarChart,
   Bar,
@@ -18,13 +19,14 @@ import {
 
 export const Route = createFileRoute("/analytics/forecast")({
   component: ForecastPage,
-  loader: async () => {
-    const [forecast, currency] = await Promise.all([
-      getSpendingForecast(),
-      getSetting({ data: "preferred_currency" }),
-    ])
-    return { forecast, currency: currency ?? "EUR" }
-  },
+  loader: () =>
+    withOfflineCache("analytics:forecast", async () => {
+      const [forecast, currency] = await Promise.all([
+        getSpendingForecast(),
+        getSetting({ data: "preferred_currency" }),
+      ])
+      return { forecast, currency: currency ?? "EUR" }
+    }),
 })
 
 function ForecastPage() {
