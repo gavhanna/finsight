@@ -146,6 +146,23 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
 })
 
+export const budgets = pgTable("budgets", {
+  id:              serial("id").primaryKey(),
+  categoryId:      integer("category_id").references(() => categories.id, { onDelete: "cascade" }),
+  categoryGroupId: integer("category_group_id").references(() => categoryGroups.id, { onDelete: "cascade" }),
+  monthlyAmount:   doublePrecision("monthly_amount").notNull(),
+  note:            text("note"),
+  createdAt:       timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
+  updatedAt:       timestamp("updated_at", { mode: "date" }).notNull().default(sql`now()`),
+})
+
+export const budgetOverrides = pgTable("budget_overrides", {
+  id:       serial("id").primaryKey(),
+  budgetId: integer("budget_id").notNull().references(() => budgets.id, { onDelete: "cascade" }),
+  month:    text("month").notNull(), // YYYY-MM
+  amount:   doublePrecision("amount").notNull(),
+}, (t) => [unique().on(t.budgetId, t.month)])
+
 export type PushSubscription = typeof pushSubscriptions.$inferSelect
 export type Setting = typeof settings.$inferSelect
 export type BankConnection = typeof bankConnections.$inferSelect
@@ -155,3 +172,5 @@ export type Category = typeof categories.$inferSelect
 export type Rule = typeof rules.$inferSelect
 export type RulePattern = typeof rulePatterns.$inferSelect
 export type Transaction = typeof transactions.$inferSelect
+export type Budget = typeof budgets.$inferSelect
+export type BudgetOverride = typeof budgetOverrides.$inferSelect

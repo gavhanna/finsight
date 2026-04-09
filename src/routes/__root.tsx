@@ -27,6 +27,7 @@ import {
   Lightbulb,
   ShoppingBag,
   ChevronDown,
+  Target,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { WifiOff } from "lucide-react"
@@ -129,7 +130,7 @@ const swScript = `if('serviceWorker' in navigator){window.addEventListener('load
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: swScript }} />
@@ -154,6 +155,7 @@ const navGroups = [
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+      { to: "/budgets", label: "Budgets", icon: Target },
       { to: "/triage", label: "Triage", icon: Inbox, badge: true },
     ],
   },
@@ -234,14 +236,14 @@ function AppSidebar() {
   const { isMobile, setOpenMobile } = useSidebar()
   const { uncategorisedCount } = Route.useLoaderData()
 
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY)
-      return stored ? new Set(JSON.parse(stored)) : new Set()
-    } catch {
-      return new Set()
-    }
-  })
+      if (stored) setCollapsed(new Set(JSON.parse(stored)))
+    } catch {}
+  }, [])
 
   function toggleGroup(label: string) {
     setCollapsed((prev) => {

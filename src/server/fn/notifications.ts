@@ -14,6 +14,7 @@ const PreferencesSchema = z.object({
   largeTransactions: z.boolean(),
   recurringReminders: z.boolean(),
   weeklyDigest: z.boolean(),
+  budgetAlerts: z.boolean(),
 })
 
 export const getVapidPublicKey = createServerFn().handler(async () => {

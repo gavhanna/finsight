@@ -1,5 +1,6 @@
 import { Cron } from "croner"
 import { syncAllAccounts } from "../services/sync.server"
+import { checkBudgetAlerts, checkBudgetMonthEnd } from "../services/notifications.server"
 import { log } from "../../lib/logger.server"
 
 // Default: 7am and 12pm UTC. Override with CRON_SYNC_SCHEDULES env var (comma-separated cron expressions).
@@ -14,6 +15,16 @@ async function runSync() {
     await syncAllAccounts()
   } catch (err: any) {
     log.error("cron.sync.error", { error: err?.message })
+  }
+  try {
+    await checkBudgetAlerts()
+  } catch (err: any) {
+    log.error("cron.budget_alerts.error", { error: err?.message })
+  }
+  try {
+    await checkBudgetMonthEnd()
+  } catch (err: any) {
+    log.error("cron.budget_month_end.error", { error: err?.message })
   }
 }
 

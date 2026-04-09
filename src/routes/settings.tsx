@@ -75,6 +75,7 @@ function SettingsPage() {
     largeTransactions: true,
     recurringReminders: true,
     weeklyDigest: true,
+    budgetAlerts: true,
   });
 
   useEffect(() => {
@@ -420,6 +421,11 @@ function SettingsPage() {
                       key: "weeklyDigest" as const,
                       label: "Weekly discretionary review",
                       description: "Monday summary of last week's spend, excluding recurring payments",
+                    },
+                    {
+                      key: "budgetAlerts" as const,
+                      label: "Budget alerts",
+                      description: "Warning at 80% of a budget, exceeded alert when over, and a monthly summary on the 1st",
                     },
                   ] as const
                 ).map(({ key, label, description }) => (

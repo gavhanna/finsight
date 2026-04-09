@@ -11,6 +11,7 @@ export type NotificationPreferences = {
   largeTransactions: boolean
   recurringReminders: boolean
   weeklyDigest: boolean
+  budgetAlerts: boolean
 }
 
 export const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -18,6 +19,7 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
   largeTransactions: true,
   recurringReminders: true,
   weeklyDigest: true,
+  budgetAlerts: true,
 }
 
 // ─── VAPID key management ─────────────────────────────────────────────────────
@@ -261,4 +263,134 @@ export async function checkWeeklyDigest() {
 
   await setDbSetting("last_weekly_digest", weekKey)
   log.info("notifications.weekly_digest.sent")
+}
+
+// Two-tier budget alert tracking: "warned" (≥80%) then "exceeded" (≥100%).
+// Each budget can fire at most two notifications per month.
+type BudgetAlertState = Record<number, "warned" | "exceeded">
+
+export async function checkBudgetAlerts() {
+  const subs = await getSubscribersForPreference("budgetAlerts")
+  if (subs.length === 0) return
+
+  const today = new Date()
+  const month = today.toISOString().slice(0, 7)
+
+  const alertKey = `budget_alert_state_${month}`
+  const stateRaw = await getDbSetting(alertKey)
+  const state: BudgetAlertState = stateRaw ? JSON.parse(stateRaw) : {}
+
+  const { getBudgetVsActualInternal } = await import("./budgets.server")
+  const { categoryBudgets, groupBudgets } = await getBudgetVsActualInternal(month)
+
+  const currency = (await getDbSetting("preferred_currency")) ?? "GBP"
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-IE", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(n)
+
+  const allBudgets = [
+    ...categoryBudgets.map((b) => ({ ...b, name: b.categoryName })),
+    ...groupBudgets.map((b) => ({ ...b, name: b.groupName })),
+  ]
+
+  let dirty = false
+
+  for (const budget of allBudgets) {
+    const ratio = budget.budgeted > 0 ? budget.spent / budget.budgeted : 0
+    const current = state[budget.budgetId]
+
+    if (ratio >= 1 && current !== "exceeded") {
+      // Over budget — send exceeded alert (upgrade from warned or fresh)
+      const overBy = budget.spent - budget.budgeted
+      await sendToSubs(subs, {
+        title: `Over budget: ${budget.name}`,
+        body: `Over by ${fmt(overBy)} — spent ${fmt(budget.spent)} of ${fmt(budget.budgeted)}`,
+        url: "/budgets",
+      })
+      state[budget.budgetId] = "exceeded"
+      dirty = true
+    } else if (ratio >= 0.8 && !current) {
+      // Approaching limit — send warning (only if not yet warned or exceeded)
+      const remaining = budget.budgeted - budget.spent
+      const pct = Math.round(ratio * 100)
+      await sendToSubs(subs, {
+        title: `Budget warning: ${budget.name}`,
+        body: `${pct}% used — ${fmt(remaining)} remaining of ${fmt(budget.budgeted)}`,
+        url: "/budgets",
+      })
+      state[budget.budgetId] = "warned"
+      dirty = true
+    }
+  }
+
+  if (dirty) {
+    await setDbSetting(alertKey, JSON.stringify(state))
+    log.info("notifications.budget_alerts.sent")
+  }
+}
+
+export async function checkBudgetMonthEnd() {
+  const subs = await getSubscribersForPreference("budgetAlerts")
+  if (subs.length === 0) return
+
+  // Only run on the 1st of the month
+  const today = new Date()
+  if (today.getDate() !== 1) return
+
+  // Summarise the previous month
+  const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+  const month = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`
+  const monthName = prev.toLocaleString("en-IE", { month: "long" })
+
+  const summaryKey = `budget_month_summary_${month}`
+  if (await getDbSetting(summaryKey)) return // already sent
+
+  const { getBudgetVsActualInternal } = await import("./budgets.server")
+  const { categoryBudgets, groupBudgets } = await getBudgetVsActualInternal(month)
+
+  const allBudgets = [
+    ...categoryBudgets.map((b) => ({ ...b, name: b.categoryName })),
+    ...groupBudgets.map((b) => ({ ...b, name: b.groupName })),
+  ]
+
+  if (allBudgets.length === 0) return
+
+  const currency = (await getDbSetting("preferred_currency")) ?? "GBP"
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-IE", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(n)
+
+  const onTrack  = allBudgets.filter((b) => b.spent <= b.budgeted)
+  const overBudget = allBudgets
+    .filter((b) => b.spent > b.budgeted)
+    .sort((a, b) => (b.spent - b.budgeted) - (a.spent - a.budgeted))
+
+  let body: string
+  if (overBudget.length === 0) {
+    body = `All ${allBudgets.length} budgets kept. Great month!`
+  } else {
+    const overList = overBudget
+      .slice(0, 3)
+      .map((b) => `${b.name} +${fmt(b.spent - b.budgeted)}`)
+      .join(", ")
+    const more = overBudget.length > 3 ? ` (+${overBudget.length - 3} more)` : ""
+    body = `${onTrack.length}/${allBudgets.length} on track. Over: ${overList}${more}`
+  }
+
+  await sendToSubs(subs, {
+    title: `${monthName} budget summary`,
+    body,
+    url: "/budgets",
+  })
+
+  await setDbSetting(summaryKey, "1")
+  log.info("notifications.budget_month_end.sent", { month })
 }
