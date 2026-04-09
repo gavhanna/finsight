@@ -489,7 +489,8 @@ function ManageTab({
   const [amount, setAmount] = useState("")
   const [note, setNote] = useState("")
   const [saving, setSaving] = useState(false)
-  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // IDs already budgeted
   const budgetedCategoryIds = new Set(allBudgets.map((b) => b.categoryId).filter(Boolean) as number[])
@@ -546,10 +547,12 @@ function ManageTab({
     }
   }
 
-  async function handleDelete(id: number) {
-    setDeleteId(id)
-    await deleteBudget({ data: { id } })
-    setDeleteId(null)
+  async function confirmDelete() {
+    if (confirmDeleteId === null) return
+    setDeleting(true)
+    await deleteBudget({ data: { id: confirmDeleteId } })
+    setDeleting(false)
+    setConfirmDeleteId(null)
     router.invalidate()
   }
 
@@ -604,16 +607,15 @@ function ManageTab({
                     <span className="text-sm font-medium tabular-nums shrink-0">
                       {formatCurrency(b.monthlyAmount, currency)}/mo
                     </span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(b)}>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-foreground" onClick={() => openEdit(b)}>
                         <Pencil className="size-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-7 hover:text-negative"
-                        onClick={() => handleDelete(b.id)}
-                        disabled={deleteId === b.id}
+                        className="size-7 text-muted-foreground hover:text-negative"
+                        onClick={() => setConfirmDeleteId(b.id)}
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
@@ -625,6 +627,26 @@ function ManageTab({
           </CardContent>
         </Card>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={confirmDeleteId !== null} onOpenChange={(o) => { if (!o && !deleting) setConfirmDeleteId(null) }}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Delete budget?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This budget will be permanently removed. Transactions are not affected.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add / Edit dialog */}
       <Dialog open={dialog !== null} onOpenChange={(o) => { if (!o) closeDialog() }}>
@@ -660,25 +682,7 @@ function ManageTab({
             {/* Target selector */}
             <div className="space-y-1.5">
               <Label>{targetType === "category" ? "Category" : "Group"}</Label>
-              {dialog?.mode === "edit" ? (
-                <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted/30 text-sm">
-                  <div
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{
-                      backgroundColor:
-                        targetType === "category"
-                          ? (categories.find((c) => c.id === Number(selectedId))?.color ?? "#888")
-                          : (groups.find((g) => g.id === Number(selectedId))?.color ?? "#888"),
-                    }}
-                  />
-                  <span>
-                    {targetType === "category"
-                      ? categories.find((c) => c.id === Number(selectedId))?.name
-                      : groups.find((g) => g.id === Number(selectedId))?.name}
-                  </span>
-                </div>
-              ) : (
-                <Select value={selectedId} onValueChange={(v) => v !== null && setSelectedId(v)}>
+              <Select value={selectedId} onValueChange={(v) => v !== null && setSelectedId(v)}>
                   <SelectTrigger>
                     <SelectValue placeholder={`Select a ${targetType}…`}>
                       {(() => {
@@ -718,7 +722,6 @@ function ManageTab({
                     )}
                   </SelectContent>
                 </Select>
-              )}
             </div>
 
             {/* Monthly amount */}

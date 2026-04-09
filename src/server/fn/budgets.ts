@@ -125,7 +125,13 @@ export const upsertBudget = createServerFn()
     if (data.id) {
       await db
         .update(budgets)
-        .set({ monthlyAmount: data.monthlyAmount, note: data.note ?? null, updatedAt: new Date() })
+        .set({
+          categoryId:      data.categoryId,
+          categoryGroupId: data.categoryGroupId,
+          monthlyAmount:   data.monthlyAmount,
+          note:            data.note ?? null,
+          updatedAt:       new Date(),
+        })
         .where(eq(budgets.id, data.id))
     } else {
       await db.insert(budgets).values({
