@@ -26,6 +26,7 @@ import {
   BarChart2,
   Lightbulb,
   ShoppingBag,
+  ChevronDown,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { WifiOff } from "lucide-react"
@@ -226,10 +227,36 @@ function ThemeToggle() {
   )
 }
 
+const COLLAPSED_STORAGE_KEY = "finsight:sidebar:collapsed"
+
 function AppSidebar() {
   const { location } = useRouterState()
   const { isMobile, setOpenMobile } = useSidebar()
   const { uncategorisedCount } = Route.useLoaderData()
+
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY)
+      return stored ? new Set(JSON.parse(stored)) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
+
+  function toggleGroup(label: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) {
+        next.delete(label)
+      } else {
+        next.add(label)
+      }
+      try {
+        localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify([...next]))
+      } catch {}
+      return next
+    })
+  }
 
   function handleNavClick() {
     if (isMobile) setOpenMobile(false)
@@ -258,38 +285,59 @@ function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {navGroups.map((group) => (
-          <SidebarGroup key={group.label} className="px-2 py-1">
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">
-                {group.items.map(({ to, label, icon: Icon, exact, badge }) => {
-                  const isActive = exact
-                    ? location.pathname === to
-                    : location.pathname.startsWith(to)
-                  const badgeCount = badge ? uncategorisedCount : 0
-                  return (
-                    <SidebarMenuItem key={to}>
-                      <SidebarMenuButton
-                        render={<Link to={to} onClick={handleNavClick} />}
-                        isActive={isActive}
-                        tooltip={badgeCount > 0 ? `${label} (${badgeCount} uncategorised)` : label}
-                      >
-                        <Icon />
-                        <span>{label}</span>
-                        {badgeCount > 0 && (
-                          <span className="ml-auto flex items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-semibold min-w-[18px] h-[18px] px-1 group-data-[collapsible=icon]:hidden">
-                            {badgeCount > 99 ? "99+" : badgeCount}
-                          </span>
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {navGroups.map((group) => {
+          const isCollapsed = collapsed.has(group.label)
+          return (
+            <SidebarGroup key={group.label} className="px-2 py-1">
+              <SidebarGroupLabel
+                className="flex cursor-pointer select-none items-center justify-between hover:text-sidebar-foreground group-data-[collapsible=icon]:hidden"
+                onClick={() => toggleGroup(group.label)}
+              >
+                {group.label}
+                <ChevronDown
+                  className={cn(
+                    "size-3.5 text-sidebar-foreground/50 transition-transform duration-200",
+                    isCollapsed && "-rotate-90",
+                  )}
+                />
+              </SidebarGroupLabel>
+              <div
+                className="grid transition-[grid-template-rows] duration-200 ease-in-out"
+                style={{ gridTemplateRows: isCollapsed ? "0fr" : "1fr" }}
+              >
+                <div className="overflow-hidden">
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-0.5">
+                      {group.items.map(({ to, label, icon: Icon, exact, badge }) => {
+                        const isActive = exact
+                          ? location.pathname === to
+                          : location.pathname.startsWith(to)
+                        const badgeCount = badge ? uncategorisedCount : 0
+                        return (
+                          <SidebarMenuItem key={to}>
+                            <SidebarMenuButton
+                              render={<Link to={to} onClick={handleNavClick} />}
+                              isActive={isActive}
+                              tooltip={badgeCount > 0 ? `${label} (${badgeCount} uncategorised)` : label}
+                            >
+                              <Icon />
+                              <span>{label}</span>
+                              {badgeCount > 0 && (
+                                <span className="ml-auto flex items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-semibold min-w-[18px] h-[18px] px-1 group-data-[collapsible=icon]:hidden">
+                                  {badgeCount > 99 ? "99+" : badgeCount}
+                                </span>
+                              )}
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </div>
+              </div>
+            </SidebarGroup>
+          )
+        })}
       </SidebarContent>
 
       <SidebarFooter className="px-2 pb-3">
