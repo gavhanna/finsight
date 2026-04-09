@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { z } from "zod"
 import { getMerchantList } from "../../server/fn/merchants"
+import { getMerchantAliases, upsertMerchantAlias, deleteMerchantAlias } from "../../server/fn/merchant-aliases"
 import { getAccounts } from "../../server/fn/insights"
 import { getSetting } from "../../server/fn/settings"
 import { getPresetDates, type PresetKey } from "@/lib/presets"
@@ -25,12 +26,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { DatePicker } from "@/components/ui/date-picker"
 import { SortableHead } from "@/components/ui/sortable-head"
 import { useSortable } from "@/hooks/use-sortable"
-import { Store, ChevronRight, ChevronLeft, Search } from "lucide-react"
+import { Store, ChevronRight, ChevronLeft, Search, GitMerge, X } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { Card, CardContent } from "@/components/ui/card"
+import type { MerchantAlias } from "../../db/schema"
 
 type Preset = "month" | "3months" | "6months" | "ytd" | "12months" | "all"
 
@@ -63,7 +73,7 @@ export const Route = createFileRoute("/merchants/")({
   },
   loader: ({ deps }) =>
     withOfflineCache("merchants", async () => {
-      const [merchants, accounts, currency] = await Promise.all([
+      const [merchants, accounts, currency, aliases] = await Promise.all([
         getMerchantList({
           data: {
             dateFrom: deps.dateFrom,
@@ -73,18 +83,21 @@ export const Route = createFileRoute("/merchants/")({
         }),
         getAccounts(),
         getSetting({ data: "preferred_currency" }),
+        getMerchantAliases(),
       ])
-      return { merchants, accounts, currency: currency ?? "EUR" }
+      return { merchants, accounts, currency: currency ?? "EUR", aliases }
     }),
   component: MerchantsPage,
 })
 
 function MerchantsPage() {
-  const { merchants, accounts, currency } = Route.useLoaderData()
+  const { merchants, accounts, currency, aliases } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
+  const router = useRouter()
   const [searchInput, setSearchInput] = useState("")
   const [page, setPage] = useState(1)
+  const [mergeTarget, setMergeTarget] = useState<string | null>(null)
 
   const activePreset = !search.dateFrom && !search.dateTo ? (search.preset ?? "6months") : null
 
@@ -223,7 +236,7 @@ function MerchantsPage() {
                 paginated.map((m) => (
                   <TableRow
                     key={m.name}
-                    className="cursor-pointer"
+                    className="cursor-pointer group"
                     onClick={() =>
                       navigate({
                         to: "/merchants/$merchant",
@@ -258,7 +271,19 @@ function MerchantsPage() {
                       {formatDate(m.lastSeen)}
                     </TableCell>
                     <TableCell>
-                      <ChevronRight className="size-3.5 text-muted-foreground" />
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+                          title="Merge into another merchant"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMergeTarget(m.name)
+                          }}
+                        >
+                          <GitMerge className="size-3.5 text-muted-foreground" />
+                        </button>
+                        <ChevronRight className="size-3.5 text-muted-foreground" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -296,6 +321,176 @@ function MerchantsPage() {
       {/* Concentration Analysis */}
       {merchants.length > 0 && (
         <ConcentrationSection merchants={merchants} totalSpend={totalSpend} currency={currency} />
+      )}
+
+      {/* Aliases management */}
+      {aliases.length > 0 && (
+        <AliasesSection
+          aliases={aliases}
+          onDelete={async (id) => {
+            await deleteMerchantAlias({ data: { id } })
+            router.invalidate()
+          }}
+        />
+      )}
+
+      {/* Merge dialog */}
+      {mergeTarget !== null && (
+        <MergeDialog
+          alias={mergeTarget}
+          merchantNames={merchants.map((m) => m.name)}
+          onConfirm={async (canonicalName) => {
+            await upsertMerchantAlias({ data: { alias: mergeTarget, canonicalName } })
+            setMergeTarget(null)
+            router.invalidate()
+          }}
+          onClose={() => setMergeTarget(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function MergeDialog({
+  alias,
+  merchantNames,
+  onConfirm,
+  onClose,
+}: {
+  alias: string
+  merchantNames: string[]
+  onConfirm: (canonicalName: string) => Promise<void>
+  onClose: () => void
+}) {
+  const [canonical, setCanonical] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  // Suggestions: other merchant names (excluding the alias itself)
+  const suggestions = merchantNames
+    .filter((n) => n !== alias && n.toLowerCase().includes(canonical.toLowerCase()))
+    .slice(0, 8)
+
+  async function handleConfirm() {
+    const value = canonical.trim()
+    if (!value) { setError("Enter a canonical name"); return }
+    if (value === alias) { setError("Canonical name must differ from alias"); return }
+    setLoading(true)
+    setError("")
+    try {
+      await onConfirm(value)
+    } catch (err: any) {
+      setError(err.message ?? "Failed to save alias")
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Merge merchant</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-1">
+          <p className="text-sm text-muted-foreground">
+            Transactions from <span className="font-medium text-foreground">{alias}</span> will be grouped under the canonical name below.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="canonical-name">Merge into</Label>
+            <Input
+              id="canonical-name"
+              value={canonical}
+              onChange={(e) => { setCanonical(e.target.value); setError("") }}
+              placeholder="e.g. AMAZON"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleConfirm() }}
+            />
+            {suggestions.length > 0 && canonical.length > 0 && (
+              <div className="border rounded-md shadow-sm bg-popover overflow-hidden">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                    onClick={() => setCanonical(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            {error && <p className="text-xs text-destructive">{error}</p>}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button onClick={handleConfirm} disabled={loading || !canonical.trim()}>
+            {loading ? "Saving…" : "Merge"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AliasesSection({
+  aliases,
+  onDelete,
+}: {
+  aliases: MerchantAlias[]
+  onDelete: (id: number) => Promise<void>
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [deleting, setDeleting] = useState<number | null>(null)
+
+  // Group by canonical name
+  const grouped = aliases.reduce<Record<string, MerchantAlias[]>>((acc, a) => {
+    ;(acc[a.canonicalName] ??= []).push(a)
+    return acc
+  }, {})
+
+  return (
+    <div className="border-t p-4 sm:p-5 space-y-4">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
+      >
+        <span>{expanded ? "▾" : "▸"}</span>
+        Merchant Aliases
+        <span className="ml-auto text-xs text-muted-foreground">{aliases.length} alias{aliases.length !== 1 ? "es" : ""}</span>
+      </button>
+
+      {expanded && (
+        <div className="space-y-3">
+          {Object.entries(grouped)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([canonical, items]) => (
+              <div key={canonical} className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{canonical}</p>
+                <div className="space-y-1">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                      <span className="text-muted-foreground">
+                        <GitMerge className="size-3 inline mr-1.5 opacity-60" />
+                        {item.alias}
+                      </span>
+                      <button
+                        disabled={deleting === item.id}
+                        onClick={async () => {
+                          setDeleting(item.id)
+                          await onDelete(item.id)
+                          setDeleting(null)
+                        }}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
+                        title="Remove alias"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </div>
       )}
     </div>
   )

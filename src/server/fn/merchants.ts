@@ -3,7 +3,7 @@ import { db } from "../../db/index.server"
 import { transactions, categories } from "../../db/schema"
 import { eq, and, gte, lte, inArray, sql, lt, or } from "drizzle-orm"
 import { z } from "zod"
-import { normalizeMerchantName } from "../../lib/merchant-utils"
+import { normalizeMerchantName, resolveAlias } from "../../lib/merchant-utils"
 
 const MerchantFilters = z.object({
   dateFrom: z.string().optional(),
@@ -26,19 +26,23 @@ const payeeExpr = sql<string>`COALESCE(${transactions.creditorName}, ${transacti
 export const getMerchantList = createServerFn()
   .inputValidator(MerchantFilters)
   .handler(async ({ data: filters }) => {
-    const rows = await db
-      .select({
-        rawName: payeeExpr,
-        total: sql<number>`SUM(${transactions.amount})`,
-        count: sql<number>`COUNT(*)`,
-        lastSeen: sql<string>`MAX(${transactions.bookingDate})`,
-        firstSeen: sql<string>`MIN(${transactions.bookingDate})`,
-      })
-      .from(transactions)
-      .where(and(...buildConditions(filters), lt(transactions.amount, 0)))
-      .groupBy(payeeExpr)
+    const { loadAliasMap } = await import("../services/merchant-aliases.server")
+    const [rows, aliases] = await Promise.all([
+      db
+        .select({
+          rawName: payeeExpr,
+          total: sql<number>`SUM(${transactions.amount})`,
+          count: sql<number>`COUNT(*)`,
+          lastSeen: sql<string>`MAX(${transactions.bookingDate})`,
+          firstSeen: sql<string>`MIN(${transactions.bookingDate})`,
+        })
+        .from(transactions)
+        .where(and(...buildConditions(filters), lt(transactions.amount, 0)))
+        .groupBy(payeeExpr),
+      loadAliasMap(),
+    ])
 
-    // Normalize raw names and re-aggregate by normalized name
+    // Normalize raw names + resolve aliases, then re-aggregate
     const map = new Map<string, {
       name: string
       total: number
@@ -48,7 +52,7 @@ export const getMerchantList = createServerFn()
     }>()
 
     for (const row of rows) {
-      const name = normalizeMerchantName(row.rawName)
+      const name = resolveAlias(normalizeMerchantName(row.rawName), aliases)
       const total = Number(row.total)
       const count = Number(row.count)
       const existing = map.get(name)
@@ -77,15 +81,16 @@ export const getMerchantList = createServerFn()
 export const getMerchantDetail = createServerFn()
   .inputValidator(MerchantFilters.extend({ merchantName: z.string() }))
   .handler(async ({ data: { merchantName, ...filters } }) => {
-    // Find all raw payee names that normalize to this merchant
-    const allRaw = await db
-      .selectDistinct({ raw: payeeExpr })
-      .from(transactions)
-      .where(lt(transactions.amount, 0))
+    // Find all raw payee names that normalize+resolve to this merchant
+    const { loadAliasMap } = await import("../services/merchant-aliases.server")
+    const [allRaw, aliases] = await Promise.all([
+      db.selectDistinct({ raw: payeeExpr }).from(transactions).where(lt(transactions.amount, 0)),
+      loadAliasMap(),
+    ])
 
     const matchingRaw = allRaw
       .map((r) => r.raw)
-      .filter((n) => normalizeMerchantName(n) === merchantName)
+      .filter((n) => resolveAlias(normalizeMerchantName(n), aliases) === merchantName)
 
     if (!matchingRaw.length) {
       return { transactions: [], monthlySpend: [] }

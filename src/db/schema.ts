@@ -163,6 +163,19 @@ export const budgetOverrides = pgTable("budget_overrides", {
   amount:   doublePrecision("amount").notNull(),
 }, (t) => [unique().on(t.budgetId, t.month)])
 
+/**
+ * Merchant aliases allow multiple normalized names to be grouped under one canonical name.
+ * e.g. alias "AMAZON.CO.UK" → canonical "AMAZON"
+ *      alias "AMZ" → canonical "AMAZON"
+ * The `alias` column holds the normalized (post-normalizeMerchantName) variant.
+ */
+export const merchantAliases = pgTable("merchant_aliases", {
+  id:            serial("id").primaryKey(),
+  canonicalName: text("canonical_name").notNull(),
+  alias:         text("alias").notNull().unique(), // normalized variant that maps to canonical
+  createdAt:     timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
+})
+
 export type PushSubscription = typeof pushSubscriptions.$inferSelect
 export type Setting = typeof settings.$inferSelect
 export type BankConnection = typeof bankConnections.$inferSelect
@@ -174,3 +187,4 @@ export type RulePattern = typeof rulePatterns.$inferSelect
 export type Transaction = typeof transactions.$inferSelect
 export type Budget = typeof budgets.$inferSelect
 export type BudgetOverride = typeof budgetOverrides.$inferSelect
+export type MerchantAlias = typeof merchantAliases.$inferSelect

@@ -678,7 +678,7 @@ function ManageTab({
                   </span>
                 </div>
               ) : (
-                <Select value={selectedId} onValueChange={setSelectedId}>
+                <Select value={selectedId} onValueChange={(v) => v !== null && setSelectedId(v)}>
                   <SelectTrigger>
                     <SelectValue placeholder={`Select a ${targetType}…`} />
                   </SelectTrigger>

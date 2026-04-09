@@ -8,6 +8,7 @@ import { getMedian, classifyInterval, toMonthlyEquiv, type Frequency } from "../
 import { createHash } from "crypto"
 import { narrativeCache } from "../../db/schema"
 import { fetchRecurringItems } from "../services/recurring.server"
+import { normalizeMerchantName, resolveAlias } from "../../lib/merchant-utils"
 
 const InsightFilters = z.object({
   dateFrom: z.string().optional(),
@@ -110,23 +111,41 @@ export const getTopMerchants = createServerFn()
 
     const payee = sql<string>`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}, 'Unknown')`
 
-    const rows = await db
-      .select({
-        payee,
-        total: sql<number>`SUM(${transactions.amount})`,
-        count: sql<number>`COUNT(*)`,
-      })
-      .from(transactions)
-      .where(and(...conditions))
-      .groupBy(payee)
-      .orderBy(sql`SUM(${transactions.amount})`)
-      .limit(filters.limit)
+    const { loadAliasMap } = await import("../services/merchant-aliases.server")
+    const [rows, aliases] = await Promise.all([
+      db
+        .select({
+          payee,
+          total: sql<number>`SUM(${transactions.amount})`,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(transactions)
+        .where(and(...conditions))
+        .groupBy(payee),
+      loadAliasMap(),
+    ])
 
-    return rows.map((r) => ({
-      name: r.payee,
-      total: Math.abs(r.total),
-      count: r.count,
-    }))
+    // Normalize + resolve aliases, re-aggregate, then take top N
+    const map = new Map<string, { total: number; count: number }>()
+    for (const r of rows) {
+      const name = resolveAlias(normalizeMerchantName(r.payee), aliases)
+      const existing = map.get(name)
+      if (existing) {
+        existing.total += Number(r.total)
+        existing.count += Number(r.count)
+      } else {
+        map.set(name, { total: Number(r.total), count: Number(r.count) })
+      }
+    }
+
+    return Array.from(map.entries())
+      .sort((a, b) => a[1].total - b[1].total) // ascending (most negative first = biggest expense)
+      .slice(0, filters.limit)
+      .map(([name, v]) => ({
+        name,
+        total: Math.abs(v.total),
+        count: v.count,
+      }))
   })
 
 export const getIncomeVsExpenses = createServerFn()

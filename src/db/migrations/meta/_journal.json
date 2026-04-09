@@ -43,6 +43,13 @@
       "when": 1775727881194,
       "tag": "0005_budgets",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775800000000,
+      "tag": "0006_merchant_aliases",
+      "breakpoints": true
     }
   ]
 }

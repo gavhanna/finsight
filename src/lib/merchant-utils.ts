@@ -32,3 +32,11 @@ export function normalizeMerchantName(raw: string): string {
 
   return name || raw.toUpperCase()
 }
+
+/**
+ * Applies a pre-loaded alias map to a normalized merchant name.
+ * If the normalized name has an alias entry, returns the canonical name instead.
+ */
+export function resolveAlias(normalized: string, aliases: Map<string, string>): string {
+  return aliases.get(normalized) ?? normalized
+}
