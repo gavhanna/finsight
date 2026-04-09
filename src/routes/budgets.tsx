@@ -97,7 +97,7 @@ function displayMonth(ym: string): string {
 type ProgressColor = "green" | "amber" | "red"
 
 function progressColor(ratio: number): ProgressColor {
-  if (ratio >= 1)    return "red"
+  if (ratio > 1)     return "red"
   if (ratio >= 0.75) return "amber"
   return "green"
 }
