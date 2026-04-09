@@ -57,6 +57,8 @@ export type BudgetVsActual = {
   categoryBudgets: CategoryBudgetRow[]
   groupBudgets: GroupBudgetRow[]
   unbudgeted: UnbudgetedRow[]
+  incomeActual: number   // sum of positive transactions in the selected month
+  incomeAvg3m: number    // average monthly income over the 3 months prior
 }
 
 // ─── Server functions ─────────────────────────────────────────────────────────

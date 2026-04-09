@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm"
 import type { BudgetVsActual } from "../fn/budgets"
 
 export async function getBudgetVsActualInternal(month: string): Promise<BudgetVsActual> {
-  const [catResult, grpResult, unbudgetedResult] = await Promise.all([
+  const [catResult, grpResult, incomeResult, incomeAvgResult, unbudgetedResult] = await Promise.all([
     // 1. Category budgets: spending for the specific category
     db.execute(sql`
       SELECT
@@ -59,7 +59,24 @@ export async function getBudgetVsActualInternal(month: string): Promise<BudgetVs
       ORDER BY cg.name
     `),
 
-    // 3. Spending on categories that have no budget (neither individual nor via group)
+    // 3. Income — positive transactions in the selected month
+    db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0)::float AS income
+      FROM transactions
+      WHERE amount > 0
+        AND to_char(booking_date::date, 'YYYY-MM') = ${month}
+    `),
+
+    // 4. Average monthly income over the 3 full months preceding the selected month
+    db.execute(sql`
+      SELECT COALESCE(SUM(amount) / NULLIF(COUNT(DISTINCT to_char(booking_date::date, 'YYYY-MM')), 0), 0)::float AS avg_income
+      FROM transactions
+      WHERE amount > 0
+        AND to_char(booking_date::date, 'YYYY-MM') < ${month}
+        AND booking_date::date >= (${`${month}-01`}::date - INTERVAL '3 months')
+    `),
+
+    // 5. Spending on categories that have no budget (neither individual nor via group)
     db.execute(sql`
       SELECT
         c.id                                  AS "categoryId",
@@ -85,10 +102,15 @@ export async function getBudgetVsActualInternal(month: string): Promise<BudgetVs
     `),
   ])
 
+  const incomeRow    = (Array.from(incomeResult)[0]    as any) ?? {}
+  const incomeAvgRow = (Array.from(incomeAvgResult)[0] as any) ?? {}
+
   return {
     month,
-    categoryBudgets: Array.from(catResult)      as BudgetVsActual["categoryBudgets"],
-    groupBudgets:    Array.from(grpResult)       as BudgetVsActual["groupBudgets"],
+    categoryBudgets: Array.from(catResult)       as BudgetVsActual["categoryBudgets"],
+    groupBudgets:    Array.from(grpResult)        as BudgetVsActual["groupBudgets"],
     unbudgeted:      Array.from(unbudgetedResult) as BudgetVsActual["unbudgeted"],
+    incomeActual:    Number(incomeRow.income    ?? 0),
+    incomeAvg3m:     Number(incomeAvgRow.avg_income ?? 0),
   }
 }
