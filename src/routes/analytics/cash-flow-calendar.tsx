@@ -3,7 +3,7 @@ import { getCashFlowCalendar, getDayTransactions, type DayTransaction } from "..
 import { getSetting } from "../../server/fn/settings"
 import { formatCurrency, cn } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2, CalendarCheck } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PageHelp } from "@/components/ui/page-help"
@@ -79,6 +79,9 @@ function CashFlowCalendarPage() {
     navigate({ search: { ...search, year: newYear, month: newMonth } })
   }
 
+  const today = new Date()
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1
+
   const totalIncome = days.reduce((s, d) => s + d.income, 0)
   const totalExpenses = days.reduce((s, d) => s + d.expenses, 0)
   const netFlow = totalIncome - totalExpenses
@@ -99,6 +102,17 @@ function CashFlowCalendarPage() {
           </PageHelp>
         </div>
         <div className="flex items-center gap-2">
+          {!isCurrentMonth && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate({ search: { year: undefined, month: undefined } })}
+              className="gap-1.5"
+            >
+              <CalendarCheck className="h-3.5 w-3.5" />
+              Today
+            </Button>
+          )}
           <Button variant="outline" size="icon" onClick={() => changeMonth(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
