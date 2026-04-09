@@ -142,6 +142,14 @@ export const getUncategorisedTransactions = createServerFn().handler(async () =>
   return rows
 })
 
+export const getUncategorisedCount = createServerFn().handler(async () => {
+  const [{ count }] = await db
+    .select({ count: sql<number>`cast(count(*) as int)` })
+    .from(transactions)
+    .where(sql`${transactions.categoryId} IS NULL`)
+  return count
+})
+
 export const getTransactionsForTriage = createServerFn()
   .inputValidator(z.object({ categoryId: z.number().nullable() }))
   .handler(async ({ data: { categoryId } }) => {

@@ -1,5 +1,6 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState, type ErrorComponentProps } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
+import { getUncategorisedCount } from "@/server/fn/transactions"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 import {
@@ -53,6 +54,14 @@ import { Toaster } from "@/components/ui/sonner"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
+  loader: async () => {
+    try {
+      const uncategorisedCount = await getUncategorisedCount()
+      return { uncategorisedCount }
+    } catch {
+      return { uncategorisedCount: 0 }
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -140,9 +149,16 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 const navGroups = [
   {
-    label: "Overview",
+    label: "Daily",
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+      { to: "/triage", label: "Triage", icon: Inbox, badge: true },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
       { to: "/comparison", label: "Comparison", icon: GitCompare },
       { to: "/recurring", label: "Recurring", icon: Repeat },
       { to: "/category-trends", label: "Category Trends", icon: AreaChart },
@@ -162,13 +178,6 @@ const navGroups = [
     ],
   },
   {
-    label: "Transactions",
-    items: [
-      { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-      { to: "/triage", label: "Triage", icon: Inbox },
-    ],
-  },
-  {
     label: "Manage",
     items: [
       { to: "/categories", label: "Categories", icon: Tag },
@@ -179,8 +188,8 @@ const navGroups = [
   {
     label: "System",
     items: [
-      { to: "/logs", label: "Logs", icon: ScrollText },
       { to: "/settings", label: "Settings", icon: Settings },
+      { to: "/logs", label: "Logs", icon: ScrollText },
     ],
   },
 ]
@@ -220,6 +229,7 @@ function ThemeToggle() {
 function AppSidebar() {
   const { location } = useRouterState()
   const { isMobile, setOpenMobile } = useSidebar()
+  const { uncategorisedCount } = Route.useLoaderData()
 
   function handleNavClick() {
     if (isMobile) setOpenMobile(false)
@@ -253,19 +263,25 @@ function AppSidebar() {
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
-                {group.items.map(({ to, label, icon: Icon, exact }) => {
+                {group.items.map(({ to, label, icon: Icon, exact, badge }) => {
                   const isActive = exact
                     ? location.pathname === to
                     : location.pathname.startsWith(to)
+                  const badgeCount = badge ? uncategorisedCount : 0
                   return (
                     <SidebarMenuItem key={to}>
                       <SidebarMenuButton
                         render={<Link to={to} onClick={handleNavClick} />}
                         isActive={isActive}
-                        tooltip={label}
+                        tooltip={badgeCount > 0 ? `${label} (${badgeCount} uncategorised)` : label}
                       >
                         <Icon />
                         <span>{label}</span>
+                        {badgeCount > 0 && (
+                          <span className="ml-auto flex items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-semibold min-w-[18px] h-[18px] px-1 group-data-[collapsible=icon]:hidden">
+                            {badgeCount > 99 ? "99+" : badgeCount}
+                          </span>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   )
