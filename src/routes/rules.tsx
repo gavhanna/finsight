@@ -127,11 +127,8 @@ function RulesPage() {
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
                 {ruleCategories.map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    <span className="flex items-center gap-2">
-                      <CategoryDot category={c} />
-                      {c.name}
-                    </span>
+                  <SelectItem key={c.id} value={String(c.id)} label={c.name} startIcon={<CategoryDot category={c} />}>
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>

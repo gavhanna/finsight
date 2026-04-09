@@ -111,8 +111,9 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  startIcon,
   ...props
-}: SelectPrimitive.Item.Props) {
+}: SelectPrimitive.Item.Props & { startIcon?: React.ReactNode }) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -122,6 +123,8 @@ function SelectItem({
       )}
       {...props}
     >
+      {/* startIcon renders in the dropdown list but NOT in the trigger (outside ItemText) */}
+      {startIcon && <span className="shrink-0 flex items-center">{startIcon}</span>}
       <SelectPrimitive.ItemText className="flex flex-1 shrink-0 gap-2 whitespace-nowrap">
         {children}
       </SelectPrimitive.ItemText>

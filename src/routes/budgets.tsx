@@ -680,24 +680,35 @@ function ManageTab({
               ) : (
                 <Select value={selectedId} onValueChange={(v) => v !== null && setSelectedId(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder={`Select a ${targetType}…`} />
+                    <SelectValue placeholder={`Select a ${targetType}…`}>
+                      {(() => {
+                        const item = targetType === "category"
+                          ? availableCategories.find((c) => String(c.id) === selectedId)
+                          : availableGroups.find((g) => String(g.id) === selectedId)
+                        return item
+                          ? <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />{item.name}</span>
+                          : undefined
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {targetType === "category"
                       ? availableCategories.map((c) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            <span className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ backgroundColor: c.color }} />
-                              {c.name}
-                            </span>
+                          <SelectItem
+                            key={c.id}
+                            value={String(c.id)}
+                            startIcon={<span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />}
+                          >
+                            {c.name}
                           </SelectItem>
                         ))
                       : availableGroups.map((g) => (
-                          <SelectItem key={g.id} value={String(g.id)}>
-                            <span className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full inline-block shrink-0" style={{ backgroundColor: g.color }} />
-                              {g.name}
-                            </span>
+                          <SelectItem
+                            key={g.id}
+                            value={String(g.id)}
+                            startIcon={<span className="h-2 w-2 rounded-full" style={{ backgroundColor: g.color }} />}
+                          >
+                            {g.name}
                           </SelectItem>
                         ))}
                     {(targetType === "category" ? availableCategories : availableGroups).length === 0 && (
