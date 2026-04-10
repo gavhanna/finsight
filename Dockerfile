@@ -18,7 +18,7 @@ RUN pnpm exec esbuild src/db/migrate.ts \
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-COPY --from=builder /app/.output ./.output
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrate.mjs ./migrate.mjs
 COPY --from=builder /app/src/db/migrations ./migrations
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
