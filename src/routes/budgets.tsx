@@ -143,7 +143,6 @@ function BudgetRow({
     <div className="flex flex-col gap-1.5 py-3 group">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
           <span className="text-sm font-medium truncate">{name}</span>
           {isOverride && (
             <span className="text-[10px] text-muted-foreground border rounded px-1 py-0.5 shrink-0">
@@ -179,16 +178,15 @@ function BudgetRow({
       <div className={BAR_TRACK}>
         <div className={BAR_FILL[col]} style={{ width: `${ratio * 100}%` }} />
       </div>
-      {spent > budgeted && (
-        <p className="text-[11px] text-negative">
-          Over by {formatCurrency(spent - budgeted, currency)}
-        </p>
-      )}
-      {remaining > 0 && (
-        <p className="text-[11px] text-muted-foreground">
-          {formatCurrency(remaining, currency)} remaining
-        </p>
-      )}
+      <p className={cn("text-[11px]", spent > budgeted ? "text-negative" : "text-muted-foreground")}>
+        {spent > budgeted
+          ? `Over by ${formatCurrency(spent - budgeted, currency)}`
+          : remaining > 0
+          ? `${formatCurrency(remaining, currency)} remaining`
+          : budgeted > 0
+          ? "On track"
+          : "\u00A0"}
+      </p>
     </div>
   )
 }
@@ -214,9 +212,11 @@ function IncomeAllocationBar({
 
   if (income === 0) return null
 
-  const budgetedPct = Math.min((allBudgeted / income) * 100, 100)
-  const spentPct    = Math.min((allSpent    / income) * 100, 100)
+  const budgetedPct    = Math.min((allBudgeted / income) * 100, 100)
+  const spentPct       = Math.min((allSpent    / income) * 100, 100)
+  const actualSpentPct = Math.round((allSpent  / income) * 100)
   const unallocatedPct = Math.max(100 - budgetedPct, 0)
+  const isOver         = allSpent > income
 
   return (
     <Card>
@@ -228,33 +228,65 @@ function IncomeAllocationBar({
               <span className="text-[10px] text-muted-foreground border rounded px-1.5 py-0.5">3mo avg</span>
             )}
           </div>
-          <span className="text-sm font-medium tabular-nums">{formatCurrency(income, currency)}</span>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground leading-none mb-0.5">Income</p>
+            <span className="text-sm font-medium tabular-nums">{formatCurrency(income, currency)}</span>
+          </div>
         </div>
 
-        {/* Stacked bar: spent | budgeted-but-unspent | unallocated */}
-        <div className="relative h-3 rounded-full overflow-hidden bg-muted">
-          {/* spent portion */}
-          <div
-            className={cn(
-              "absolute left-0 top-0 h-full transition-all duration-500",
-              allSpent > income ? "bg-negative" : "bg-positive",
-            )}
-            style={{ width: `${spentPct}%` }}
-          />
-          {/* budgeted-but-unspent portion */}
-          {budgetedPct > spentPct && (
+        {/* Stacked bar */}
+        {isOver ? (
+          // Over income: bar rescales to total spend; income boundary shown as marker
+          <div className="relative">
+            <div className="relative h-3 rounded-full overflow-hidden bg-muted">
+              {/* within-income portion */}
+              <div
+                className="absolute left-0 top-0 h-full bg-positive transition-all duration-500"
+                style={{ width: `${(income / allSpent) * 100}%` }}
+              />
+              {/* over-income portion */}
+              <div
+                className="absolute top-0 h-full bg-negative transition-all duration-500"
+                style={{ left: `${(income / allSpent) * 100}%`, right: 0 }}
+              />
+            </div>
+            {/* income boundary marker */}
             <div
-              className="absolute top-0 h-full bg-primary/25 transition-all duration-500"
-              style={{ left: `${spentPct}%`, width: `${budgetedPct - spentPct}%` }}
+              className="absolute -top-1 -bottom-1 w-0.5 bg-white/50 rounded-full"
+              style={{ left: `${(income / allSpent) * 100}%` }}
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          // Normal: bar represents income (0–100%)
+          <div className="relative h-3 rounded-full overflow-hidden bg-muted">
+            {/* spent portion */}
+            <div
+              className="absolute left-0 top-0 h-full bg-positive transition-all duration-500"
+              style={{ width: `${spentPct}%` }}
+            />
+            {/* budgeted-but-unspent portion */}
+            {budgetedPct > spentPct && (
+              <div
+                className="absolute top-0 h-full bg-primary/25 transition-all duration-500"
+                style={{ left: `${spentPct}%`, width: `${budgetedPct - spentPct}%` }}
+              />
+            )}
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <span className={cn("h-2 w-2 rounded-full", allSpent > income ? "bg-negative" : "bg-positive")} />
-            Spent {formatCurrency(allSpent, currency)} <span className="text-foreground font-medium">({Math.round(spentPct)}%)</span>
+            <span className={cn("h-2 w-2 rounded-full", isOver ? "bg-negative" : "bg-positive")} />
+            Spent {formatCurrency(allSpent, currency)}{" "}
+            <span className={cn("font-medium", isOver ? "text-negative" : "text-foreground")}>
+              ({actualSpentPct}%)
+            </span>
+            {isOver && (
+              <span className="text-negative font-medium">
+                · over by {formatCurrency(allSpent - income, currency)}
+              </span>
+            )}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-primary/40" />
@@ -295,6 +327,13 @@ function OverviewTab({
   } | null>(null)
   const [overrideAmount, setOverrideAmount] = useState("")
   const [unbudgetedOpen, setUnbudgetedOpen] = useState(false)
+  const [createBudgetDialog, setCreateBudgetDialog] = useState<{
+    categoryId: number
+    name: string
+    suggested: number
+  } | null>(null)
+  const [createBudgetAmount, setCreateBudgetAmount] = useState("")
+  const [createBudgetSaving, setCreateBudgetSaving] = useState(false)
 
   const { categoryBudgets, groupBudgets, unbudgeted, incomeActual, incomeAvg3m } = vsActual
   const allBudgeted = [
@@ -315,6 +354,27 @@ function OverviewTab({
   const total = categoryBudgets.length + groupBudgets.length
 
   const hasBudgets = total > 0
+
+  async function saveNewBudget() {
+    if (!createBudgetDialog) return
+    const amt = parseFloat(createBudgetAmount)
+    if (isNaN(amt) || amt <= 0) return
+    setCreateBudgetSaving(true)
+    try {
+      await upsertBudget({
+        data: {
+          categoryId: createBudgetDialog.categoryId,
+          categoryGroupId: null,
+          monthlyAmount: amt,
+        },
+      })
+      setCreateBudgetDialog(null)
+      setCreateBudgetAmount("")
+      router.invalidate()
+    } finally {
+      setCreateBudgetSaving(false)
+    }
+  }
 
   async function saveOverride() {
     if (!overrideDialog) return
@@ -356,13 +416,19 @@ function OverviewTab({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-3 md:p-4">
-            <p className="section-label">Budgeted</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="section-label mb-0">Budgeted</p>
+              <Target className="size-3.5 text-muted-foreground/50" />
+            </div>
             <p className="metric-number text-base sm:text-lg">{formatCurrency(allBudgeted, currency)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 md:p-4">
-            <p className="section-label">Spent</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="section-label mb-0">Spent</p>
+              <TrendingUp className={cn("size-3.5", allSpent > allBudgeted ? "text-negative/60" : "text-muted-foreground/50")} />
+            </div>
             <p className={cn("metric-number text-base sm:text-lg", allSpent > allBudgeted ? "text-negative" : "")}>
               {formatCurrency(allSpent, currency)}
             </p>
@@ -370,7 +436,12 @@ function OverviewTab({
         </Card>
         <Card>
           <CardContent className="p-3 md:p-4">
-            <p className="section-label">Remaining</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="section-label mb-0">Remaining</p>
+              {allBudgeted - allSpent < 0
+                ? <AlertTriangle className="size-3.5 text-negative/60" />
+                : <CheckCircle2 className="size-3.5 text-muted-foreground/50" />}
+            </div>
             <p className={cn("metric-number text-base sm:text-lg", allBudgeted - allSpent < 0 ? "text-negative" : "text-positive")}>
               {formatCurrency(Math.abs(allBudgeted - allSpent), currency)}
               {allSpent > allBudgeted && <span className="text-xs font-normal ml-1">over</span>}
@@ -379,13 +450,15 @@ function OverviewTab({
         </Card>
         <Card>
           <CardContent className="p-3 md:p-4">
-            <p className="section-label">On Track</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="section-label mb-0">On Track</p>
+              {onTrack === total
+                ? <CheckCircle2 className="size-3.5 text-positive/60" />
+                : <AlertTriangle className="size-3.5 text-amber-500/60" />}
+            </div>
             <div className="flex items-end gap-1.5 mt-0.5">
               <span className="metric-number text-base sm:text-lg">{onTrack}</span>
               <span className="text-muted-foreground text-sm mb-0.5">/ {total}</span>
-              {onTrack === total
-                ? <CheckCircle2 className="size-4 text-positive mb-0.5 ml-1" />
-                : <AlertTriangle className="size-4 text-amber-500 mb-0.5 ml-1" />}
             </div>
           </CardContent>
         </Card>
@@ -413,9 +486,16 @@ function OverviewTab({
             {Object.entries(grouped).map(([groupKey, rows], gi) => (
               <div key={groupKey}>
                 {groupKey !== "__none__" && (
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-1">
-                    {groupKey}
-                  </p>
+                  <div className="flex items-center justify-between mt-4 mb-1 pb-1 border-b border-border/50">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      {groupKey}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
+                      {formatCurrency(rows.reduce((s, b) => s + b.spent, 0), currency)}
+                      {" / "}
+                      {formatCurrency(rows.reduce((s, b) => s + b.budgeted, 0), currency)}
+                    </p>
+                  </div>
                 )}
                 <div className="divide-y">
                   {rows.map((b) => (
@@ -509,6 +589,18 @@ function OverviewTab({
                         <div className="flex items-center gap-3 shrink-0 text-sm">
                           <span className="tabular-nums text-negative">{formatCurrency(u.spent, currency)}</span>
                           <span className="text-muted-foreground text-xs">{u.txCount} txn{u.txCount !== 1 ? "s" : ""}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs gap-1"
+                            onClick={() => {
+                              setCreateBudgetDialog({ categoryId: u.categoryId, name: u.categoryName, suggested: u.spent })
+                              setCreateBudgetAmount(String(Math.ceil(u.spent)))
+                            }}
+                          >
+                            <Plus className="size-3" />
+                            Budget
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -519,6 +611,40 @@ function OverviewTab({
           </div>
         </div>
       )}
+
+      {/* Create budget dialog (from unbudgeted row) */}
+      <Dialog open={createBudgetDialog !== null} onOpenChange={(o) => { if (!o) { setCreateBudgetDialog(null); setCreateBudgetAmount("") } }}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Create budget</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Set a monthly budget for <strong className="text-foreground">{createBudgetDialog?.name}</strong>.
+            We've pre-filled this month's spend as a starting point.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="create-budget-amount">Monthly amount</Label>
+            <Input
+              id="create-budget-amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={createBudgetAmount}
+              onChange={(e) => setCreateBudgetAmount(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") saveNewBudget() }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCreateBudgetDialog(null); setCreateBudgetAmount("") }}>
+              Cancel
+            </Button>
+            <Button onClick={saveNewBudget} disabled={!createBudgetAmount || Number(createBudgetAmount) <= 0 || createBudgetSaving}>
+              {createBudgetSaving ? "Saving…" : "Create budget"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Month override dialog */}
       <Dialog open={overrideDialog !== null} onOpenChange={(o) => { if (!o) { setOverrideDialog(null); setOverrideAmount("") } }}>
