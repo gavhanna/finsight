@@ -18,13 +18,7 @@ RUN pnpm exec esbuild src/db/migrate.ts \
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN pnpm install --prod --frozen-lockfile
-
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/migrate.mjs ./migrate.mjs
 COPY --from=builder /app/src/db/migrations ./migrations
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
