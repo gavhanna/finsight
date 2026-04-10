@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMemo } from "react"
 import {
   getSpendingByCategory,
@@ -10,11 +10,12 @@ import {
   getYearOverYearComparison,
 } from "../server/fn/insights"
 import { getSetting } from "../server/fn/settings"
+import { getBudgetVsActual, type CategoryBudgetRow, type GroupBudgetRow } from "../server/fn/budgets"
 import { formatCurrency } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
-import { TrendingDown, TrendingUp, ArrowLeftRight, Hash } from "lucide-react"
+import { TrendingDown, TrendingUp, ArrowLeftRight, Hash, Target, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { z } from "zod"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -55,8 +56,9 @@ export const Route = createFileRoute("/")({
       dateTo: deps.dateTo,
       accountIds: deps.accountIds ?? [],
     }
+    const currentMonth = new Date().toISOString().slice(0, 7)
     return withOfflineCache("dashboard", async () => {
-      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy] =
+      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual] =
         await Promise.all([
           getSpendingByCategory({ data: filters }),
           getSpendingTrends({ data: filters }),
@@ -66,8 +68,9 @@ export const Route = createFileRoute("/")({
           getAccounts(),
           getSetting({ data: "preferred_currency" }),
           getYearOverYearComparison({ data: filters }),
+          getBudgetVsActual({ data: { month: currentMonth } }),
         ])
-      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy }
+      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth }
     })
   },
 })
@@ -81,8 +84,123 @@ const PRESET_LABELS: Record<DatePreset, string> = {
 }
 
 
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+function fmtMonth(ym: string) {
+  const [y, m] = ym.split("-").map(Number)
+  return `${MONTH_NAMES[m - 1]} ${y}`
+}
+
+const BAR_TRACK = "h-1.5 rounded-full bg-muted overflow-hidden"
+const BAR_FILL_COLOR: Record<"green" | "amber" | "red", string> = {
+  green: "h-full rounded-full bg-positive transition-all duration-500",
+  amber: "h-full rounded-full bg-amber-500 transition-all duration-500",
+  red:   "h-full rounded-full bg-negative transition-all duration-500",
+}
+const BADGE_CLS: Record<"green" | "amber" | "red", string> = {
+  green: "bg-positive/10 text-positive border-positive/20",
+  amber: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  red:   "bg-negative/10 text-negative border-negative/20",
+}
+
+function budgetColor(ratio: number): "green" | "amber" | "red" {
+  if (ratio > 1) return "red"
+  if (ratio >= 0.75) return "amber"
+  return "green"
+}
+
+function BudgetSnapshotCard({
+  categoryBudgets,
+  groupBudgets,
+  currency,
+  month,
+}: {
+  categoryBudgets: CategoryBudgetRow[]
+  groupBudgets: GroupBudgetRow[]
+  currency: string
+  month: string
+}) {
+  const allRows = [
+    ...categoryBudgets.map((b) => ({ name: b.categoryName, budgeted: b.budgeted, spent: b.spent })),
+    ...groupBudgets.map((b) => ({ name: b.groupName, budgeted: b.budgeted, spent: b.spent })),
+  ]
+  if (allRows.length === 0) return null
+
+  const sorted = [...allRows].sort((a, b) => {
+    const ra = a.budgeted > 0 ? a.spent / a.budgeted : 0
+    const rb = b.budgeted > 0 ? b.spent / b.budgeted : 0
+    return rb - ra
+  })
+
+  const visible = sorted.slice(0, 6)
+  const onTrack = allRows.filter((r) => r.spent <= r.budgeted).length
+  const total = allRows.length
+  const allOnTrack = onTrack === total
+
+  return (
+    <Card className="animate-in stagger-5">
+      <CardContent className="p-3 md:p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Target className="size-3.5 text-muted-foreground/60" />
+            <p className="section-label mb-0">{fmtMonth(month)} Budgets</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`flex items-center gap-1 text-xs font-medium ${allOnTrack ? "text-positive" : "text-amber-500"}`}>
+              {allOnTrack
+                ? <CheckCircle2 className="size-3.5" />
+                : <AlertTriangle className="size-3.5" />}
+              {onTrack} / {total} on track
+            </span>
+            <Link
+              to="/budgets"
+              className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View all <ChevronRight className="size-3" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="space-y-2.5">
+          {visible.map((row) => {
+            const ratio = row.budgeted > 0 ? row.spent / row.budgeted : 0
+            const col = budgetColor(ratio)
+            const pct = row.budgeted > 0 ? Math.round(ratio * 100) : 0
+            return (
+              <div key={row.name} className="space-y-1">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs truncate text-muted-foreground">{row.name}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {formatCurrency(row.spent, currency)}<span className="text-muted-foreground/50"> / {formatCurrency(row.budgeted, currency)}</span>
+                    </span>
+                    <span className={`text-[10px] font-semibold border rounded-full px-1.5 py-0 ${BADGE_CLS[col]}`}>
+                      {pct}%
+                    </span>
+                  </div>
+                </div>
+                <div className={BAR_TRACK}>
+                  <div className={BAR_FILL_COLOR[col]} style={{ width: `${Math.min(ratio * 100, 100)}%` }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {sorted.length > 6 && (
+          <Link
+            to="/budgets"
+            className="flex items-center justify-center gap-1 mt-3 pt-3 border-t text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {sorted.length - 6} more budget{sorted.length - 6 !== 1 ? "s" : ""} <ChevronRight className="size-3" />
+          </Link>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
@@ -224,9 +342,19 @@ function DashboardPage() {
         />
       </div>
 
+      {/* Budget snapshot */}
+      {(budgetVsActual.categoryBudgets.length > 0 || budgetVsActual.groupBudgets.length > 0) && (
+        <BudgetSnapshotCard
+          categoryBudgets={budgetVsActual.categoryBudgets}
+          groupBudgets={budgetVsActual.groupBudgets}
+          currency={currency}
+          month={currentMonth}
+        />
+      )}
+
       {/* AI Narrative */}
       {hasData && (
-        <div className="animate-in stagger-5">
+        <div className="animate-in stagger-6">
           <NarrativeCard
             stats={stats}
             byCat={byCat}
@@ -250,7 +378,7 @@ function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4 sm:space-y-6 animate-in stagger-6">
+        <div className="space-y-4 sm:space-y-6 animate-in stagger-7">
           <div className="space-y-2">
             <p className="section-label px-0.5">Cash Flow</p>
             <Card>
@@ -287,7 +415,11 @@ function DashboardPage() {
                     </Tabs>
                   </div>
                   {chartType === "pie" ? (
-                    <SpendingPieChart data={byCat} currency={currency} />
+                    <SpendingPieChart
+                      data={byCat}
+                      currency={currency}
+                      budgets={preset === "month" ? budgetVsActual.categoryBudgets : undefined}
+                    />
                   ) : (
                     <div className="chart-bg p-2 -ml-10 -mr-4">
                       <SpendingBarChart data={byCat} currency={currency} />
