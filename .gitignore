@@ -6,3 +6,4 @@ dist/
 .output/
 logs/
 .claude
+db_backups/

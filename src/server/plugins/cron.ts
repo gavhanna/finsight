@@ -29,6 +29,10 @@ async function runSync() {
 }
 
 export default function () {
+  if (process.env["DISABLE_AUTO_SYNC"] === "true") {
+    log.info("cron.disabled", { reason: "DISABLE_AUTO_SYNC=true" })
+    return
+  }
   for (const expr of SCHEDULES) {
     new Cron(expr, { timezone: "UTC" }, runSync)
   }

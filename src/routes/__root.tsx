@@ -1,4 +1,4 @@
-import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState, type ErrorComponentProps } from "@tanstack/react-router"
+import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState, type ErrorComponentProps, type NotFoundRouteProps } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { getUncategorisedCount } from "@/server/fn/transactions"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
@@ -97,6 +97,7 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
   component: RootLayout,
   errorComponent: RootErrorComponent,
+  notFoundComponent: RootNotFoundComponent,
 })
 
 function OfflineBanner() {
@@ -344,12 +345,42 @@ function AppSidebar() {
 
       <SidebarFooter className="px-2 pb-3">
         <div className="group-data-[collapsible=icon]:hidden">
+          <div className="px-2 pb-2 flex items-center justify-center text-xs text-muted-foreground">
+            {__APP_VERSION__}
+          </div>
           <ThemeToggle />
         </div>
       </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>
+  )
+}
+
+function RootNotFoundComponent(_: NotFoundRouteProps) {
+  return (
+    <TooltipProvider>
+      <SidebarProvider className="h-svh overflow-hidden">
+        <AppSidebar />
+        <SidebarInset className="overflow-hidden">
+          <OfflineBanner />
+          <header className="header-frosted flex h-12 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-10">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" />
+          </header>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+            <p className="text-4xl font-bold text-muted-foreground/30">404</p>
+            <div className="space-y-1">
+              <p className="font-semibold text-sm">Page not found</p>
+              <p className="text-muted-foreground text-sm">The page you&rsquo;re looking for doesn&rsquo;t exist.</p>
+            </div>
+            <Link to="/" className="text-sm text-primary hover:underline">
+              Go to dashboard
+            </Link>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }
 
