@@ -5,10 +5,16 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { log } from "../../lib/logger.server"
 
+const SECRET_SETTING_KEYS = ["gocardless_secret_id", "gocardless_secret_key"] as const
+
 export const getSettings = createServerFn().handler(async () => {
   const rows = await db.select().from(settings)
   const map: Record<string, string | null> = {}
   for (const row of rows) {
+    if (SECRET_SETTING_KEYS.includes(row.key as (typeof SECRET_SETTING_KEYS)[number])) {
+      map[`${row.key}_configured`] = row.value ? "true" : "false"
+      continue
+    }
     map[row.key] = row.value
   }
   return map
@@ -60,6 +66,10 @@ export const saveSettings = createServerFn()
     const keys: string[] = []
     for (const [key, value] of Object.entries(data)) {
       const v = value as string | undefined
+      const isSecretKey = SECRET_SETTING_KEYS.includes(key as (typeof SECRET_SETTING_KEYS)[number])
+      if (isSecretKey && (!v || !v.trim())) {
+        continue
+      }
       if (v !== undefined) {
         await db
           .insert(settings)

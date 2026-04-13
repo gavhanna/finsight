@@ -2,9 +2,10 @@ import webpush from "web-push"
 import { db } from "../../db/index.server"
 import { pushSubscriptions, settings, transactions } from "../../db/schema"
 import { eq, and, gte, lt, lte } from "drizzle-orm"
-import { sql } from "drizzle-orm"
 import { log } from "../../lib/logger.server"
 import { fetchRecurringItems } from "./recurring.server"
+import { canonicalizeMerchantName } from "../../lib/merchant-utils"
+import { loadAliasMap } from "./merchant-aliases.server"
 
 export type NotificationPreferences = {
   syncCompleted: boolean
@@ -119,11 +120,14 @@ export async function notifyLargeTransactions(
   const subs = await getSubscribersForPreference("largeTransactions")
   if (subs.length === 0) return
 
-  const currency = (await getDbSetting("preferred_currency")) ?? "GBP"
+  const [currency, aliases] = await Promise.all([
+    getDbSetting("preferred_currency"),
+    loadAliasMap(),
+  ])
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-IE", {
       style: "currency",
-      currency,
+      currency: currency ?? "GBP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(n)
@@ -131,27 +135,39 @@ export async function notifyLargeTransactions(
   const expenses = newTxs.filter((tx) => tx.amount < 0 && tx.payee)
 
   for (const tx of expenses) {
+    const canonicalPayee = canonicalizeMerchantName(tx.payee, aliases)
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
     const since = ninetyDaysAgo.toISOString().slice(0, 10)
 
-    const [hist] = await db
+    const historicalTxs = await db
       .select({
-        avg: sql<number>`AVG(ABS(${transactions.amount}))`,
-        count: sql<number>`COUNT(*)`,
+        amount: transactions.amount,
+        creditorName: transactions.creditorName,
+        debtorName: transactions.debtorName,
+        description: transactions.description,
       })
       .from(transactions)
       .where(
         and(
-          sql`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}) = ${tx.payee}`,
           gte(transactions.bookingDate, since),
           lt(transactions.bookingDate, tx.bookingDate),
           lt(transactions.amount, 0),
         ),
       )
 
-    const avg = hist?.avg
-    const count = Number(hist?.count ?? 0)
+    const matchingHistory = historicalTxs.filter((historicalTx) => {
+      const rawPayee =
+        historicalTx.creditorName ?? historicalTx.debtorName ?? historicalTx.description ?? ""
+      if (!rawPayee) return false
+      return canonicalizeMerchantName(rawPayee, aliases) === canonicalPayee
+    })
+
+    const count = matchingHistory.length
+    const avg =
+      count > 0
+        ? matchingHistory.reduce((sum, historicalTx) => sum + Math.abs(historicalTx.amount), 0) / count
+        : 0
     if (!avg || count < 2) continue
 
     const txAmt = Math.abs(tx.amount)
@@ -222,38 +238,40 @@ export async function checkWeeklyDigest() {
   const dateFrom = lastMonday.toISOString().slice(0, 10)
   const dateTo = lastSunday.toISOString().slice(0, 10)
 
-  // Exclude active recurring payees — same logic as the discretionary page
-  const recurringItems = await fetchRecurringItems(true)
-  const recurringPayees = recurringItems.map((r) => r.payee)
+  const [recurringItems, aliases, weeklyTransactions] = await Promise.all([
+    fetchRecurringItems(true),
+    loadAliasMap(),
+    db
+      .select({
+        amount: transactions.amount,
+        creditorName: transactions.creditorName,
+        debtorName: transactions.debtorName,
+        description: transactions.description,
+      })
+      .from(transactions)
+      .where(
+        and(
+          gte(transactions.bookingDate, dateFrom),
+          lte(transactions.bookingDate, dateTo),
+          lt(transactions.amount, 0),
+        ),
+      ),
+  ])
 
-  const baseConditions = [
-    gte(transactions.bookingDate, dateFrom),
-    lte(transactions.bookingDate, dateTo),
-    lt(transactions.amount, 0),
-  ]
-  const conditions =
-    recurringPayees.length > 0
-      ? [
-          ...baseConditions,
-          sql`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}) NOT IN (${sql.join(recurringPayees.map((p) => sql`${p}`), sql`, `)})` as any,
-        ]
-      : baseConditions
+  const recurringPayees = new Set(recurringItems.map((r) => r.payee))
+  const discretionaryTransactions = weeklyTransactions.filter((tx) => {
+    const rawPayee = tx.creditorName ?? tx.debtorName ?? tx.description ?? ""
+    if (!rawPayee) return true
+    return !recurringPayees.has(canonicalizeMerchantName(rawPayee, aliases))
+  })
 
-  const [result] = await db
-    .select({
-      total: sql<number>`SUM(ABS(${transactions.amount}))`,
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(transactions)
-    .where(and(...conditions))
-
-  const total = result?.total ?? 0
-  const txCount = Number(result?.count ?? 0)
+  const total = discretionaryTransactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
+  const txCount = discretionaryTransactions.length
   const currency = (await getDbSetting("preferred_currency")) ?? "GBP"
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-IE", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
 
-  const recurringNote = recurringPayees.length > 0 ? ` (excl. ${recurringPayees.length} recurring)` : ""
+  const recurringNote = recurringPayees.size > 0 ? ` (excl. ${recurringPayees.size} recurring)` : ""
 
   await sendToSubs(subs, {
     title: "Weekly discretionary spend",

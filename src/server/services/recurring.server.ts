@@ -2,6 +2,8 @@ import { db } from "../../db/index.server"
 import { transactions } from "../../db/schema"
 import { lt } from "drizzle-orm"
 import { getMedian, classifyInterval, toMonthlyEquiv } from "../../lib/recurring"
+import { canonicalizeMerchantName } from "../../lib/merchant-utils"
+import { loadAliasMap } from "./merchant-aliases.server"
 
 export type RecurringItemBase = {
   payee: string
@@ -18,6 +20,7 @@ export type RecurringItemBase = {
 }
 
 export async function fetchRecurringItems(activeOnly = true): Promise<RecurringItemBase[]> {
+  const aliases = await loadAliasMap()
   const txns = await db
     .select({
       bookingDate: transactions.bookingDate,
@@ -33,8 +36,9 @@ export async function fetchRecurringItems(activeOnly = true): Promise<RecurringI
 
   const payeeMap = new Map<string, typeof txns>()
   for (const tx of txns) {
-    const payee = tx.creditorName ?? tx.debtorName ?? tx.description ?? "Unknown"
-    if (payee === "Unknown") continue
+    const rawPayee = tx.creditorName ?? tx.debtorName ?? tx.description ?? ""
+    if (!rawPayee) continue
+    const payee = canonicalizeMerchantName(rawPayee, aliases)
     if (!payeeMap.has(payee)) payeeMap.set(payee, [])
     payeeMap.get(payee)!.push(tx)
   }

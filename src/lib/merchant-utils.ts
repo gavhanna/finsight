@@ -40,3 +40,10 @@ export function normalizeMerchantName(raw: string): string {
 export function resolveAlias(normalized: string, aliases: Map<string, string>): string {
   return aliases.get(normalized) ?? normalized
 }
+
+/**
+ * Produces the canonical merchant name used across insight features.
+ */
+export function canonicalizeMerchantName(raw: string, aliases: Map<string, string>): string {
+  return resolveAlias(normalizeMerchantName(raw), aliases)
+}

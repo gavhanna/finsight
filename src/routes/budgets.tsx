@@ -118,7 +118,7 @@ const BADGE_CLASSES: Record<ProgressColor, string> = {
 
 function BudgetRow({
   name,
-  color,
+  color: _color,
   budgeted,
   spent,
   currency,

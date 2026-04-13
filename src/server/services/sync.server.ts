@@ -12,6 +12,9 @@ import {
   checkWeeklyDigest,
 } from "./notifications.server"
 
+const INITIAL_SYNC_LOOKBACK_DAYS = 90
+const INCREMENTAL_SYNC_OVERLAP_DAYS = 10
+
 async function getCredentials() {
   const rows = await db.select().from(settings)
   const map: Record<string, string | null> = {}
@@ -47,9 +50,11 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
     .orderBy(desc(txTable.bookingDate))
     .limit(1)
 
-  const ninetyDaysAgo = new Date()
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-  const dateFrom = latestTx?.bookingDate ?? ninetyDaysAgo.toISOString().slice(0, 10)
+  const initialSyncStart = new Date()
+  initialSyncStart.setDate(initialSyncStart.getDate() - INITIAL_SYNC_LOOKBACK_DAYS)
+  const dateFrom = latestTx?.bookingDate
+    ? withDateOverlap(latestTx.bookingDate, INCREMENTAL_SYNC_OVERLAP_DAYS)
+    : initialSyncStart.toISOString().slice(0, 10)
 
   log.info("account.sync.started", { accountId, dateFrom, syncCallsToday: callsToday + 1 })
 
@@ -80,7 +85,8 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
     const hashInput = `${accountId}|${tx.bookingDate}|${amount}|${payeeName}|${desc}`
     const dedupeHash = createHash("sha256").update(hashInput).digest("hex")
 
-    const txId = tx.transactionId ?? tx.entryReference ?? dedupeHash.slice(0, 20)
+    const providerId = tx.transactionId ?? tx.entryReference ?? dedupeHash.slice(0, 20)
+    const txId = `${accountId}:${providerId}`
 
     const rawTx = {
       description: desc || null,
@@ -111,7 +117,7 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
         rawData: JSON.stringify(tx),
       })
       imported++
-      newTxs.push({ payee: payeeName, amount, bookingDate: tx.bookingDate })
+      newTxs.push({ payee: payeeName || desc, amount, bookingDate: tx.bookingDate })
     } catch (err: any) {
       const pgCode = err?.cause?.code ?? err?.code
       const isDedup = pgCode === "23505"
@@ -152,6 +158,12 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
   }
 
   return { imported, total: booked.length }
+}
+
+function withDateOverlap(date: string, overlapDays: number): string {
+  const overlapped = new Date(`${date}T00:00:00.000Z`)
+  overlapped.setUTCDate(overlapped.getUTCDate() - overlapDays)
+  return overlapped.toISOString().slice(0, 10)
 }
 
 export async function syncAllAccounts(): Promise<void> {

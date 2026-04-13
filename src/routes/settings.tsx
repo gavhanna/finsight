@@ -53,10 +53,12 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const settings = Route.useLoaderData();
+  const hasSecretId = settings["gocardless_secret_id_configured"] === "true";
+  const hasSecretKey = settings["gocardless_secret_key_configured"] === "true";
 
   const [formData, setFormData] = useState({
-    gocardless_secret_id: settings["gocardless_secret_id"] ?? "",
-    gocardless_secret_key: settings["gocardless_secret_key"] ?? "",
+    gocardless_secret_id: "",
+    gocardless_secret_key: "",
     ollama_url: settings["ollama_url"] ?? "",
     ollama_model: settings["ollama_model"] ?? "llama3",
     preferred_currency: settings["preferred_currency"] ?? "EUR",
@@ -184,6 +186,11 @@ function SettingsPage() {
                 Get credentials
               </a>
             </p>
+            {(hasSecretId || hasSecretKey) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Stored credentials are kept server-side. Leave these blank to keep the current values.
+              </p>
+            )}
           </div>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -199,7 +206,7 @@ function SettingsPage() {
                     gocardless_secret_id: e.target.value,
                   }))
                 }
-                placeholder="your-secret-id"
+                placeholder={hasSecretId ? "Configured" : "your-secret-id"}
               />
             </div>
             <div className="space-y-1.5">
@@ -215,7 +222,7 @@ function SettingsPage() {
                     gocardless_secret_key: e.target.value,
                   }))
                 }
-                placeholder="your-secret-key"
+                placeholder={hasSecretKey ? "Configured" : "your-secret-key"}
               />
             </div>
           </div>

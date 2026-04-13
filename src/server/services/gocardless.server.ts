@@ -2,6 +2,7 @@ import NordigenClient from "nordigen-node"
 import { log } from "../../lib/logger.server"
 
 let client: InstanceType<typeof NordigenClient> | null = null
+let clientCredentialsKey: string | null = null
 let tokenExpiresAt = 0
 let institutionsCache: Record<string, GoCardlessInstitution[]> = {}
 
@@ -36,8 +37,12 @@ export interface GoCardlessRequisition {
 }
 
 function getClient(secretId: string, secretKey: string) {
-  if (!client) {
+  const credentialsKey = `${secretId}:${secretKey}`
+  if (!client || clientCredentialsKey !== credentialsKey) {
     client = new NordigenClient({ secretId, secretKey })
+    clientCredentialsKey = credentialsKey
+    tokenExpiresAt = 0
+    institutionsCache = {}
   }
   return client
 }
