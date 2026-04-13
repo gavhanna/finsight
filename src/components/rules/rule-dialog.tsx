@@ -78,7 +78,6 @@ function RuleForm({ rule, categories, onClose, onSaved }: {
       } finally { setPreviewing(false) }
     }, 500)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(previewablePatterns.map(p => [p.pattern, p.field, p.matchType]))])
 
   function updatePatternAt(visIdx: number, vals: Partial<PatternDraft>) {

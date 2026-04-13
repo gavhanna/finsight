@@ -115,7 +115,7 @@ function LogsPage() {
       navigate({ search: { ...search, search: localSearch || undefined } });
     }, 300);
     return () => clearTimeout(t);
-  }, [localSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [localSearch]);
 
   // Auto-refresh
   useEffect(() => {

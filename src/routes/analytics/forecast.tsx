@@ -106,7 +106,6 @@ function ForecastPage() {
                       width={72}
                     />
                     <Tooltip
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       formatter={((value: number | undefined, name: string) => {
                         if (value == null) return []
                         return [formatCurrency(value, currency), name]

@@ -64,7 +64,7 @@ export function TriageFlow({
       setRuleName(text)
       setRuleField(field)
     }
-  }, [current?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current?.id])
 
   function openRuleMode() {
     if (!current) return
@@ -138,7 +138,7 @@ export function TriageFlow({
     } else {
       setIndex((i) => i + 1)
     }
-  }, [index, queue.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [index, queue.length])
 
   const filterLabel = categoryId === null ? "Uncategorised" : (currentCategoryName ?? "Unknown")
 

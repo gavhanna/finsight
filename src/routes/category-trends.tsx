@@ -121,7 +121,7 @@ function CategoryTrendsPage() {
   const allKeys = allItems.map(c => String(c.id)).join(",")
   useMemo(() => {
     setSelected(new Set(allItems.map(c => String(c.id))))
-  }, [allKeys]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allKeys])
 
   function toggleItem(key: string) {
     setSelected(prev => {
