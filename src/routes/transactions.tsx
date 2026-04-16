@@ -57,6 +57,7 @@ function TransactionsPage() {
   const [chartLoading, setChartLoading] = useState(false)
 
   const hasSearch = !!search.search?.trim()
+  const hasChartFilter = hasSearch || search.categoryId !== undefined
 
   function handleSearchChange(value: string) {
     setSearchInput(value)
@@ -67,7 +68,7 @@ function TransactionsPage() {
   }
 
   useEffect(() => {
-    if (!showChart || !hasSearch) return
+    if (!showChart || !hasChartFilter) return
     setChartStats(null)
     setChartLoading(true)
     getTransactionStats({
@@ -79,7 +80,7 @@ function TransactionsPage() {
         accountIds: search.accountIds ?? [],
       },
     }).then((s) => { setChartStats(s); setChartLoading(false) })
-  }, [showChart, search.search, search.dateFrom, search.dateTo, search.categoryId, search.accountIds])
+  }, [showChart, hasChartFilter, search.search, search.dateFrom, search.dateTo, search.categoryId, search.accountIds])
 
   const { sorted: transactions, sortKey, sortDir, toggle } = useSortable(txData.transactions, "bookingDate", "desc")
   const { total, page, pageSize } = txData
@@ -124,6 +125,7 @@ function TransactionsPage() {
         searchInput={searchInput}
         onSearchChange={handleSearchChange}
         showChart={showChart}
+        showChartToggle={hasChartFilter}
         onToggleChart={() => setShowChart((v) => !v)}
         dateFrom={search.dateFrom}
         dateTo={search.dateTo}
@@ -143,7 +145,7 @@ function TransactionsPage() {
         onAccountChange={(v) => updateSearch({ accountIds: v })}
       />
 
-      {showChart && hasSearch && (
+      {showChart && hasChartFilter && (
         <TransactionChartPanel chartStats={chartStats} loading={chartLoading} />
       )}
 

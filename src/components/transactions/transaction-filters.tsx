@@ -13,6 +13,7 @@ export function TransactionFilters({
   searchInput,
   onSearchChange,
   showChart,
+  showChartToggle,
   onToggleChart,
   dateFrom,
   dateTo,
@@ -34,6 +35,7 @@ export function TransactionFilters({
   searchInput: string
   onSearchChange: (v: string) => void
   showChart: boolean
+  showChartToggle: boolean
   onToggleChart: () => void
   dateFrom?: string
   dateTo?: string
@@ -52,8 +54,6 @@ export function TransactionFilters({
   onCategoryChange: (v?: number) => void
   onAccountChange: (v?: string[]) => void
 }) {
-  const hasSearch = !!searchInput.trim()
-
   return (
     <div className="border-b p-3 sm:p-4 space-y-3">
       <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -68,7 +68,7 @@ export function TransactionFilters({
               className="pl-9 w-full"
             />
           </div>
-          {hasSearch && (
+          {showChartToggle && (
             <Button
               variant={showChart ? "secondary" : "outline"}
               size="icon"
