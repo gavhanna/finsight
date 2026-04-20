@@ -102,7 +102,7 @@ function progressColor(ratio: number): ProgressColor {
   return "green"
 }
 
-const BAR_TRACK = "h-1.5 rounded-full bg-muted overflow-hidden"
+const BAR_TRACK = "h-0.5 rounded-full bg-muted overflow-hidden"
 const BAR_FILL: Record<ProgressColor, string> = {
   green: "h-full rounded-full bg-positive transition-all duration-500",
   amber: "h-full rounded-full bg-amber-500 transition-all duration-500",
@@ -238,7 +238,7 @@ function IncomeAllocationBar({
         {isOver ? (
           // Over income: bar rescales to total spend; income boundary shown as marker
           <div className="relative">
-            <div className="relative h-3 rounded-full overflow-hidden bg-muted">
+            <div className="relative h-2 rounded-full overflow-hidden bg-muted">
               {/* within-income portion */}
               <div
                 className="absolute left-0 top-0 h-full bg-positive transition-all duration-500"
@@ -258,7 +258,7 @@ function IncomeAllocationBar({
           </div>
         ) : (
           // Normal: bar represents income (0–100%)
-          <div className="relative h-3 rounded-full overflow-hidden bg-muted">
+          <div className="relative h-2 rounded-full overflow-hidden bg-muted">
             {/* spent portion */}
             <div
               className="absolute left-0 top-0 h-full bg-positive transition-all duration-500"

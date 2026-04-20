@@ -90,7 +90,7 @@ function fmtMonth(ym: string) {
   return `${MONTH_NAMES[m - 1]} ${y}`
 }
 
-const BAR_TRACK = "h-1.5 rounded-full bg-muted overflow-hidden"
+const BAR_TRACK = "h-0.5 rounded-full bg-muted overflow-hidden"
 const BAR_FILL_COLOR: Record<"green" | "amber" | "red", string> = {
   green: "h-full rounded-full bg-positive transition-all duration-500",
   amber: "h-full rounded-full bg-amber-500 transition-all duration-500",
