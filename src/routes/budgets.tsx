@@ -138,6 +138,8 @@ function BudgetRow({
   const ratio = budgeted > 0 ? Math.min(spent / budgeted, 1) : 0
   const col = progressColor(budgeted > 0 ? spent / budgeted : 0)
   const remaining = budgeted - spent
+  const showOverMarker = budgeted > 0 && spent > budgeted
+  const overMarkerLeft = showOverMarker ? `${(budgeted / spent) * 100}%` : undefined
 
   return (
     <div className="flex flex-col gap-1.5 py-3 group">
@@ -175,8 +177,29 @@ function BudgetRow({
           )}
         </div>
       </div>
-      <div className={BAR_TRACK}>
-        <div className={BAR_FILL[col]} style={{ width: `${ratio * 100}%` }} />
+      <div className="relative">
+        <div className={BAR_TRACK}>
+          {showOverMarker ? (
+            <>
+              <div
+                className={BAR_FILL.amber}
+                style={{ width: overMarkerLeft }}
+              />
+              <div
+                className="absolute top-0 bottom-0 right-0 bg-negative transition-all duration-500"
+                style={{ left: overMarkerLeft }}
+              />
+            </>
+          ) : (
+            <div className={BAR_FILL[col]} style={{ width: `${ratio * 100}%` }} />
+          )}
+        </div>
+        {showOverMarker && (
+          <div
+            className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-white/50"
+            style={{ left: overMarkerLeft }}
+          />
+        )}
       </div>
       <p className={cn("text-[11px]", spent > budgeted ? "text-negative" : "text-muted-foreground")}>
         {spent > budgeted
