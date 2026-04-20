@@ -37,7 +37,7 @@ export function StatCard({
             {icon}
           </div>
         </div>
-        <p className={cn("metric-number text-sm sm:text-xl", valueClass)}>{value}</p>
+        <p className={cn("metric-number text-md sm:text-xl", valueClass)}>{value}</p>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <p className="text-xs text-muted-foreground capitalize">{sub}</p>
           {delta != null && (
