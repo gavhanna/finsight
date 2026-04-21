@@ -99,20 +99,10 @@ export const getTopMerchants = createServerFn()
       lt(transactions.amount, 0),
     ]
 
-    if (filters.excludeRecurring) {
-      const recurringItems = await fetchRecurringItems(true)
-      const recurringPayees = recurringItems.map((r) => r.payee)
-      if (recurringPayees.length > 0) {
-        conditions.push(
-          sql`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}) NOT IN (${sql.join(recurringPayees.map((p) => sql`${p}`), sql`, `)})` as any,
-        )
-      }
-    }
-
     const payee = sql<string>`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}, 'Unknown')`
 
     const { loadAliasMap } = await import("../services/merchant-aliases.server")
-    const [rows, aliases] = await Promise.all([
+    const [rows, aliases, recurringItems] = await Promise.all([
       db
         .select({
           payee,
@@ -123,12 +113,16 @@ export const getTopMerchants = createServerFn()
         .where(and(...conditions))
         .groupBy(payee),
       loadAliasMap(),
+      filters.excludeRecurring ? fetchRecurringItems(true) : Promise.resolve([]),
     ])
+
+    const recurringPayees = new Set(recurringItems.map((r) => r.payee))
 
     // Normalize + resolve aliases, re-aggregate, then take top N
     const map = new Map<string, { total: number; count: number }>()
     for (const r of rows) {
       const name = resolveAlias(normalizeMerchantName(r.payee), aliases)
+      if (filters.excludeRecurring && recurringPayees.has(name)) continue
       const existing = map.get(name)
       if (existing) {
         existing.total += Number(r.total)

@@ -62,7 +62,7 @@ export const Route = createFileRoute("/")({
         await Promise.all([
           getSpendingByCategory({ data: filters }),
           getSpendingTrends({ data: filters }),
-          getTopMerchants({ data: { ...filters, limit: 10 } }),
+          getTopMerchants({ data: { ...filters, limit: 10, excludeRecurring: deps.excludeRecurring } }),
           getIncomeVsExpenses({ data: filters }),
           getSummaryStats({ data: filters }),
           getAccounts(),
@@ -421,7 +421,7 @@ function DashboardPage() {
                       budgets={preset === "month" ? budgetVsActual.categoryBudgets : undefined}
                     />
                   ) : (
-                    <div className="chart-bg p-2 -ml-10 -mr-4">
+                    <div className="chart-bg p-2 -ml-16">
                       <SpendingBarChart data={byCat} currency={currency} />
                     </div>
                   )}
