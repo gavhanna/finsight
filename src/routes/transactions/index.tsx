@@ -1,20 +1,32 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState, useEffect, useRef } from "react"
-import { getTransactions, updateTransactionCategory, bulkCategorise, getTransactionStats } from "../server/fn/transactions"
-import { getCategories } from "../server/fn/categories"
-import { getAccounts } from "../server/fn/insights"
+import {
+  getTransactions,
+  updateTransactionCategory,
+  bulkCategorise,
+  getTransactionStats,
+} from "../../server/fn/transactions"
+import { getCategories } from "../../server/fn/categories"
+import { getAccounts } from "../../server/fn/insights"
 import { formatDate, formatCurrency } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
 import { TransactionFilters } from "@/components/transactions/transaction-filters"
 import { TransactionChartPanel } from "@/components/transactions/chart-panel"
-import type { getTransactionStats as getTransactionStatsType } from "../server/fn/transactions"
+import type { getTransactionStats as getTransactionStatsType } from "../../server/fn/transactions"
 
 type ChartStats = Awaited<ReturnType<typeof getTransactionStatsType>>
 
@@ -27,7 +39,7 @@ const SearchSchema = z.object({
   accountIds: z.array(z.string()).optional(),
 })
 
-export const Route = createFileRoute("/transactions")({
+export const Route = createFileRoute("/transactions/")({
   validateSearch: SearchSchema,
   component: TransactionsPage,
   loaderDeps: ({ search }) => search,
@@ -79,10 +91,26 @@ function TransactionsPage() {
         categoryId: search.categoryId,
         accountIds: search.accountIds ?? [],
       },
-    }).then((s) => { setChartStats(s); setChartLoading(false) })
-  }, [showChart, hasChartFilter, search.search, search.dateFrom, search.dateTo, search.categoryId, search.accountIds])
+    }).then((s) => {
+      setChartStats(s)
+      setChartLoading(false)
+    })
+  }, [
+    showChart,
+    hasChartFilter,
+    search.search,
+    search.dateFrom,
+    search.dateTo,
+    search.categoryId,
+    search.accountIds,
+  ])
 
-  const { sorted: transactions, sortKey, sortDir, toggle } = useSortable(txData.transactions, "bookingDate", "desc")
+  const {
+    sorted: transactions,
+    sortKey,
+    sortDir,
+    toggle,
+  } = useSortable(txData.transactions, "bookingDate", "desc")
   const { total, page, pageSize } = txData
   const totalPages = Math.ceil(total / pageSize)
 
@@ -104,10 +132,20 @@ function TransactionsPage() {
     else setSelected(new Set(transactions.map((t) => t.id)))
   }
 
+  function openTransaction(txId: string) {
+    navigate({
+      to: "/transactions/$transactionId",
+      params: { transactionId: encodeURIComponent(txId) },
+      search,
+    })
+  }
+
   async function handleBulkCategorise() {
     if (!bulkCatId || selected.size === 0) return
     setLoading(true)
-    await bulkCategorise({ data: { ids: Array.from(selected), categoryId: Number(bulkCatId) } })
+    await bulkCategorise({
+      data: { ids: Array.from(selected), categoryId: Number(bulkCatId) },
+    })
     setSelected(new Set())
     setBulkCatId("")
     router.invalidate()
@@ -149,7 +187,6 @@ function TransactionsPage() {
         <TransactionChartPanel chartStats={chartStats} loading={chartLoading} />
       )}
 
-      {/* Table */}
       <div className="flex-1 overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
@@ -160,48 +197,88 @@ function TransactionsPage() {
                   onCheckedChange={() => toggleAll()}
                 />
               </TableHead>
-              <SortableHead id="bookingDate" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Date</SortableHead>
-              <SortableHead id="creditorName" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Payee</SortableHead>
+              <SortableHead id="bookingDate" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>
+                Date
+              </SortableHead>
+              <SortableHead id="creditorName" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>
+                Payee
+              </SortableHead>
               <TableHead className="hidden sm:table-cell">Description</TableHead>
-              <SortableHead id="amount" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Amount</SortableHead>
+              <SortableHead
+                id="amount"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={toggle}
+                className="text-right"
+              >
+                Amount
+              </SortableHead>
               <TableHead>Category</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-16 text-muted-foreground">
+                <TableCell colSpan={6} className="py-16 text-center text-muted-foreground">
                   No transactions found.
                 </TableCell>
               </TableRow>
             ) : (
               transactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="px-3">
-                    <Checkbox checked={selected.has(tx.id)} onCheckedChange={() => toggleSelect(tx.id)} />
+                <TableRow
+                  key={tx.id}
+                  tabIndex={0}
+                  className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  onClick={() => openTransaction(tx.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      openTransaction(tx.id)
+                    }
+                  }}
+                >
+                  <TableCell
+                    className="px-3"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selected.has(tx.id)}
+                      onCheckedChange={() => toggleSelect(tx.id)}
+                    />
                   </TableCell>
-                  <TableCell className="text-muted-foreground whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
                     {formatDate(tx.bookingDate)}
                   </TableCell>
-                  <TableCell className="font-medium max-w-48 truncate">
+                  <TableCell className="max-w-48 truncate font-medium">
                     {tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell text-muted-foreground max-w-64 truncate">
+                  <TableCell className="hidden max-w-64 truncate text-muted-foreground sm:table-cell">
                     {tx.description ?? "—"}
                   </TableCell>
-                  <TableCell className={`text-right font-medium tabular-nums whitespace-nowrap ${tx.amount >= 0 ? "text-positive" : ""}`}>
+                  <TableCell
+                    className={`whitespace-nowrap text-right font-medium tabular-nums ${tx.amount >= 0 ? "text-positive" : ""}`}
+                  >
                     {formatCurrency(tx.amount, tx.currency)}
                   </TableCell>
                   <TableCell>
                     <select
                       value={tx.categoryId ?? ""}
-                      onChange={(e) => handleCategoryChange(tx.id, e.target.value ? Number(e.target.value) : null)}
-                      className="w-full rounded-md border-0 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-ring py-1 px-2 hover:bg-muted transition-colors cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        handleCategoryChange(
+                          tx.id,
+                          e.target.value ? Number(e.target.value) : null,
+                        )}
+                      className="w-full cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                       style={tx.category ? { color: tx.category.color } : undefined}
                     >
                       <option value="">Uncategorised</option>
                       {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
                       ))}
                     </select>
                   </TableCell>
@@ -212,21 +289,22 @@ function TransactionsPage() {
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="border-t px-4 py-3 flex items-center justify-between">
+      <div className="flex items-center justify-between border-t px-4 py-3">
         <p className="text-sm text-muted-foreground">
           {total} transaction{total !== 1 ? "s" : ""} · page {page} of {totalPages || 1}
         </p>
         <div className="flex gap-2">
           <Button
-            variant="outline" size="icon"
+            variant="outline"
+            size="icon"
             onClick={() => navigate({ search: { ...search, page: page - 1 } })}
             disabled={page <= 1}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline" size="icon"
+            variant="outline"
+            size="icon"
             onClick={() => navigate({ search: { ...search, page: page + 1 } })}
             disabled={page >= totalPages}
           >

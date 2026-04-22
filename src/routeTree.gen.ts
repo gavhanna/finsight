@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TriageRouteImport } from './routes/triage'
-import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as RecurringRouteImport } from './routes/recurring'
@@ -21,7 +20,9 @@ import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as BudgetsRouteImport } from './routes/budgets'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TransactionsIndexRouteImport } from './routes/transactions/index'
 import { Route as MerchantsIndexRouteImport } from './routes/merchants/index'
+import { Route as TransactionsTransactionIdRouteImport } from './routes/transactions/$transactionId'
 import { Route as MerchantsMerchantRouteImport } from './routes/merchants/$merchant'
 import { Route as AnalyticsWhatIfRouteImport } from './routes/analytics/what-if'
 import { Route as AnalyticsSavingsRateRouteImport } from './routes/analytics/savings-rate'
@@ -35,11 +36,6 @@ import { Route as ApiGocardlessCallbackRouteImport } from './routes/api/gocardle
 const TriageRoute = TriageRouteImport.update({
   id: '/triage',
   path: '/triage',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TransactionsRoute = TransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -92,11 +88,22 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TransactionsIndexRoute = TransactionsIndexRouteImport.update({
+  id: '/transactions/',
+  path: '/transactions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MerchantsIndexRoute = MerchantsIndexRouteImport.update({
   id: '/merchants/',
   path: '/merchants/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TransactionsTransactionIdRoute =
+  TransactionsTransactionIdRouteImport.update({
+    id: '/transactions/$transactionId',
+    path: '/transactions/$transactionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const MerchantsMerchantRoute = MerchantsMerchantRouteImport.update({
   id: '/merchants/$merchant',
   path: '/merchants/$merchant',
@@ -155,7 +162,6 @@ export interface FileRoutesByFullPath {
   '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
   '/analytics/discretionary': typeof AnalyticsDiscretionaryRoute
@@ -165,7 +171,9 @@ export interface FileRoutesByFullPath {
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
   '/analytics/what-if': typeof AnalyticsWhatIfRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
+  '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/merchants/': typeof MerchantsIndexRoute
+  '/transactions/': typeof TransactionsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -179,7 +187,6 @@ export interface FileRoutesByTo {
   '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
   '/analytics/discretionary': typeof AnalyticsDiscretionaryRoute
@@ -189,7 +196,9 @@ export interface FileRoutesByTo {
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
   '/analytics/what-if': typeof AnalyticsWhatIfRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
+  '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/merchants': typeof MerchantsIndexRoute
+  '/transactions': typeof TransactionsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
 }
 export interface FileRoutesById {
@@ -204,7 +213,6 @@ export interface FileRoutesById {
   '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/transactions': typeof TransactionsRoute
   '/triage': typeof TriageRoute
   '/analytics/cash-flow-calendar': typeof AnalyticsCashFlowCalendarRoute
   '/analytics/discretionary': typeof AnalyticsDiscretionaryRoute
@@ -214,7 +222,9 @@ export interface FileRoutesById {
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
   '/analytics/what-if': typeof AnalyticsWhatIfRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
+  '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/merchants/': typeof MerchantsIndexRoute
+  '/transactions/': typeof TransactionsIndexRoute
   '/api/gocardless/callback': typeof ApiGocardlessCallbackRoute
 }
 export interface FileRouteTypes {
@@ -230,7 +240,6 @@ export interface FileRouteTypes {
     | '/recurring'
     | '/rules'
     | '/settings'
-    | '/transactions'
     | '/triage'
     | '/analytics/cash-flow-calendar'
     | '/analytics/discretionary'
@@ -240,7 +249,9 @@ export interface FileRouteTypes {
     | '/analytics/savings-rate'
     | '/analytics/what-if'
     | '/merchants/$merchant'
+    | '/transactions/$transactionId'
     | '/merchants/'
+    | '/transactions/'
     | '/api/gocardless/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -254,7 +265,6 @@ export interface FileRouteTypes {
     | '/recurring'
     | '/rules'
     | '/settings'
-    | '/transactions'
     | '/triage'
     | '/analytics/cash-flow-calendar'
     | '/analytics/discretionary'
@@ -264,7 +274,9 @@ export interface FileRouteTypes {
     | '/analytics/savings-rate'
     | '/analytics/what-if'
     | '/merchants/$merchant'
+    | '/transactions/$transactionId'
     | '/merchants'
+    | '/transactions'
     | '/api/gocardless/callback'
   id:
     | '__root__'
@@ -278,7 +290,6 @@ export interface FileRouteTypes {
     | '/recurring'
     | '/rules'
     | '/settings'
-    | '/transactions'
     | '/triage'
     | '/analytics/cash-flow-calendar'
     | '/analytics/discretionary'
@@ -288,7 +299,9 @@ export interface FileRouteTypes {
     | '/analytics/savings-rate'
     | '/analytics/what-if'
     | '/merchants/$merchant'
+    | '/transactions/$transactionId'
     | '/merchants/'
+    | '/transactions/'
     | '/api/gocardless/callback'
   fileRoutesById: FileRoutesById
 }
@@ -303,7 +316,6 @@ export interface RootRouteChildren {
   RecurringRoute: typeof RecurringRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
-  TransactionsRoute: typeof TransactionsRoute
   TriageRoute: typeof TriageRoute
   AnalyticsCashFlowCalendarRoute: typeof AnalyticsCashFlowCalendarRoute
   AnalyticsDiscretionaryRoute: typeof AnalyticsDiscretionaryRoute
@@ -313,7 +325,9 @@ export interface RootRouteChildren {
   AnalyticsSavingsRateRoute: typeof AnalyticsSavingsRateRoute
   AnalyticsWhatIfRoute: typeof AnalyticsWhatIfRoute
   MerchantsMerchantRoute: typeof MerchantsMerchantRoute
+  TransactionsTransactionIdRoute: typeof TransactionsTransactionIdRoute
   MerchantsIndexRoute: typeof MerchantsIndexRoute
+  TransactionsIndexRoute: typeof TransactionsIndexRoute
   ApiGocardlessCallbackRoute: typeof ApiGocardlessCallbackRoute
 }
 
@@ -324,13 +338,6 @@ declare module '@tanstack/react-router' {
       path: '/triage'
       fullPath: '/triage'
       preLoaderRoute: typeof TriageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/transactions': {
-      id: '/transactions'
-      path: '/transactions'
-      fullPath: '/transactions'
-      preLoaderRoute: typeof TransactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -403,11 +410,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/transactions/': {
+      id: '/transactions/'
+      path: '/transactions'
+      fullPath: '/transactions/'
+      preLoaderRoute: typeof TransactionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/merchants/': {
       id: '/merchants/'
       path: '/merchants'
       fullPath: '/merchants/'
       preLoaderRoute: typeof MerchantsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transactions/$transactionId': {
+      id: '/transactions/$transactionId'
+      path: '/transactions/$transactionId'
+      fullPath: '/transactions/$transactionId'
+      preLoaderRoute: typeof TransactionsTransactionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/merchants/$merchant': {
@@ -487,7 +508,6 @@ const rootRouteChildren: RootRouteChildren = {
   RecurringRoute: RecurringRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
-  TransactionsRoute: TransactionsRoute,
   TriageRoute: TriageRoute,
   AnalyticsCashFlowCalendarRoute: AnalyticsCashFlowCalendarRoute,
   AnalyticsDiscretionaryRoute: AnalyticsDiscretionaryRoute,
@@ -497,7 +517,9 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsSavingsRateRoute: AnalyticsSavingsRateRoute,
   AnalyticsWhatIfRoute: AnalyticsWhatIfRoute,
   MerchantsMerchantRoute: MerchantsMerchantRoute,
+  TransactionsTransactionIdRoute: TransactionsTransactionIdRoute,
   MerchantsIndexRoute: MerchantsIndexRoute,
+  TransactionsIndexRoute: TransactionsIndexRoute,
   ApiGocardlessCallbackRoute: ApiGocardlessCallbackRoute,
 }
 export const routeTree = rootRouteImport
