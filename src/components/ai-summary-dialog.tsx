@@ -18,7 +18,17 @@ export type AiSummarySection = {
   lines: string[]
 }
 
+export type AiSummaryKind =
+  | "dashboard"
+  | "transactions"
+  | "budgets"
+  | "recurring"
+  | "merchant-detail"
+  | "category-trends"
+  | "monthly-comparison"
+
 type AiSummaryRequest = {
+  kind: AiSummaryKind
   pageTitle: string
   filters?: {
     dateFrom?: string
@@ -75,6 +85,7 @@ export function PageAiSummaryDialog({
     try {
       const result = await generateNarrative({
         data: {
+          kind: request.kind,
           pageTitle: request.pageTitle,
           filters: request.filters,
           totalIncome: request.totalIncome ?? 0,

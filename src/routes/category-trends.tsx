@@ -232,6 +232,7 @@ function CategoryTrendsPage() {
     return (
       <PageAiSummaryDialog
         request={{
+          kind: "category-trends",
           pageTitle: "Category Trends",
           filters: {
             dateFrom: resolvedDates.dateFrom,

@@ -123,6 +123,7 @@ function ComparisonPage() {
     return (
       <PageAiSummaryDialog
         request={{
+          kind: "monthly-comparison",
           pageTitle: "Monthly Comparison",
           filters: {
             dateFrom: search.dateFrom,

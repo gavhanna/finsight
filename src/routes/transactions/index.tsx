@@ -148,6 +148,7 @@ function TransactionsPage() {
 		return (
 			<PageAiSummaryDialog
 				request={{
+					kind: "transactions",
 					pageTitle: "Transactions",
 					filters: {
 						dateFrom: search.dateFrom,

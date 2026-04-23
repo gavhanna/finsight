@@ -38,6 +38,7 @@ export function AiSummaryDialog({
   return (
     <PageAiSummaryDialog
       request={{
+        kind: "dashboard",
         pageTitle: "Dashboard",
         filters: {
           dateFrom,

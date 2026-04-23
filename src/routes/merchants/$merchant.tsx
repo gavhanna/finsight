@@ -101,6 +101,7 @@ function MerchantDetailPage() {
     return (
       <PageAiSummaryDialog
         request={{
+          kind: "merchant-detail",
           pageTitle: "Merchant detail",
           filters: {
             dateFrom: search.dateFrom,

@@ -1,6 +1,16 @@
 import type { Category } from "../../db/schema"
 
+export type NarrativeKind =
+  | "dashboard"
+  | "transactions"
+  | "budgets"
+  | "recurring"
+  | "merchant-detail"
+  | "category-trends"
+  | "monthly-comparison"
+
 export interface NarrativeInput {
+  kind: NarrativeKind
   pageTitle?: string
   filters?: {
     dateFrom?: string
@@ -45,6 +55,86 @@ function formatPeriod(dateFrom?: string, dateTo?: string): string {
   }
 
   return `${fromMonth}–${toMonth}`
+}
+
+function getPageInstructions(kind: NarrativeKind): {
+  goal: string
+  structure: string
+  rules: string
+} {
+  switch (kind) {
+    case "recurring":
+      return {
+        goal: "Summarise recurring committed outgoings, not overall financial performance.",
+        structure: `1. State the active recurring monthly run-rate and annualised cost if provided.
+2. Name the 2–3 largest recurring payees or categories and their monthly impact.
+3. End with a practical observation about concentration, upcoming payments, inactive items, or review candidates.`,
+        rules: `- Do not use the words surplus or deficit on this page.
+- Do not imply recurring payments are a problem by default; call them commitments or recurring costs.
+- Mortgage, rent, utilities, insurance, and loan repayments are normal committed bills, not subscriptions to cancel.
+- If one item dominates recurring spend, describe concentration plainly rather than saying it "caused" the total.`,
+      }
+    case "budgets":
+      return {
+        goal: "Summarise budget health for the selected month.",
+        structure: `1. State total budgeted, total spent, and remaining or over-budget amount.
+2. Highlight the budgets closest to or over their limits.
+3. Mention unbudgeted spending or income coverage if provided.
+4. End with the clearest month-to-date implication.`,
+        rules: `- Use "over budget", "remaining", and "on track" language instead of surplus/deficit unless income coverage is the focus.
+- Do not tell the user to create a budget if the data already lists standing budgets.
+- If spending is under budget, say so directly and avoid sounding alarmist.`,
+      }
+    case "transactions":
+      return {
+        goal: "Summarise the currently filtered transaction slice.",
+        structure: `1. State how many transactions match the current view and the net/income/expense picture if provided.
+2. Highlight the most significant visible merchants, categories, or search/filter context.
+3. End with one observation about concentration, uncategorised items, or unusual-looking rows in the sample.`,
+        rules: `- Be clear when you are only seeing a paginated visible sample.
+- Do not infer fraud or abnormality; use cautious wording such as "stands out in this view".
+- Mention active search/category/account filters when they materially narrow the page.`,
+      }
+    case "merchant-detail":
+      return {
+        goal: "Summarise spending behaviour for one merchant.",
+        structure: `1. State total spend, transaction count, and average transaction size.
+2. Describe monthly pattern or recent activity.
+3. Mention category mix if provided.
+4. End with a practical observation about frequency, concentration, or trend.`,
+        rules: `- Do not call this a deficit; it is merchant-specific spending.
+- Avoid generic advice. Focus on whether spend is frequent, occasional, concentrated, or changing.`,
+      }
+    case "category-trends":
+      return {
+        goal: "Summarise category or group spending trends over time.",
+        structure: `1. State the scope of the trend view and the largest category/group totals.
+2. Highlight meaningful increases, decreases, peaks, or concentration.
+3. End with what the trend suggests about spending mix over the selected period.`,
+        rules: `- Focus on movement over time, not account balance.
+- Do not use surplus or deficit language.
+- If trend percentages are unavailable, use total and average monthly spend instead.`,
+      }
+    case "monthly-comparison":
+      return {
+        goal: "Summarise month-by-month income, expense, and category comparison.",
+        structure: `1. State the overall income, expenses, and net result for the comparison period.
+2. Highlight the months or categories that explain the biggest differences.
+3. End with what changed across the selected months.`,
+        rules: `- Surplus/deficit language is allowed only when comparing income to expenses.
+- Prefer "higher/lower than earlier months" over unsupported explanations.
+- Do not invent reasons for category movement.`,
+      }
+    default:
+      return {
+        goal: "Summarise the current filtered page view.",
+        structure: `1. Open with the headline result for this view.
+2. Highlight the most significant category, merchant, trend, or budget signal.
+3. Mention one relevant context signal from active filters or page-specific data.
+4. End with one concrete observation or implication.`,
+        rules: "- Only use surplus or deficit when both income and expenses are meaningful for this page.",
+      }
+  }
 }
 
 export async function generateFinancialNarrative(
@@ -104,27 +194,35 @@ export async function generateFinancialNarrative(
   if (input.periodDelta?.expenses != null)
     deltaLines.push(`Expenses vs prior period: ${input.periodDelta.expenses >= 0 ? "+" : ""}${input.periodDelta.expenses.toFixed(1)}%`)
 
-  const prompt = `You are a personal finance assistant. Write a concise 3–4 sentence summary of the current app page using only the financial data below. Follow this structure:
-1. Open with the headline result for this filtered page view — income, expenses, and whether it ended in surplus or deficit.
-2. Highlight the most significant spending category or merchant, including amounts and shares where available.
-3. Mention one relevant context signal from the active filters, trend data, or budgets.
-4. End with one concrete observation or implication, not generic advice.
+  const pageInstructions = getPageInstructions(input.kind)
+
+  const prompt = `You are a personal finance assistant inside a personal finance app. Write a concise 3–4 sentence summary of the current page using only the financial data below.
+
+Page-specific goal:
+${pageInstructions.goal}
+
+Recommended structure:
+${pageInstructions.structure}
 
 Rules:
 - Be specific: use the actual numbers and percentages provided.
-- Do not pad with generic advice ("consider budgeting…").
+- Do not pad with generic advice ("consider budgeting…" or "review your spending habits").
 - Do not start the response with "In" or repeat the period label back verbatim.
 - Plain prose only — no markdown, bullet points, or headers.
+- Do not overstate causality. Prefer "the data shows" over "this is likely due to".
+- Do not describe normal committed bills as anomalies unless the data explicitly says they changed sharply.
+${pageInstructions.rules}
 
 Today's date: ${today}
 Current page: ${pageTitle}
+Summary kind: ${input.kind}
 Period being analysed: ${period}
 Active filter preset: ${filters?.presetLabel ?? "Custom range"}
 Account filter: ${filters?.accountLabel ?? "All accounts"}
 Top merchants exclude recurring payments: ${filters?.excludeRecurringFromMerchants ? "yes" : "no"}
-Total income: ${input.currency}${input.totalIncome.toFixed(2)}
-Total expenses: ${input.currency}${input.totalExpenses.toFixed(2)}
-Net: ${input.currency}${input.net.toFixed(2)} (${input.net >= 0 ? "surplus" : "deficit"})
+Total income, if applicable to this page: ${input.currency}${input.totalIncome.toFixed(2)}
+Total expenses or committed costs, if applicable to this page: ${input.currency}${input.totalExpenses.toFixed(2)}
+Net, if meaningful for this page: ${input.currency}${input.net.toFixed(2)} (${input.net >= 0 ? "positive" : "negative"})
 ${input.transactionCount != null ? `Transaction count: ${input.transactionCount}` : ""}
 ${input.savingsRate != null ? `Savings rate: ${input.savingsRate.toFixed(0)}%` : ""}
 ${deltaLines.length > 0 ? deltaLines.join("\n") : ""}

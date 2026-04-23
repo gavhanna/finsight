@@ -1040,6 +1040,7 @@ export default function BudgetsPage() {
     return (
       <PageAiSummaryDialog
         request={{
+          kind: "budgets",
           pageTitle: "Budgets",
           filters: {
             presetLabel: displayMonth(month),

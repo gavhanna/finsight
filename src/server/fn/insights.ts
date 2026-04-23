@@ -250,6 +250,15 @@ export const getAccounts = createServerFn().handler(async () => {
 
 export const generateNarrative = createServerFn()
   .inputValidator(z.object({
+    kind: z.enum([
+      "dashboard",
+      "transactions",
+      "budgets",
+      "recurring",
+      "merchant-detail",
+      "category-trends",
+      "monthly-comparison",
+    ]),
     pageTitle: z.string().optional(),
     filters: z.object({
       dateFrom: z.string().optional(),

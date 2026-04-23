@@ -63,6 +63,7 @@ function RecurringPage() {
     return (
       <PageAiSummaryDialog
         request={{
+          kind: "recurring",
           pageTitle: "Recurring",
           filters: {
             presetLabel: `Frequency: ${freqFilter}`,
