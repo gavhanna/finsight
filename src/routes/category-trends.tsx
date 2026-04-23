@@ -123,9 +123,15 @@ function CategoryTrendsPage() {
   const [selected, setSelected] = useState<Set<string>>(() => new Set(allItems.map(c => String(c.id))))
 
   const allKeys = allItems.map(c => String(c.id)).join(",")
-  useMemo(() => {
-    setSelected(new Set(allItems.map(c => String(c.id))))
-  }, [allKeys])
+  useEffect(() => {
+    const nextKeys = allItems.map(c => String(c.id))
+    setSelected(prev => {
+      if (prev.size === nextKeys.length && nextKeys.every(key => prev.has(key))) {
+        return prev
+      }
+      return new Set(nextKeys)
+    })
+  }, [allItems, allKeys])
 
   function toggleItem(key: string) {
     setSelected(prev => {
@@ -143,7 +149,10 @@ function CategoryTrendsPage() {
   function isolate(key: string) { setSelected(new Set([key])) }
   function selectAll() { setSelected(new Set(allItems.map(c => String(c.id)))) }
 
-  const visibleItems = allItems.filter(c => selected.has(String(c.id)))
+  const visibleItems = useMemo(
+    () => allItems.filter(c => selected.has(String(c.id))),
+    [allItems, selected],
+  )
   const isSingle = visibleItems.length === 1
   const months = useMemo(() => [...new Set(trends.map(t => t.month))].sort(), [trends])
 
