@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { getSpendingTrends, getIncomeVsExpenses, getAccounts } from "../server/fn/insights"
-import { formatYearMonth } from "@/lib/utils"
+import { formatCurrency, formatYearMonth } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChartTooltip } from "@/components/chart-tooltip"
 import { ComparisonTable } from "@/components/comparison/comparison-table"
+import { PageAiSummaryDialog } from "@/components/ai-summary-dialog"
+import { useHeaderAction } from "@/components/layout/header-actions"
 
 type Preset = "3months" | "6months" | "12months"
 
@@ -58,6 +60,7 @@ function ComparisonPage() {
   const { trends, incomeVsExp, accounts } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
+  const setHeaderAction = useHeaderAction()
   const preset = search.preset ?? "6months"
 
   function setPreset(p: Preset) {
@@ -110,6 +113,73 @@ function ComparisonPage() {
   }, [incomeVsExp])
 
   const hasData = trends.length > 0
+  const selectedAccount = accounts.find((account) => account.id === (search.accountIds ?? [])[0])
+  const totalIncome = incomeVsExp.reduce((sum, row) => sum + row.income, 0)
+  const totalExpenses = incomeVsExp.reduce((sum, row) => sum + row.expenses, 0)
+
+  const aiSummaryAction = useMemo(() => {
+    if (!hasData) return null
+
+    return (
+      <PageAiSummaryDialog
+        request={{
+          pageTitle: "Monthly Comparison",
+          filters: {
+            dateFrom: search.dateFrom,
+            dateTo: search.dateTo,
+            presetLabel: PRESET_LABELS[preset],
+            accountLabel: selectedAccount?.name ?? selectedAccount?.iban ?? "All accounts",
+          },
+          totalIncome,
+          totalExpenses,
+          net: totalIncome - totalExpenses,
+          transactionCount: trends.length,
+          topCategories: categories.slice(0, 6).map((category) => ({
+            name: category.name,
+            total: [...category.byMonth.values()].reduce((sum, value) => sum + value, 0),
+          })),
+          cashFlow: incomeVsExp,
+          currency: "EUR",
+          contextSections: [
+            {
+              title: "Monthly totals",
+              lines: monthlyTotals.map((row) =>
+                `${row.month}: expenses ${formatCurrency(row.total, "EUR")}, income ${formatCurrency(incomeByMonth.get(row.month) ?? 0, "EUR")}`,
+              ),
+            },
+            {
+              title: "Category comparison",
+              lines: categories.slice(0, 8).map((category) => {
+                const values = [...category.byMonth.entries()].sort(([a], [b]) => a.localeCompare(b))
+                const first = values[0]
+                const last = values[values.length - 1]
+                return `${category.name}: first ${first ? `${first[0]} ${formatCurrency(first[1], "EUR")}` : "n/a"}, latest ${last ? `${last[0]} ${formatCurrency(last[1], "EUR")}` : "n/a"}`
+              }),
+            },
+          ],
+        }}
+      />
+    )
+  }, [
+    categories,
+    hasData,
+    incomeByMonth,
+    incomeVsExp,
+    monthlyTotals,
+    preset,
+    search.dateFrom,
+    search.dateTo,
+    selectedAccount?.iban,
+    selectedAccount?.name,
+    totalExpenses,
+    totalIncome,
+    trends.length,
+  ])
+
+  useEffect(() => {
+    setHeaderAction(aiSummaryAction)
+    return () => setHeaderAction(null)
+  }, [aiSummaryAction, setHeaderAction])
 
   return (
     <div className="p-4 sm:p-6 space-y-6">

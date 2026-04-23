@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { CategoryDot } from "@/components/rules/category-dot";
 import { TransactionChartPanel } from "@/components/transactions/chart-panel";
@@ -26,6 +26,8 @@ import {
 import { useSortable } from "@/hooks/use-sortable";
 import { withOfflineCache } from "@/lib/loader-cache";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PageAiSummaryDialog } from "@/components/ai-summary-dialog";
+import { useHeaderAction } from "@/components/layout/header-actions";
 import { getCategories } from "../../server/fn/categories";
 import { getAccounts } from "../../server/fn/insights";
 import type { getTransactionStats as getTransactionStatsType } from "../../server/fn/transactions";
@@ -69,6 +71,7 @@ function TransactionsPage() {
 	const search = Route.useSearch();
 	const navigate = Route.useNavigate();
 	const router = useRouter();
+	const setHeaderAction = useHeaderAction();
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [bulkCatId, setBulkCatId] = useState<string>("");
 	const [loading, setLoading] = useState(false);
@@ -123,6 +126,82 @@ function TransactionsPage() {
 	} = useSortable(txData.transactions, "bookingDate", "desc");
 	const { total, page, pageSize } = txData;
 	const totalPages = Math.ceil(total / pageSize);
+	const selectedCategory = categories.find((category) => category.id === search.categoryId);
+	const selectedAccount = accounts.find((account) => account.id === (search.accountIds ?? [])[0]);
+	const totalIncome = transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
+	const totalExpenses = Math.abs(transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0));
+	const topVisibleMerchants = useMemo(() => {
+		const merchants = new Map<string, { name: string; total: number; count: number }>();
+		for (const tx of transactions) {
+			if (tx.amount >= 0) continue;
+			const name = tx.creditorName ?? tx.debtorName ?? tx.description ?? "Unknown";
+			const current = merchants.get(name) ?? { name, total: 0, count: 0 };
+			current.total += Math.abs(tx.amount);
+			current.count += 1;
+			merchants.set(name, current);
+		}
+		return [...merchants.values()].sort((a, b) => b.total - a.total).slice(0, 5);
+	}, [transactions]);
+
+	const aiSummaryAction = useMemo(() => {
+		if (total === 0) return null;
+		return (
+			<PageAiSummaryDialog
+				request={{
+					pageTitle: "Transactions",
+					filters: {
+						dateFrom: search.dateFrom,
+						dateTo: search.dateTo,
+						presetLabel: search.search ? `Search: ${search.search}` : "Current transaction filters",
+						accountLabel: selectedAccount?.name ?? selectedAccount?.iban ?? "All accounts",
+					},
+					totalIncome,
+					totalExpenses,
+					net: totalIncome - totalExpenses,
+					transactionCount: total,
+					topMerchants: topVisibleMerchants,
+					currency: transactions[0]?.currency ?? "EUR",
+					contextSections: [
+						{
+							title: "Active filters",
+							lines: [
+								`Category: ${selectedCategory?.name ?? "All categories"}`,
+								`Search text: ${search.search?.trim() || "none"}`,
+								`Page ${page} of ${totalPages || 1}; ${transactions.length} transactions visible on this page`,
+							],
+						},
+						{
+							title: "Visible transaction sample",
+							lines: transactions.slice(0, 8).map((tx) =>
+								`${tx.bookingDate}: ${tx.creditorName ?? tx.debtorName ?? tx.description ?? "Unknown"} ${formatCurrency(tx.amount, tx.currency)} (${tx.category?.name ?? "Uncategorised"})`,
+							),
+						},
+					],
+				}}
+			/>
+		);
+	}, [
+		page,
+		search.accountIds,
+		search.categoryId,
+		search.dateFrom,
+		search.dateTo,
+		search.search,
+		selectedAccount?.iban,
+		selectedAccount?.name,
+		selectedCategory?.name,
+		topVisibleMerchants,
+		total,
+		totalExpenses,
+		totalIncome,
+		totalPages,
+		transactions,
+	]);
+
+	useEffect(() => {
+		setHeaderAction(aiSummaryAction);
+		return () => setHeaderAction(null);
+	}, [aiSummaryAction, setHeaderAction]);
 
 	function updateSearch(updates: Partial<z.infer<typeof SearchSchema>>) {
 		navigate({ search: { ...search, ...updates, page: 1 } });

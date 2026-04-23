@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { getRecurringTransactions, type RecurringItem } from "../server/fn/insights"
 import { getSetting } from "../server/fn/settings"
 import { formatCurrency, formatDate, cn } from "@/lib/utils"
@@ -12,6 +12,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { PageAiSummaryDialog } from "@/components/ai-summary-dialog"
+import { useHeaderAction } from "@/components/layout/header-actions"
 
 export const Route = createFileRoute("/recurring")({
   component: RecurringPage,
@@ -29,6 +31,7 @@ type FreqFilter = "all" | "monthly" | "weekly" | "other"
 
 function RecurringPage() {
   const { recurring: data, currency } = Route.useLoaderData()
+  const setHeaderAction = useHeaderAction()
   const [freqFilter, setFreqFilter] = useState<FreqFilter>("all")
   const [showInactive, setShowInactive] = useState(false)
 
@@ -54,6 +57,60 @@ function RecurringPage() {
   })
 
   const hasData = data.length > 0
+  const aiSummaryAction = useMemo(() => {
+    if (!hasData) return null
+
+    return (
+      <PageAiSummaryDialog
+        request={{
+          pageTitle: "Recurring",
+          filters: {
+            presetLabel: `Frequency: ${freqFilter}`,
+          },
+          totalExpenses: totalMonthly,
+          net: -totalMonthly,
+          transactionCount: active.length,
+          topCategories: pieData.slice(0, 5).map((category) => ({
+            name: category.name,
+            total: category.monthly,
+          })),
+          currency,
+          contextSections: [
+            {
+              title: "Recurring totals",
+              lines: [
+                `Active recurring monthly equivalent: ${formatCurrency(totalMonthly, currency)}`,
+                `Active recurring annual cost: ${formatCurrency(totalAnnual, currency)}`,
+                `Active payees: ${active.length}`,
+                `Possibly cancelled payees: ${inactive.length}`,
+              ],
+            },
+            {
+              title: "Largest active recurring items",
+              lines: active
+                .slice()
+                .sort((a, b) => b.monthlyEquiv - a.monthlyEquiv)
+                .slice(0, 8)
+                .map((item) =>
+                  `${item.payee}: ${formatCurrency(item.monthlyEquiv, currency)}/mo, ${item.frequency}, next expected ${item.nextExpected}`,
+                ),
+            },
+            {
+              title: "Filtered view",
+              lines: filtered.slice(0, 8).map((item) =>
+                `${item.payee}: ${formatCurrency(item.avgAmount, currency)} average, ${item.transactionCount} transactions`,
+              ),
+            },
+          ],
+        }}
+      />
+    )
+  }, [active, currency, filtered, freqFilter, hasData, inactive.length, pieData, totalAnnual, totalMonthly])
+
+  useEffect(() => {
+    setHeaderAction(aiSummaryAction)
+    return () => setHeaderAction(null)
+  }, [aiSummaryAction, setHeaderAction])
 
   return (
     <div className="p-4 sm:p-6 space-y-6">

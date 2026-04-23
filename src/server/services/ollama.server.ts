@@ -20,6 +20,7 @@ export interface NarrativeInput {
   topMerchants?: { name: string; total: number; count: number }[]
   cashFlow?: { month: string; income: number; expenses: number; net: number }[]
   budgets?: { name: string; budgeted: number; spent: number }[]
+  contextSections?: { title: string; lines: string[] }[]
   periodDelta: { income: number | null; expenses: number | null } | null
   currency: string
 }
@@ -88,6 +89,15 @@ export async function generateFinancialNarrative(
         .join("\n")
     : "No active budget snapshot provided."
 
+  const contextSections = input.contextSections?.length
+    ? input.contextSections
+        .map((section) => {
+          const lines = section.lines.length > 0 ? section.lines.map((line) => `- ${line}`).join("\n") : "- No data."
+          return `${section.title}:\n${lines}`
+        })
+        .join("\n\n")
+    : "No additional page-specific context provided."
+
   const deltaLines: string[] = []
   if (input.periodDelta?.income != null)
     deltaLines.push(`Income vs prior period: ${input.periodDelta.income >= 0 ? "+" : ""}${input.periodDelta.income.toFixed(1)}%`)
@@ -130,6 +140,9 @@ ${cashFlow}
 
 Budget snapshot:
 ${budgets}
+
+Additional page context:
+${contextSections}
 
 Summary:`
 

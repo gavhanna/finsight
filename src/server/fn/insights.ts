@@ -282,6 +282,10 @@ export const generateNarrative = createServerFn()
       budgeted: z.number(),
       spent: z.number(),
     })).optional(),
+    contextSections: z.array(z.object({
+      title: z.string(),
+      lines: z.array(z.string()),
+    })).optional(),
     periodDelta: z.object({
       income: z.number().nullable(),
       expenses: z.number().nullable(),
