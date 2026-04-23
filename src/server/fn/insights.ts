@@ -186,7 +186,7 @@ export const getSummaryStats = createServerFn()
       totalIncome: row?.totalIncome ?? 0,
       totalExpenses: Math.abs(row?.totalExpenses ?? 0),
       net: (row?.totalIncome ?? 0) + (row?.totalExpenses ?? 0),
-      count: row?.count ?? 0,
+      count: Number(row?.count ?? 0),
     }
   })
 
@@ -250,13 +250,38 @@ export const getAccounts = createServerFn().handler(async () => {
 
 export const generateNarrative = createServerFn()
   .inputValidator(z.object({
+    pageTitle: z.string().optional(),
+    filters: z.object({
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+      presetLabel: z.string().optional(),
+      accountLabel: z.string().optional(),
+      excludeRecurringFromMerchants: z.boolean().optional(),
+    }).optional(),
     dateFrom: z.string().optional(),
     dateTo: z.string().optional(),
     totalIncome: z.number(),
     totalExpenses: z.number(),
     net: z.number(),
+    transactionCount: z.coerce.number().nullable().optional(),
     savingsRate: z.number().nullable(),
     topCategories: z.array(z.object({ name: z.string(), total: z.number() })),
+    topMerchants: z.array(z.object({
+      name: z.string(),
+      total: z.number(),
+      count: z.coerce.number(),
+    })).optional(),
+    cashFlow: z.array(z.object({
+      month: z.string(),
+      income: z.number(),
+      expenses: z.number(),
+      net: z.number(),
+    })).optional(),
+    budgets: z.array(z.object({
+      name: z.string(),
+      budgeted: z.number(),
+      spent: z.number(),
+    })).optional(),
     periodDelta: z.object({
       income: z.number().nullable(),
       expenses: z.number().nullable(),

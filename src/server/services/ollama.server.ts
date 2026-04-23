@@ -1,13 +1,25 @@
 import type { Category } from "../../db/schema"
 
 export interface NarrativeInput {
+  pageTitle?: string
+  filters?: {
+    dateFrom?: string
+    dateTo?: string
+    presetLabel?: string
+    accountLabel?: string
+    excludeRecurringFromMerchants?: boolean
+  }
   dateFrom?: string
   dateTo?: string
   totalIncome: number
   totalExpenses: number
   net: number
+  transactionCount?: number | null
   savingsRate: number | null
   topCategories: { name: string; total: number }[]
+  topMerchants?: { name: string; total: number; count: number }[]
+  cashFlow?: { month: string; income: number; expenses: number; net: number }[]
+  budgets?: { name: string; budgeted: number; spent: number }[]
   periodDelta: { income: number | null; expenses: number | null } | null
   currency: string
 }
@@ -39,8 +51,10 @@ export async function generateFinancialNarrative(
   ollamaUrl: string,
   model = "llama3",
 ): Promise<string | null> {
-  const period = formatPeriod(input.dateFrom, input.dateTo)
+  const period = formatPeriod(input.filters?.dateFrom ?? input.dateFrom, input.filters?.dateTo ?? input.dateTo)
   const today = new Date().toLocaleString("en-GB", { month: "long", year: "numeric" })
+  const pageTitle = input.pageTitle ?? "Dashboard"
+  const filters = input.filters
 
   const topCats = input.topCategories
     .slice(0, 5)
@@ -50,16 +64,41 @@ export async function generateFinancialNarrative(
     })
     .join("\n")
 
+  const topMerchants = input.topMerchants?.length
+    ? input.topMerchants
+        .slice(0, 5)
+        .map((m) => `- ${m.name}: ${input.currency}${m.total.toFixed(2)} across ${m.count} transaction${m.count === 1 ? "" : "s"}`)
+        .join("\n")
+    : "No merchant breakdown provided."
+
+  const cashFlow = input.cashFlow?.length
+    ? input.cashFlow
+        .slice(-6)
+        .map((row) => `- ${row.month}: income ${input.currency}${row.income.toFixed(2)}, expenses ${input.currency}${row.expenses.toFixed(2)}, net ${input.currency}${row.net.toFixed(2)}`)
+        .join("\n")
+    : "No month-by-month cash flow provided."
+
+  const budgets = input.budgets?.length
+    ? input.budgets
+        .slice(0, 5)
+        .map((b) => {
+          const pct = b.budgeted > 0 ? (b.spent / b.budgeted) * 100 : 0
+          return `- ${b.name}: ${input.currency}${b.spent.toFixed(2)} of ${input.currency}${b.budgeted.toFixed(2)} (${pct.toFixed(0)}%)`
+        })
+        .join("\n")
+    : "No active budget snapshot provided."
+
   const deltaLines: string[] = []
   if (input.periodDelta?.income != null)
     deltaLines.push(`Income vs prior period: ${input.periodDelta.income >= 0 ? "+" : ""}${input.periodDelta.income.toFixed(1)}%`)
   if (input.periodDelta?.expenses != null)
     deltaLines.push(`Expenses vs prior period: ${input.periodDelta.expenses >= 0 ? "+" : ""}${input.periodDelta.expenses.toFixed(1)}%`)
 
-  const prompt = `You are a personal finance assistant. Write a 2–3 sentence narrative summary of the financial data below. Follow this structure:
-1. Open with the headline result — income, expenses, and whether the period ended in surplus or deficit.
-2. Highlight the most significant spending category and its share of total spend. If any category seems disproportionately high, note it.
-3. End with one concrete observation or implication — e.g. savings progress, a notable trend vs the prior period, or something actionable.
+  const prompt = `You are a personal finance assistant. Write a concise 3–4 sentence summary of the current app page using only the financial data below. Follow this structure:
+1. Open with the headline result for this filtered page view — income, expenses, and whether it ended in surplus or deficit.
+2. Highlight the most significant spending category or merchant, including amounts and shares where available.
+3. Mention one relevant context signal from the active filters, trend data, or budgets.
+4. End with one concrete observation or implication, not generic advice.
 
 Rules:
 - Be specific: use the actual numbers and percentages provided.
@@ -68,15 +107,29 @@ Rules:
 - Plain prose only — no markdown, bullet points, or headers.
 
 Today's date: ${today}
+Current page: ${pageTitle}
 Period being analysed: ${period}
+Active filter preset: ${filters?.presetLabel ?? "Custom range"}
+Account filter: ${filters?.accountLabel ?? "All accounts"}
+Top merchants exclude recurring payments: ${filters?.excludeRecurringFromMerchants ? "yes" : "no"}
 Total income: ${input.currency}${input.totalIncome.toFixed(2)}
 Total expenses: ${input.currency}${input.totalExpenses.toFixed(2)}
 Net: ${input.currency}${input.net.toFixed(2)} (${input.net >= 0 ? "surplus" : "deficit"})
+${input.transactionCount != null ? `Transaction count: ${input.transactionCount}` : ""}
 ${input.savingsRate != null ? `Savings rate: ${input.savingsRate.toFixed(0)}%` : ""}
 ${deltaLines.length > 0 ? deltaLines.join("\n") : ""}
 
 Top spending categories (by amount):
 ${topCats}
+
+Top merchants:
+${topMerchants}
+
+Recent cash flow:
+${cashFlow}
+
+Budget snapshot:
+${budgets}
 
 Summary:`
 
