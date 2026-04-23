@@ -1,317 +1,371 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { useState, useEffect, useRef } from "react"
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
+import { CategoryDot } from "@/components/rules/category-dot";
+import { TransactionChartPanel } from "@/components/transactions/chart-panel";
+import { TransactionFilters } from "@/components/transactions/transaction-filters";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  getTransactions,
-  updateTransactionCategory,
-  bulkCategorise,
-  getTransactionStats,
-} from "../../server/fn/transactions"
-import { getCategories } from "../../server/fn/categories"
-import { getAccounts } from "../../server/fn/insights"
-import { formatDate, formatCurrency } from "@/lib/utils"
-import { withOfflineCache } from "@/lib/loader-cache"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { SortableHead } from "@/components/ui/sortable-head";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { useSortable } from "@/hooks/use-sortable"
-import { SortableHead } from "@/components/ui/sortable-head"
-import { TransactionFilters } from "@/components/transactions/transaction-filters"
-import { TransactionChartPanel } from "@/components/transactions/chart-panel"
-import type { getTransactionStats as getTransactionStatsType } from "../../server/fn/transactions"
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { useSortable } from "@/hooks/use-sortable";
+import { withOfflineCache } from "@/lib/loader-cache";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { getCategories } from "../../server/fn/categories";
+import { getAccounts } from "../../server/fn/insights";
+import type { getTransactionStats as getTransactionStatsType } from "../../server/fn/transactions";
+import {
+	bulkCategorise,
+	getTransactionStats,
+	getTransactions,
+	updateTransactionCategory,
+} from "../../server/fn/transactions";
 
-type ChartStats = Awaited<ReturnType<typeof getTransactionStatsType>>
+type ChartStats = Awaited<ReturnType<typeof getTransactionStatsType>>;
 
 const SearchSchema = z.object({
-  page: z.coerce.number().default(1),
-  search: z.string().optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-  categoryId: z.coerce.number().optional(),
-  accountIds: z.array(z.string()).optional(),
-})
+	page: z.coerce.number().default(1),
+	search: z.string().optional(),
+	dateFrom: z.string().optional(),
+	dateTo: z.string().optional(),
+	categoryId: z.coerce.number().optional(),
+	accountIds: z.array(z.string()).optional(),
+});
 
 export const Route = createFileRoute("/transactions/")({
-  validateSearch: SearchSchema,
-  component: TransactionsPage,
-  loaderDeps: ({ search }) => search,
-  loader: ({ deps }) =>
-    withOfflineCache("transactions", async () => {
-      const [txData, categories, accounts] = await Promise.all([
-        getTransactions({ data: { ...deps, accountIds: deps.accountIds ?? [] } }),
-        getCategories(),
-        getAccounts(),
-      ])
-      return { txData, categories, accounts }
-    }),
-})
+	validateSearch: SearchSchema,
+	component: TransactionsPage,
+	loaderDeps: ({ search }) => search,
+	loader: ({ deps }) =>
+		withOfflineCache("transactions", async () => {
+			const [txData, categories, accounts] = await Promise.all([
+				getTransactions({
+					data: { ...deps, accountIds: deps.accountIds ?? [] },
+				}),
+				getCategories(),
+				getAccounts(),
+			]);
+			return { txData, categories, accounts };
+		}),
+});
 
 function TransactionsPage() {
-  const { txData, categories, accounts } = Route.useLoaderData()
-  const search = Route.useSearch()
-  const navigate = Route.useNavigate()
-  const router = useRouter()
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [bulkCatId, setBulkCatId] = useState<string>("")
-  const [loading, setLoading] = useState(false)
-  const [searchInput, setSearchInput] = useState(search.search ?? "")
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [showChart, setShowChart] = useState(false)
-  const [chartStats, setChartStats] = useState<ChartStats | null>(null)
-  const [chartLoading, setChartLoading] = useState(false)
+	const { txData, categories, accounts } = Route.useLoaderData();
+	const search = Route.useSearch();
+	const navigate = Route.useNavigate();
+	const router = useRouter();
+	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [bulkCatId, setBulkCatId] = useState<string>("");
+	const [loading, setLoading] = useState(false);
+	const [searchInput, setSearchInput] = useState(search.search ?? "");
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [showChart, setShowChart] = useState(false);
+	const [chartStats, setChartStats] = useState<ChartStats | null>(null);
+	const [chartLoading, setChartLoading] = useState(false);
 
-  const hasSearch = !!search.search?.trim()
-  const hasChartFilter = hasSearch || search.categoryId !== undefined
+	const hasSearch = !!search.search?.trim();
+	const hasChartFilter = hasSearch || search.categoryId !== undefined;
 
-  function handleSearchChange(value: string) {
-    setSearchInput(value)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      updateSearch({ search: value || undefined })
-    }, 400)
-  }
+	function handleSearchChange(value: string) {
+		setSearchInput(value);
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => {
+			updateSearch({ search: value || undefined });
+		}, 400);
+	}
 
-  useEffect(() => {
-    if (!showChart || !hasChartFilter) return
-    setChartStats(null)
-    setChartLoading(true)
-    getTransactionStats({
-      data: {
-        search: search.search,
-        dateFrom: search.dateFrom,
-        dateTo: search.dateTo,
-        categoryId: search.categoryId,
-        accountIds: search.accountIds ?? [],
-      },
-    }).then((s) => {
-      setChartStats(s)
-      setChartLoading(false)
-    })
-  }, [
-    showChart,
-    hasChartFilter,
-    search.search,
-    search.dateFrom,
-    search.dateTo,
-    search.categoryId,
-    search.accountIds,
-  ])
+	useEffect(() => {
+		if (!showChart || !hasChartFilter) return;
+		setChartStats(null);
+		setChartLoading(true);
+		getTransactionStats({
+			data: {
+				search: search.search,
+				dateFrom: search.dateFrom,
+				dateTo: search.dateTo,
+				categoryId: search.categoryId,
+				accountIds: search.accountIds ?? [],
+			},
+		}).then((s) => {
+			setChartStats(s);
+			setChartLoading(false);
+		});
+	}, [
+		showChart,
+		hasChartFilter,
+		search.search,
+		search.dateFrom,
+		search.dateTo,
+		search.categoryId,
+		search.accountIds,
+	]);
 
-  const {
-    sorted: transactions,
-    sortKey,
-    sortDir,
-    toggle,
-  } = useSortable(txData.transactions, "bookingDate", "desc")
-  const { total, page, pageSize } = txData
-  const totalPages = Math.ceil(total / pageSize)
+	const {
+		sorted: transactions,
+		sortKey,
+		sortDir,
+		toggle,
+	} = useSortable(txData.transactions, "bookingDate", "desc");
+	const { total, page, pageSize } = txData;
+	const totalPages = Math.ceil(total / pageSize);
 
-  function updateSearch(updates: Partial<z.infer<typeof SearchSchema>>) {
-    navigate({ search: { ...search, ...updates, page: 1 } })
-  }
+	function updateSearch(updates: Partial<z.infer<typeof SearchSchema>>) {
+		navigate({ search: { ...search, ...updates, page: 1 } });
+	}
 
-  function toggleSelect(id: string) {
-    setSelected((s) => {
-      const ns = new Set(s)
-      if (ns.has(id)) ns.delete(id)
-      else ns.add(id)
-      return ns
-    })
-  }
+	function toggleSelect(id: string) {
+		setSelected((s) => {
+			const ns = new Set(s);
+			if (ns.has(id)) ns.delete(id);
+			else ns.add(id);
+			return ns;
+		});
+	}
 
-  function toggleAll() {
-    if (selected.size === transactions.length) setSelected(new Set())
-    else setSelected(new Set(transactions.map((t) => t.id)))
-  }
+	function toggleAll() {
+		if (selected.size === transactions.length) setSelected(new Set());
+		else setSelected(new Set(transactions.map((t) => t.id)));
+	}
 
-  function openTransaction(txId: string) {
-    navigate({
-      to: "/transactions/$transactionId",
-      params: { transactionId: encodeURIComponent(txId) },
-      search,
-    })
-  }
+	function openTransaction(txId: string) {
+		navigate({
+			to: "/transactions/$transactionId",
+			params: { transactionId: encodeURIComponent(txId) },
+			search,
+		});
+	}
 
-  async function handleBulkCategorise() {
-    if (!bulkCatId || selected.size === 0) return
-    setLoading(true)
-    await bulkCategorise({
-      data: { ids: Array.from(selected), categoryId: Number(bulkCatId) },
-    })
-    setSelected(new Set())
-    setBulkCatId("")
-    router.invalidate()
-    setLoading(false)
-  }
+	async function handleBulkCategorise() {
+		if (!bulkCatId || selected.size === 0) return;
+		setLoading(true);
+		await bulkCategorise({
+			data: { ids: Array.from(selected), categoryId: Number(bulkCatId) },
+		});
+		setSelected(new Set());
+		setBulkCatId("");
+		router.invalidate();
+		setLoading(false);
+	}
 
-  async function handleCategoryChange(txId: string, catId: number | null) {
-    await updateTransactionCategory({ data: { id: txId, categoryId: catId } })
-    router.invalidate()
-  }
+	async function handleCategoryChange(txId: string, catId: number | null) {
+		await updateTransactionCategory({ data: { id: txId, categoryId: catId } });
+		router.invalidate();
+	}
 
-  return (
-    <div className="flex flex-col h-full">
-      <TransactionFilters
-        searchInput={searchInput}
-        onSearchChange={handleSearchChange}
-        showChart={showChart}
-        showChartToggle={hasChartFilter}
-        onToggleChart={() => setShowChart((v) => !v)}
-        dateFrom={search.dateFrom}
-        dateTo={search.dateTo}
-        categoryId={search.categoryId}
-        accountIds={search.accountIds}
-        accounts={accounts}
-        categories={categories}
-        selected={selected}
-        bulkCatId={bulkCatId}
-        onBulkCatChange={setBulkCatId}
-        onBulkApply={handleBulkCategorise}
-        onBulkClear={() => setSelected(new Set())}
-        bulkLoading={loading}
-        onDateFromChange={(v) => updateSearch({ dateFrom: v })}
-        onDateToChange={(v) => updateSearch({ dateTo: v })}
-        onCategoryChange={(v) => updateSearch({ categoryId: v })}
-        onAccountChange={(v) => updateSearch({ accountIds: v })}
-      />
+	return (
+		<div className="flex flex-col h-full">
+			<TransactionFilters
+				searchInput={searchInput}
+				onSearchChange={handleSearchChange}
+				showChart={showChart}
+				showChartToggle={hasChartFilter}
+				onToggleChart={() => setShowChart((v) => !v)}
+				dateFrom={search.dateFrom}
+				dateTo={search.dateTo}
+				categoryId={search.categoryId}
+				accountIds={search.accountIds}
+				accounts={accounts}
+				categories={categories}
+				selected={selected}
+				bulkCatId={bulkCatId}
+				onBulkCatChange={setBulkCatId}
+				onBulkApply={handleBulkCategorise}
+				onBulkClear={() => setSelected(new Set())}
+				bulkLoading={loading}
+				onDateFromChange={(v) => updateSearch({ dateFrom: v })}
+				onDateToChange={(v) => updateSearch({ dateTo: v })}
+				onCategoryChange={(v) => updateSearch({ categoryId: v })}
+				onAccountChange={(v) => updateSearch({ accountIds: v })}
+			/>
 
-      {showChart && hasChartFilter && (
-        <TransactionChartPanel chartStats={chartStats} loading={chartLoading} />
-      )}
+			{showChart && hasChartFilter && (
+				<TransactionChartPanel chartStats={chartStats} loading={chartLoading} />
+			)}
 
-      <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
-            <TableRow>
-              <TableHead className="w-10 px-3">
-                <Checkbox
-                  checked={selected.size === transactions.length && transactions.length > 0}
-                  onCheckedChange={() => toggleAll()}
-                />
-              </TableHead>
-              <SortableHead id="bookingDate" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>
-                Date
-              </SortableHead>
-              <SortableHead id="creditorName" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>
-                Payee
-              </SortableHead>
-              <TableHead className="hidden sm:table-cell">Description</TableHead>
-              <SortableHead
-                id="amount"
-                sortKey={sortKey}
-                sortDir={sortDir}
-                onSort={toggle}
-                className="text-right"
-              >
-                Amount
-              </SortableHead>
-              <TableHead>Category</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-16 text-center text-muted-foreground">
-                  No transactions found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              transactions.map((tx) => (
-                <TableRow
-                  key={tx.id}
-                  tabIndex={0}
-                  className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  onClick={() => openTransaction(tx.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      openTransaction(tx.id)
-                    }
-                  }}
-                >
-                  <TableCell
-                    className="px-3"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={selected.has(tx.id)}
-                      onCheckedChange={() => toggleSelect(tx.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
-                    {formatDate(tx.bookingDate)}
-                  </TableCell>
-                  <TableCell className="max-w-48 truncate font-medium">
-                    {tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}
-                  </TableCell>
-                  <TableCell className="hidden max-w-64 truncate text-muted-foreground sm:table-cell">
-                    {tx.description ?? "—"}
-                  </TableCell>
-                  <TableCell
-                    className={`whitespace-nowrap text-right font-medium tabular-nums ${tx.amount >= 0 ? "text-positive" : ""}`}
-                  >
-                    {formatCurrency(tx.amount, tx.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <select
-                      value={tx.categoryId ?? ""}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      onChange={(e) =>
-                        handleCategoryChange(
-                          tx.id,
-                          e.target.value ? Number(e.target.value) : null,
-                        )}
-                      className="w-full cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                      style={tx.category ? { color: tx.category.color } : undefined}
-                    >
-                      <option value="">Uncategorised</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+			<div className="flex-1 overflow-auto">
+				<Table>
+					<TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+						<TableRow>
+							<TableHead className="w-10 px-3">
+								<Checkbox
+									checked={
+										selected.size === transactions.length &&
+										transactions.length > 0
+									}
+									onCheckedChange={() => toggleAll()}
+								/>
+							</TableHead>
+							<SortableHead
+								id="bookingDate"
+								sortKey={sortKey}
+								sortDir={sortDir}
+								onSort={toggle}
+							>
+								Date
+							</SortableHead>
+							<SortableHead
+								id="creditorName"
+								sortKey={sortKey}
+								sortDir={sortDir}
+								onSort={toggle}
+							>
+								Payee
+							</SortableHead>
+							<TableHead className="hidden sm:table-cell">
+								Description
+							</TableHead>
+							<SortableHead
+								id="amount"
+								sortKey={sortKey}
+								sortDir={sortDir}
+								onSort={toggle}
+								className="text-right"
+							>
+								Amount
+							</SortableHead>
+							<TableHead>Category</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{transactions.length === 0 ? (
+							<TableRow>
+								<TableCell
+									colSpan={6}
+									className="py-16 text-center text-muted-foreground"
+								>
+									No transactions found.
+								</TableCell>
+							</TableRow>
+						) : (
+							transactions.map((tx) => (
+								<TableRow
+									key={tx.id}
+									tabIndex={0}
+									className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+									onClick={() => openTransaction(tx.id)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											openTransaction(tx.id);
+										}
+									}}
+								>
+									<TableCell
+										className="px-3"
+										onClick={(e) => e.stopPropagation()}
+										onKeyDown={(e) => e.stopPropagation()}
+									>
+										<Checkbox
+											checked={selected.has(tx.id)}
+											onCheckedChange={() => toggleSelect(tx.id)}
+										/>
+									</TableCell>
+									<TableCell className="whitespace-nowrap text-muted-foreground">
+										{formatDate(tx.bookingDate)}
+									</TableCell>
+									<TableCell className="max-w-48 truncate font-medium">
+										{tx.creditorName ?? tx.debtorName ?? tx.description ?? "—"}
+									</TableCell>
+									<TableCell className="hidden max-w-64 truncate text-muted-foreground sm:table-cell">
+										{tx.description ?? "—"}
+									</TableCell>
+									<TableCell
+										className={`whitespace-nowrap text-right font-medium tabular-nums ${tx.amount >= 0 ? "text-positive" : ""}`}
+									>
+										{formatCurrency(tx.amount, tx.currency)}
+									</TableCell>
+									<TableCell>
+										<Select
+											value={
+												tx.categoryId ? String(tx.categoryId) : "uncategorised"
+											}
+											onValueChange={(v) =>
+												handleCategoryChange(
+													tx.id,
+													v === "uncategorised" ? null : Number(v),
+												)
+											}
+										>
+											<SelectTrigger
+												className="h-7 w-full border-0 bg-transparent px-2 shadow-none hover:bg-muted"
+												onClick={(e) => e.stopPropagation()}
+												onKeyDown={(e) => e.stopPropagation()}
+											>
+												<SelectValue>
+													{tx.category ? (
+														<span className="flex items-center gap-2">
+															<CategoryDot category={tx.category} />
+															{tx.category.name}
+														</span>
+													) : (
+														"Uncategorised"
+													)}
+												</SelectValue>
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="uncategorised">
+													<span className="flex items-center gap-2">
+														<CategoryDot category={null} />
+														Uncategorised
+													</span>
+												</SelectItem>
+												{categories.map((c) => (
+													<SelectItem key={c.id} value={String(c.id)}>
+														<span className="flex items-center gap-2">
+															<CategoryDot category={c} />
+															{c.name}
+														</span>
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</TableCell>
+								</TableRow>
+							))
+						)}
+					</TableBody>
+				</Table>
+			</div>
 
-      <div className="flex items-center justify-between border-t px-4 py-3">
-        <p className="text-sm text-muted-foreground">
-          {total} transaction{total !== 1 ? "s" : ""} · page {page} of {totalPages || 1}
-        </p>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate({ search: { ...search, page: page - 1 } })}
-            disabled={page <= 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate({ search: { ...search, page: page + 1 } })}
-            disabled={page >= totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+			<div className="flex items-center justify-between border-t px-4 py-3">
+				<p className="text-sm text-muted-foreground">
+					{total} transaction{total !== 1 ? "s" : ""} · page {page} of{" "}
+					{totalPages || 1}
+				</p>
+				<div className="flex gap-2">
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => navigate({ search: { ...search, page: page - 1 } })}
+						disabled={page <= 1}
+					>
+						<ChevronLeft className="h-4 w-4" />
+					</Button>
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => navigate({ search: { ...search, page: page + 1 } })}
+						disabled={page >= totalPages}
+					>
+						<ChevronRight className="h-4 w-4" />
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
 }

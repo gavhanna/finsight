@@ -1,7 +1,13 @@
-const PREFIX = "finsight:lc:"
+const PREFIX = "finsight:lc:";
 
-// localStorage is unavailable during SSR — all cache ops are no-ops server-side
-const storage = typeof localStorage !== "undefined" ? localStorage : null
+function getStorage(): Storage | null {
+  try {
+    const s = typeof window !== "undefined" ? window.localStorage : null;
+    return s && typeof s.getItem === "function" ? s : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Wraps a route loader with localStorage caching for offline support.
@@ -12,27 +18,29 @@ const storage = typeof localStorage !== "undefined" ? localStorage : null
  * not search deps — we cache the last-seen data, not every filter combo).
  */
 export async function withOfflineCache<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const storage = getStorage();
+
   // If we already know we're offline, skip the network call entirely and serve
   // from cache immediately — avoids failed requests and console noise from
   // TanStack Start's internal serverFnFetcher logging
   if (storage && typeof navigator !== "undefined" && !navigator.onLine) {
-    const raw = storage.getItem(PREFIX + key)
-    if (raw) return JSON.parse(raw) as T
+    const raw = storage.getItem(PREFIX + key);
+    if (raw) return JSON.parse(raw) as T;
   }
 
   try {
-    const result = await fn()
+    const result = await fn();
     try {
-      storage?.setItem(PREFIX + key, JSON.stringify(result))
+      getStorage()?.setItem(PREFIX + key, JSON.stringify(result));
     } catch {
       // quota exceeded or storage unavailable — not fatal
     }
-    return result
+    return result;
   } catch (err) {
     // Fallback for cases where onLine was true but the request still failed
     // (e.g. connected to WiFi but no actual internet)
-    const raw = storage?.getItem(PREFIX + key)
-    if (raw) return JSON.parse(raw) as T
-    throw err
+    const raw = getStorage()?.getItem(PREFIX + key);
+    if (raw) return JSON.parse(raw) as T;
+    throw err;
   }
 }
