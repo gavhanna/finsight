@@ -78,11 +78,17 @@ function TransactionsPage() {
 	const [searchInput, setSearchInput] = useState(search.search ?? "");
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [showChart, setShowChart] = useState(false);
-	const [chartStats, setChartStats] = useState<ChartStats | null>(null);
-	const [chartLoading, setChartLoading] = useState(false);
+	const [chartResult, setChartResult] = useState<{ key: string; stats: ChartStats } | null>(null);
 
 	const hasSearch = !!search.search?.trim();
 	const hasChartFilter = hasSearch || search.categoryId !== undefined;
+	const chartKey = JSON.stringify({
+		search: search.search,
+		dateFrom: search.dateFrom,
+		dateTo: search.dateTo,
+		categoryId: search.categoryId,
+		accountIds: search.accountIds ?? [],
+	});
 
 	function handleSearchChange(value: string) {
 		setSearchInput(value);
@@ -94,8 +100,7 @@ function TransactionsPage() {
 
 	useEffect(() => {
 		if (!showChart || !hasChartFilter) return;
-		setChartStats(null);
-		setChartLoading(true);
+		let cancelled = false;
 		getTransactionStats({
 			data: {
 				search: search.search,
@@ -105,10 +110,11 @@ function TransactionsPage() {
 				accountIds: search.accountIds ?? [],
 			},
 		}).then((s) => {
-			setChartStats(s);
-			setChartLoading(false);
+			if (!cancelled) setChartResult({ key: chartKey, stats: s });
 		});
+		return () => { cancelled = true };
 	}, [
+		chartKey,
 		showChart,
 		hasChartFilter,
 		search.search,
@@ -117,6 +123,8 @@ function TransactionsPage() {
 		search.categoryId,
 		search.accountIds,
 	]);
+	const chartStats = chartResult?.key === chartKey ? chartResult.stats : null;
+	const chartLoading = showChart && hasChartFilter && chartStats === null;
 
 	const {
 		sorted: transactions,

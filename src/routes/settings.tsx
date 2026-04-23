@@ -68,7 +68,9 @@ function SettingsPage() {
   const [error, setError] = useState("");
 
   // ── Notification state ───────────────────────────────────────────────────────
-  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSupported] = useState(
+    () => typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window,
+  );
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushError, setPushError] = useState("");
@@ -82,7 +84,6 @@ function SettingsPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setPushSupported("serviceWorker" in navigator && "PushManager" in window);
     getCurrentPushSubscription().then((sub) => {
       setPushSubscription(sub);
       if (sub) {

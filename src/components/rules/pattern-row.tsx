@@ -9,27 +9,55 @@ import { FIELDS, MATCH_TYPES, fieldLabel, matchLabel } from "./types"
 import type { PreviewTx } from "./types"
 import { PreviewTable } from "./preview-table"
 
+type PreviewState = { count: number; capped: boolean; transactions: PreviewTx[] } | null
+
+function usePatternPreview({
+  enabled,
+  pattern,
+  field,
+  matchType,
+}: {
+  enabled: boolean
+  pattern: string
+  field: RulePattern["field"]
+  matchType: RulePattern["matchType"]
+}) {
+  const [preview, setPreview] = useState<PreviewState>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const canPreview = enabled && pattern.trim().length > 0
+
+  useEffect(() => {
+    if (!canPreview) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setPreviewing(true)
+      try {
+        const r = await previewRule({ data: { pattern, field, matchType } })
+        setPreview(r)
+      } finally { setPreviewing(false) }
+    }, 500)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [canPreview, pattern, field, matchType])
+
+  return {
+    preview: canPreview ? preview : null,
+    previewing: canPreview && previewing,
+    clearPreview: () => setPreview(null),
+  }
+}
+
 export function PatternRow({ pattern, onDelete, onRefresh }: {
   pattern: RulePattern; onDelete: () => void; onRefresh: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ pattern: pattern.pattern, field: pattern.field, matchType: pattern.matchType })
-  const [preview, setPreview] = useState<{ count: number; capped: boolean; transactions: PreviewTx[] } | null>(null)
-  const [previewing, setPreviewing] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (!editing || !form.pattern.trim()) { setPreview(null); return }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
-      setPreviewing(true)
-      try {
-        const r = await previewRule({ data: { pattern: form.pattern, field: form.field, matchType: form.matchType } })
-        setPreview(r)
-      } finally { setPreviewing(false) }
-    }, 500)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [editing, form.pattern, form.field, form.matchType])
+  const { preview, previewing, clearPreview } = usePatternPreview({
+    enabled: editing,
+    pattern: form.pattern,
+    field: form.field,
+    matchType: form.matchType,
+  })
 
   async function handleSave() {
     await updatePattern({ data: { id: pattern.id, ...form } })
@@ -40,6 +68,7 @@ export function PatternRow({ pattern, onDelete, onRefresh }: {
   function handleCancel() {
     setEditing(false)
     setForm({ pattern: pattern.pattern, field: pattern.field, matchType: pattern.matchType })
+    clearPreview()
   }
 
   if (!editing) {
@@ -104,28 +133,18 @@ export function PatternRow({ pattern, onDelete, onRefresh }: {
 export function AddPatternRow({ ruleId, onSaved }: { ruleId: number; onSaved: () => void }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ pattern: "", field: "description" as RulePattern["field"], matchType: "contains" as RulePattern["matchType"] })
-  const [preview, setPreview] = useState<{ count: number; capped: boolean; transactions: PreviewTx[] } | null>(null)
-  const [previewing, setPreviewing] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (!open || !form.pattern.trim()) { setPreview(null); return }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
-      setPreviewing(true)
-      try {
-        const r = await previewRule({ data: { pattern: form.pattern, field: form.field, matchType: form.matchType } })
-        setPreview(r)
-      } finally { setPreviewing(false) }
-    }, 500)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [open, form.pattern, form.field, form.matchType])
+  const { preview, previewing, clearPreview } = usePatternPreview({
+    enabled: open,
+    pattern: form.pattern,
+    field: form.field,
+    matchType: form.matchType,
+  })
 
   async function handleAdd() {
     if (!form.pattern.trim()) return
     await addPattern({ data: { ruleId, ...form } })
     setForm({ pattern: "", field: "description", matchType: "contains" })
-    setPreview(null)
+    clearPreview()
     setOpen(false)
     onSaved()
   }
@@ -166,7 +185,7 @@ export function AddPatternRow({ ruleId, onSaved }: { ruleId: number; onSaved: ()
           </SelectContent>
         </Select>
         <Button size="sm" className="h-9" disabled={!form.pattern.trim()} onClick={handleAdd}>Add</Button>
-        <Button size="sm" variant="ghost" className="h-9" onClick={() => { setOpen(false); setForm({ pattern: "", field: "description", matchType: "contains" }) }}>
+        <Button size="sm" variant="ghost" className="h-9" onClick={() => { setOpen(false); setForm({ pattern: "", field: "description", matchType: "contains" }); clearPreview() }}>
           <X className="size-3.5" />
         </Button>
       </div>

@@ -30,7 +30,11 @@ const config = defineConfig({
     tanstackStart({
       server: { entry: "./src/server.ts" },
     }),
-    viteReact(),
+    viteReact({
+      babel: {
+        plugins: ["babel-plugin-react-compiler"],
+      },
+    }),
   ],
 })
 

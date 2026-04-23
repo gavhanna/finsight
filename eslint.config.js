@@ -1,34 +1,16 @@
 //  @ts-check
 
 import { tanstackConfig } from "@tanstack/eslint-config"
-
-const reactHooksStubPlugin = {
-  rules: {
-    "exhaustive-deps": {
-      meta: {
-        type: "suggestion",
-        schema: [],
-        docs: {
-          description: "Stubbed locally because eslint-plugin-react-hooks is not installed",
-        },
-      },
-      create() {
-        return {}
-      },
-    },
-  },
-}
+import reactHooks from "eslint-plugin-react-hooks"
 
 export default [
   ...tanstackConfig,
+  reactHooks.configs.flat["recommended-latest"],
   {
     ignores: [".output/**", "dist/**", "public/sw.js"],
   },
   {
     files: ["**/*.{js,ts,tsx}"],
-    plugins: {
-      "react-hooks": reactHooksStubPlugin,
-    },
     rules: {
       "sort-imports": "off",
       "import/order": "off",
@@ -44,6 +26,7 @@ export default [
       "no-shadow": "off",
       "prefer-const": "off",
       "react-hooks/exhaustive-deps": "off",
+      "react-hooks/preserve-manual-memoization": "off",
     },
   },
 ]

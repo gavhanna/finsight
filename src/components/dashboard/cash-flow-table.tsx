@@ -13,13 +13,13 @@ export function CashFlowTable({
   stats: { totalIncome: number; totalExpenses: number; net: number; count: number }
   currency?: string
 }) {
-  if (data.length < 2) return null
-
   const dataWithRate = data.map((r) => ({
     ...r,
     savingsRate: r.income > 0 ? r.net / r.income : null,
   }))
   const { sorted, sortKey, sortDir, toggle } = useSortable(dataWithRate, "month")
+
+  if (data.length < 2) return null
 
   return (
     <Card>

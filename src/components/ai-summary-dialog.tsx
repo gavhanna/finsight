@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { RefreshCw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -65,23 +65,22 @@ export function PageAiSummaryDialog({
   label?: string
 }) {
   const [open, setOpen] = useState(false)
-  const [narrative, setNarrative] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<{
+    key: string
+    narrative: string | null
+    error: string | null
+    fromCache: boolean
+  } | null>(null)
   const [loading, setLoading] = useState(false)
-  const [fromCache, setFromCache] = useState(false)
   const summaryKey = useMemo(() => JSON.stringify(request), [request])
-
-  useEffect(() => {
-    setNarrative(null)
-    setError(null)
-    setFromCache(false)
-  }, [summaryKey])
+  const currentResult = result?.key === summaryKey ? result : null
+  const narrative = currentResult?.narrative ?? null
+  const error = currentResult?.error ?? null
+  const fromCache = currentResult?.fromCache ?? false
 
   async function handleGenerate(force = false) {
     setLoading(true)
-    setNarrative(null)
-    setError(null)
-    setFromCache(false)
+    setResult(null)
     try {
       const result = await generateNarrative({
         data: {
@@ -108,13 +107,17 @@ export function PageAiSummaryDialog({
       })
 
       if (result.error) {
-        setError(result.error)
+        setResult({ key: summaryKey, narrative: null, error: result.error, fromCache: false })
       } else {
-        setNarrative(result.narrative)
-        setFromCache(result.cached ?? false)
+        setResult({ key: summaryKey, narrative: result.narrative, error: null, fromCache: result.cached ?? false })
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to generate the AI summary.")
+      setResult({
+        key: summaryKey,
+        narrative: null,
+        error: err instanceof Error ? err.message : "Unable to generate the AI summary.",
+        fromCache: false,
+      })
     } finally {
       setLoading(false)
     }

@@ -36,7 +36,7 @@ export function InstitutionPickerBody({ onClose: _onClose }: { onClose: () => vo
           institutionLogo: inst.logo,
         },
       })
-      window.location.href = link
+      window.location.assign(link)
     } catch (err: any) {
       setError(err.message ?? "Failed to initiate connection")
       setConnecting(false)

@@ -1,5 +1,5 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState, type ErrorComponentProps, type NotFoundRouteProps } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { getUncategorisedCount } from "@/server/fn/transactions"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
@@ -101,22 +101,23 @@ export const Route = createRootRoute({
   notFoundComponent: RootNotFoundComponent,
 })
 
+function subscribeToOnlineStatus(callback: () => void) {
+  window.addEventListener("online", callback)
+  window.addEventListener("offline", callback)
+  return () => {
+    window.removeEventListener("online", callback)
+    window.removeEventListener("offline", callback)
+  }
+}
+
+function getOnlineSnapshot() {
+  return typeof navigator === "undefined" || navigator.onLine
+}
+
 function OfflineBanner() {
-  const [offline, setOffline] = useState(false)
+  const online = useSyncExternalStore(subscribeToOnlineStatus, getOnlineSnapshot, () => true)
 
-  useEffect(() => {
-    setOffline(!navigator.onLine)
-    const on = () => setOffline(false)
-    const off = () => setOffline(true)
-    window.addEventListener("online", on)
-    window.addEventListener("offline", off)
-    return () => {
-      window.removeEventListener("online", on)
-      window.removeEventListener("offline", off)
-    }
-  }, [])
-
-  if (!offline) return null
+  if (online) return null
 
   return (
     <div className="flex items-center justify-center gap-2 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-amber-400 text-xs font-medium shrink-0">
@@ -238,14 +239,14 @@ function AppSidebar() {
   const { isMobile, setOpenMobile } = useSidebar()
   const { uncategorisedCount } = Route.useLoaderData()
 
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY)
-      if (stored) setCollapsed(new Set(JSON.parse(stored)))
-    } catch {}
-  }, [])
+      return stored ? new Set(JSON.parse(stored)) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
 
   function toggleGroup(label: string) {
     setCollapsed((prev) => {
@@ -386,18 +387,8 @@ function RootNotFoundComponent(_: NotFoundRouteProps) {
 }
 
 function RootErrorComponent({ error }: ErrorComponentProps) {
-  const [offline, setOffline] = useState(typeof navigator !== "undefined" && !navigator.onLine)
-
-  useEffect(() => {
-    const on = () => setOffline(false)
-    const off = () => setOffline(true)
-    window.addEventListener("online", on)
-    window.addEventListener("offline", off)
-    return () => {
-      window.removeEventListener("online", on)
-      window.removeEventListener("offline", off)
-    }
-  }, [])
+  const online = useSyncExternalStore(subscribeToOnlineStatus, getOnlineSnapshot, () => true)
+  const offline = !online
 
   return (
     <TooltipProvider>

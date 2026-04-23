@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useRef } from "react"
 import { toast } from "sonner"
 import { CheckCheck, SkipForward, SkipBack, Inbox, Zap, X, ArrowLeft } from "lucide-react"
 import { updateTransactionCategory } from "@/server/fn/transactions"
@@ -56,15 +56,6 @@ export function TriageFlow({
 
   const currentCategoryName = categoryId !== null ? categories.find((c) => c.id === categoryId)?.name : null
   const currentCategoryColor = categoryId !== null ? categories.find((c) => c.id === categoryId)?.color : null
-
-  useEffect(() => {
-    if (current && ruleMode) {
-      const { text, field } = bestPatternText(current)
-      setRulePattern(text)
-      setRuleName(text)
-      setRuleField(field)
-    }
-  }, [current?.id])
 
   function openRuleMode() {
     if (!current) return

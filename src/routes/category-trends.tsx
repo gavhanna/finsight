@@ -120,34 +120,32 @@ function CategoryTrendsPage() {
 
   const allItems = viewMode === "groups" ? allGroups : allCategories
 
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(allItems.map(c => String(c.id))))
-
   const allKeys = allItems.map(c => String(c.id)).join(",")
-  useEffect(() => {
-    const nextKeys = allItems.map(c => String(c.id))
-    setSelected(prev => {
-      if (prev.size === nextKeys.length && nextKeys.every(key => prev.has(key))) {
-        return prev
-      }
-      return new Set(nextKeys)
-    })
-  }, [allItems, allKeys])
+  const [selection, setSelection] = useState<{ scope: string; keys: Set<string> }>(() => ({
+    scope: allKeys,
+    keys: new Set(allItems.map(c => String(c.id))),
+  }))
+  const selected = useMemo(
+    () => selection.scope === allKeys ? selection.keys : new Set(allItems.map(c => String(c.id))),
+    [allItems, allKeys, selection],
+  )
 
   function toggleItem(key: string) {
-    setSelected(prev => {
-      const next = new Set(prev)
+    setSelection(prev => {
+      const current = prev.scope === allKeys ? prev.keys : new Set(allItems.map(c => String(c.id)))
+      const next = new Set(current)
       if (next.has(key)) {
         if (next.size === 1) return prev
         next.delete(key)
       } else {
         next.add(key)
       }
-      return next
+      return { scope: allKeys, keys: next }
     })
   }
 
-  function isolate(key: string) { setSelected(new Set([key])) }
-  function selectAll() { setSelected(new Set(allItems.map(c => String(c.id)))) }
+  function isolate(key: string) { setSelection({ scope: allKeys, keys: new Set([key]) }) }
+  function selectAll() { setSelection({ scope: allKeys, keys: new Set(allItems.map(c => String(c.id))) }) }
 
   const visibleItems = useMemo(
     () => allItems.filter(c => selected.has(String(c.id))),

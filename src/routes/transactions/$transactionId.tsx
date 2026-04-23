@@ -17,7 +17,6 @@ import {
 	TrendingUp,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
 import {
 	Bar,
 	BarChart,
@@ -88,15 +87,6 @@ function TransactionDetailPage() {
 	const { detail, categories } = Route.useLoaderData();
 	const search = Route.useSearch();
 	const router = useRouter();
-	const [categoryValue, setCategoryValue] = useState(
-		detail?.categoryId ? String(detail.categoryId) : "uncategorised",
-	);
-
-	useEffect(() => {
-		setCategoryValue(
-			detail?.categoryId ? String(detail.categoryId) : "uncategorised",
-		);
-	}, [detail?.categoryId]);
 
 	if (!detail) {
 		return (
@@ -124,6 +114,9 @@ function TransactionDetailPage() {
 	}
 
 	const transaction = detail;
+	const categoryValue = transaction.categoryId
+		? String(transaction.categoryId)
+		: "uncategorised";
 	const primaryParty =
 		transaction.creditorName ??
 		transaction.debtorName ??
@@ -177,7 +170,6 @@ function TransactionDetailPage() {
 
 	async function handleCategoryChange(nextValue: string) {
 		const categoryId = nextValue === "uncategorised" ? null : Number(nextValue);
-		setCategoryValue(nextValue);
 		await updateTransactionCategory({
 			data: { id: transaction.id, categoryId },
 		});

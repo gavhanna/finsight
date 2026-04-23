@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,11 +62,16 @@ function RuleForm({ rule, categories, onClose, onSaved }: {
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const visiblePatterns = patterns.filter(p => !p._deleted)
-  const previewablePatterns = visiblePatterns.filter(p => p.pattern.trim())
+  const visiblePatterns = useMemo(() => patterns.filter(p => !p._deleted), [patterns])
+  const previewablePatterns = useMemo(() => visiblePatterns.filter(p => p.pattern.trim()), [visiblePatterns])
+  const previewRequestKey = useMemo(
+    () => JSON.stringify(previewablePatterns.map(p => [p.pattern, p.field, p.matchType])),
+    [previewablePatterns],
+  )
+  const visiblePreview = previewablePatterns.length > 0 ? preview : null
 
   useEffect(() => {
-    if (previewablePatterns.length === 0) { setPreview(null); return }
+    if (previewablePatterns.length === 0) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       setPreviewing(true)
@@ -78,7 +83,7 @@ function RuleForm({ rule, categories, onClose, onSaved }: {
       } finally { setPreviewing(false) }
     }, 500)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [JSON.stringify(previewablePatterns.map(p => [p.pattern, p.field, p.matchType]))])
+  }, [previewablePatterns, previewRequestKey])
 
   function updatePatternAt(visIdx: number, vals: Partial<PatternDraft>) {
     let count = -1
@@ -128,7 +133,7 @@ function RuleForm({ rule, categories, onClose, onSaved }: {
   }
 
   const selectedCategory = categories.find(c => c.id === categoryId)
-  const manualCount = preview?.transactions.filter(t => t.categorisedBy === "manual").length ?? 0
+  const manualCount = visiblePreview?.transactions.filter(t => t.categorisedBy === "manual").length ?? 0
   const canSave = name.trim() && visiblePatterns.some(p => p.pattern.trim()) && categoryId
 
   return (
@@ -221,7 +226,7 @@ function RuleForm({ rule, categories, onClose, onSaved }: {
 
       {previewablePatterns.length > 0 && (
         <PreviewTable
-          preview={preview}
+          preview={visiblePreview}
           previewing={previewing}
           manualCount={manualCount}
           patternCount={previewablePatterns.length}
