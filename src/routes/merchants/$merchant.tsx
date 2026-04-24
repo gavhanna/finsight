@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { useEffect, useMemo } from "react"
 import { z } from "zod"
 import { getMerchantDetail } from "../../server/fn/merchants"
 import { getSetting } from "../../server/fn/settings"
@@ -26,8 +25,6 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { ChartTooltip } from "@/components/chart-tooltip"
-import { PageAiSummaryDialog } from "@/components/ai-summary-dialog"
-import { useHeaderAction } from "@/components/layout/header-actions"
 
 const SearchSchema = z.object({
   preset: z.enum(["month", "3months", "6months", "ytd", "12months", "all"]).optional(),
@@ -66,7 +63,6 @@ export const Route = createFileRoute("/merchants/$merchant")({
 function MerchantDetailPage() {
   const { detail, currency, merchantName } = Route.useLoaderData()
   const search = Route.useSearch()
-  const setHeaderAction = useHeaderAction()
 
   const { transactions, monthlySpend } = detail
 
@@ -88,81 +84,6 @@ function MerchantDetailPage() {
     dateTo: search.dateTo,
     accountIds: search.accountIds,
   }
-
-  const aiSummaryAction = useMemo(() => {
-    if (transactions.length === 0) return null
-
-    const categoryTotals = new Map<string, number>()
-    for (const transaction of transactions) {
-      const category = transaction.categoryName ?? "Uncategorised"
-      categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + Math.abs(transaction.amount))
-    }
-
-    return (
-      <PageAiSummaryDialog
-        request={{
-          kind: "merchant-detail",
-          pageTitle: "Merchant detail",
-          filters: {
-            dateFrom: search.dateFrom,
-            dateTo: search.dateTo,
-            presetLabel: search.preset ?? "Custom range",
-          },
-          totalExpenses: totalSpend,
-          net: -totalSpend,
-          transactionCount: transactions.length,
-          topCategories: [...categoryTotals.entries()]
-            .map(([name, total]) => ({ name, total }))
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 5),
-          topMerchants: [{ name: merchantName, total: totalSpend, count: transactions.length }],
-          currency,
-          contextSections: [
-            {
-              title: "Merchant stats",
-              lines: [
-                `Merchant: ${merchantName}`,
-                `Total spent: ${formatCurrency(totalSpend, currency)}`,
-                `Average per transaction: ${formatCurrency(avgAmount, currency)}`,
-                `First seen in range: ${firstSeen ? formatDate(firstSeen) : "unknown"}`,
-                `Last seen in range: ${lastSeen ? formatDate(lastSeen) : "unknown"}`,
-                `Months active: ${monthlySpend.length}`,
-              ],
-            },
-            {
-              title: "Monthly spend",
-              lines: monthlySpend.slice(-8).map((row) =>
-                `${row.month}: ${formatCurrency(row.total, currency)}`,
-              ),
-            },
-            {
-              title: "Recent transactions",
-              lines: transactions.slice(0, 8).map((transaction) =>
-                `${transaction.bookingDate}: ${formatCurrency(transaction.amount, transaction.currency ?? currency)} (${transaction.categoryName ?? "Uncategorised"})`,
-              ),
-            },
-          ],
-        }}
-      />
-    )
-  }, [
-    avgAmount,
-    currency,
-    firstSeen,
-    lastSeen,
-    merchantName,
-    monthlySpend,
-    search.dateFrom,
-    search.dateTo,
-    search.preset,
-    totalSpend,
-    transactions,
-  ])
-
-  useEffect(() => {
-    setHeaderAction(aiSummaryAction)
-    return () => setHeaderAction(null)
-  }, [aiSummaryAction, setHeaderAction])
 
   return (
     <div className="p-4 md:p-6 space-y-5">

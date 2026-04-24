@@ -28,6 +28,7 @@ import {
   ShoppingBag,
   ChevronDown,
   Target,
+  MessageSquareText,
 } from "lucide-react"
 import { useTheme, type Theme } from "@/hooks/use-theme"
 import { WifiOff } from "lucide-react"
@@ -52,7 +53,8 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 import { Toaster } from "@/components/ui/sonner"
-import { HeaderActionProvider, HeaderActionSlot } from "@/components/layout/header-actions"
+import { AiChatProvider, useAiChat } from "@/components/ai-chat/chat-provider"
+import { Button } from "@/components/ui/button"
 
 import appCss from "../styles.css?url"
 
@@ -430,26 +432,42 @@ function RootLayout() {
     <TooltipProvider>
       <SidebarProvider className="h-svh overflow-hidden">
         <AppSidebar />
-        <HeaderActionProvider>
-          <SidebarInset className="overflow-hidden">
-            <OfflineBanner />
-            <header className="header-frosted flex h-12 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-10">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" />
-              <div className="flex items-center gap-2 min-w-0">
-                <NavIcon className="size-3.5 text-muted-foreground shrink-0" />
-                <span className="font-semibold text-sm truncate">{currentNav.label}</span>
-              </div>
-              <div className="ml-auto flex items-center gap-2">
-                <HeaderActionSlot />
-              </div>
-            </header>
-            <div className="flex flex-1 flex-col overflow-auto min-h-0">
-              <Outlet />
-            </div>
-          </SidebarInset>
-        </HeaderActionProvider>
+        <AiChatProvider>
+          <RootLayoutContent navIcon={NavIcon} navLabel={currentNav.label} />
+        </AiChatProvider>
       </SidebarProvider>
     </TooltipProvider>
+  )
+}
+
+function RootLayoutContent({
+  navIcon: NavIcon,
+  navLabel,
+}: {
+  navIcon: typeof navItems[number]["icon"]
+  navLabel: string
+}) {
+  const { setOpen } = useAiChat()
+
+  return (
+    <SidebarInset className="overflow-hidden">
+      <OfflineBanner />
+      <header className="header-frosted flex h-12 shrink-0 items-center gap-2 border-b px-4 sticky top-0 z-10">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" />
+        <div className="flex items-center gap-2 min-w-0">
+          <NavIcon className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="font-semibold text-sm truncate">{navLabel}</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <MessageSquareText data-icon="inline-start" />
+          </Button>
+        </div>
+      </header>
+      <div className="flex flex-1 flex-col overflow-auto min-h-0">
+        <Outlet />
+      </div>
+    </SidebarInset>
   )
 }

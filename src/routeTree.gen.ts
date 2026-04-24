@@ -24,6 +24,7 @@ import { Route as TransactionsIndexRouteImport } from './routes/transactions/ind
 import { Route as MerchantsIndexRouteImport } from './routes/merchants/index'
 import { Route as TransactionsTransactionIdRouteImport } from './routes/transactions/$transactionId'
 import { Route as MerchantsMerchantRouteImport } from './routes/merchants/$merchant'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AnalyticsWhatIfRouteImport } from './routes/analytics/what-if'
 import { Route as AnalyticsSavingsRateRouteImport } from './routes/analytics/savings-rate'
 import { Route as AnalyticsPatternsRouteImport } from './routes/analytics/patterns'
@@ -109,6 +110,11 @@ const MerchantsMerchantRoute = MerchantsMerchantRouteImport.update({
   path: '/merchants/$merchant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyticsWhatIfRoute = AnalyticsWhatIfRouteImport.update({
   id: '/analytics/what-if',
   path: '/analytics/what-if',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/analytics/patterns': typeof AnalyticsPatternsRoute
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
   '/analytics/what-if': typeof AnalyticsWhatIfRoute
+  '/api/chat': typeof ApiChatRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/merchants/': typeof MerchantsIndexRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/analytics/patterns': typeof AnalyticsPatternsRoute
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
   '/analytics/what-if': typeof AnalyticsWhatIfRoute
+  '/api/chat': typeof ApiChatRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/merchants': typeof MerchantsIndexRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/analytics/patterns': typeof AnalyticsPatternsRoute
   '/analytics/savings-rate': typeof AnalyticsSavingsRateRoute
   '/analytics/what-if': typeof AnalyticsWhatIfRoute
+  '/api/chat': typeof ApiChatRoute
   '/merchants/$merchant': typeof MerchantsMerchantRoute
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/merchants/': typeof MerchantsIndexRoute
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | '/analytics/patterns'
     | '/analytics/savings-rate'
     | '/analytics/what-if'
+    | '/api/chat'
     | '/merchants/$merchant'
     | '/transactions/$transactionId'
     | '/merchants/'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/analytics/patterns'
     | '/analytics/savings-rate'
     | '/analytics/what-if'
+    | '/api/chat'
     | '/merchants/$merchant'
     | '/transactions/$transactionId'
     | '/merchants'
@@ -298,6 +309,7 @@ export interface FileRouteTypes {
     | '/analytics/patterns'
     | '/analytics/savings-rate'
     | '/analytics/what-if'
+    | '/api/chat'
     | '/merchants/$merchant'
     | '/transactions/$transactionId'
     | '/merchants/'
@@ -324,6 +336,7 @@ export interface RootRouteChildren {
   AnalyticsPatternsRoute: typeof AnalyticsPatternsRoute
   AnalyticsSavingsRateRoute: typeof AnalyticsSavingsRateRoute
   AnalyticsWhatIfRoute: typeof AnalyticsWhatIfRoute
+  ApiChatRoute: typeof ApiChatRoute
   MerchantsMerchantRoute: typeof MerchantsMerchantRoute
   TransactionsTransactionIdRoute: typeof TransactionsTransactionIdRoute
   MerchantsIndexRoute: typeof MerchantsIndexRoute
@@ -438,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantsMerchantRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analytics/what-if': {
       id: '/analytics/what-if'
       path: '/analytics/what-if'
@@ -516,6 +536,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsPatternsRoute: AnalyticsPatternsRoute,
   AnalyticsSavingsRateRoute: AnalyticsSavingsRateRoute,
   AnalyticsWhatIfRoute: AnalyticsWhatIfRoute,
+  ApiChatRoute: ApiChatRoute,
   MerchantsMerchantRoute: MerchantsMerchantRoute,
   TransactionsTransactionIdRoute: TransactionsTransactionIdRoute,
   MerchantsIndexRoute: MerchantsIndexRoute,

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import {
   getSpendingByCategory,
   getSpendingTrends,
@@ -21,7 +21,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatCard } from "@/components/dashboard/stat-card"
-import { AiSummaryDialog } from "@/components/dashboard/ai-summary-dialog"
 import { SpendingPieChart } from "@/components/dashboard/spending-pie-chart"
 import { SpendingBarChart } from "@/components/dashboard/spending-bar-chart"
 import { SpendingTrendsChart } from "@/components/dashboard/spending-trends-chart"
@@ -29,7 +28,6 @@ import { IncomeExpensesChart } from "@/components/dashboard/income-expenses-char
 import { TopMerchantsChart } from "@/components/dashboard/top-merchants-chart"
 import { CashFlowTable } from "@/components/dashboard/cash-flow-table"
 import { YearOverYearChart } from "@/components/dashboard/year-over-year-chart"
-import { useHeaderAction } from "@/components/layout/header-actions"
 
 type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
 
@@ -204,7 +202,6 @@ function DashboardPage() {
   const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const setHeaderAction = useHeaderAction()
   const chartType = search.chartType ?? "pie"
   const preset = search.preset
 
@@ -257,66 +254,6 @@ function DashboardPage() {
   }, [incomeVsExp])
 
   const hasData = byCat.length > 0
-  const accountLabel = useMemo(() => {
-    const selectedAccountId = (search.accountIds ?? [])[0]
-    if (!selectedAccountId) return "All accounts"
-    const account = accounts.find((a) => a.id === selectedAccountId)
-    return account?.name ?? account?.iban ?? "Selected account"
-  }, [accounts, search.accountIds])
-
-  const budgetSummaryRows = useMemo(() => {
-    const rows = [
-      ...budgetVsActual.categoryBudgets.map((b) => ({ name: b.categoryName, budgeted: b.budgeted, spent: b.spent })),
-      ...budgetVsActual.groupBudgets.map((b) => ({ name: b.groupName, budgeted: b.budgeted, spent: b.spent })),
-    ]
-    return rows.sort((a, b) => {
-      const aRatio = a.budgeted > 0 ? a.spent / a.budgeted : 0
-      const bRatio = b.budgeted > 0 ? b.spent / b.budgeted : 0
-      return bRatio - aRatio
-    })
-  }, [budgetVsActual.categoryBudgets, budgetVsActual.groupBudgets])
-
-  const aiSummaryAction = useMemo(() => {
-    if (!hasData) return null
-
-    return (
-      <AiSummaryDialog
-        stats={stats}
-        byCat={byCat}
-        topMerchants={merchants}
-        incomeVsExp={incomeVsExp}
-        budgets={budgetSummaryRows}
-        periodDelta={periodDelta}
-        dateFrom={search.dateFrom}
-        dateTo={search.dateTo}
-        presetLabel={PRESET_LABELS[preset]}
-        accountLabel={accountLabel}
-        excludeRecurring={search.excludeRecurring}
-        currency={currency}
-      />
-    )
-  }, [
-    accountLabel,
-    budgetSummaryRows,
-    byCat,
-    currency,
-    hasData,
-    incomeVsExp,
-    merchants,
-    periodDelta,
-    preset,
-    search.dateFrom,
-    search.dateTo,
-    search.excludeRecurring,
-    stats,
-  ])
-
-  useEffect(() => {
-    setHeaderAction(aiSummaryAction)
-    return () => setHeaderAction(null)
-  }, [aiSummaryAction, setHeaderAction])
-
-
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Filters bar */}

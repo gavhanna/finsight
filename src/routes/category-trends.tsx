@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { z } from "zod"
 import { getSpendingTrends, getAccounts } from "../server/fn/insights"
 import { getCategoryGroups, getCategories } from "../server/fn/categories"
@@ -11,9 +11,6 @@ import { TrendsChart } from "@/components/category-trends/trends-chart"
 import { SummaryTable } from "@/components/category-trends/summary-table"
 import { PageHelp } from "@/components/ui/page-help"
 import { withOfflineCache } from "@/lib/loader-cache"
-import { formatCurrency } from "@/lib/utils"
-import { PageAiSummaryDialog } from "@/components/ai-summary-dialog"
-import { useHeaderAction } from "@/components/layout/header-actions"
 
 type Preset = "3months" | "6months" | "ytd" | "12months" | "all"
 type ChartType = "area" | "bar"
@@ -71,7 +68,6 @@ function CategoryTrendsPage() {
   const { trends: rawTrends, accounts, groups, categoryList } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const setHeaderAction = useHeaderAction()
 
   const trends = rawTrends as TrendRow[]
   const preset = search.preset ?? "6months"
@@ -232,78 +228,6 @@ function CategoryTrendsPage() {
   }, [summaryStats])
 
   const noData = trends.length === 0
-  const selectedAccount = accounts.find(a => a.id === (search.accountIds ?? [])[0])
-  const aiSummaryAction = useMemo(() => {
-    if (noData) return null
-
-    return (
-      <PageAiSummaryDialog
-        request={{
-          kind: "category-trends",
-          pageTitle: "Category Trends",
-          filters: {
-            dateFrom: resolvedDates.dateFrom,
-            dateTo: resolvedDates.dateTo,
-            presetLabel: PRESET_LABELS[preset],
-            accountLabel: selectedAccount?.name ?? selectedAccount?.iban ?? "All accounts",
-          },
-          totalExpenses: summaryStats.reduce((sum, item) => sum + item.total, 0),
-          transactionCount: trends.length,
-          topCategories: summaryStats.slice(0, 6).map((item) => ({
-            name: item.name,
-            total: item.total,
-          })),
-          contextSections: [
-            {
-              title: "View settings",
-              lines: [
-                `View mode: ${viewMode}`,
-                `Chart type: ${chartType}`,
-                `Visible ${viewMode}: ${visibleItems.length} of ${allItems.length}`,
-                `Months in range: ${months.length}`,
-              ],
-            },
-            {
-              title: "Largest trend rows",
-              lines: summaryStats.slice(0, 8).map((item) =>
-                `${item.name}: total ${formatCurrency(item.total, "EUR")}, average ${formatCurrency(item.avgPerMonth, "EUR")}/mo, trend ${item.trendPct == null ? "n/a" : `${item.trendPct.toFixed(1)}%`}`,
-              ),
-            },
-            {
-              title: "Monthly totals",
-              lines: months.slice(-8).map((month) => {
-                const total = chartData.find((row) => row.month === month)
-                const sum = total
-                  ? Object.entries(total).filter(([key]) => key !== "month").reduce((acc, [, value]) => acc + Number(value), 0)
-                  : 0
-                return `${month}: ${formatCurrency(sum, "EUR")}`
-              }),
-            },
-          ],
-        }}
-      />
-    )
-  }, [
-    allItems.length,
-    chartData,
-    chartType,
-    months,
-    noData,
-    preset,
-    resolvedDates.dateFrom,
-    resolvedDates.dateTo,
-    selectedAccount?.iban,
-    selectedAccount?.name,
-    summaryStats,
-    trends.length,
-    viewMode,
-    visibleItems.length,
-  ])
-
-  useEffect(() => {
-    setHeaderAction(aiSummaryAction)
-    return () => setHeaderAction(null)
-  }, [aiSummaryAction, setHeaderAction])
 
   return (
     <div className="p-4 sm:p-6 space-y-6">

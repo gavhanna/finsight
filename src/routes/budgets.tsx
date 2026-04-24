@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { z } from "zod"
 import {
   getBudgetVsActual,
@@ -38,8 +38,6 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { PageHelp } from "@/components/ui/page-help"
-import { PageAiSummaryDialog } from "@/components/ai-summary-dialog"
-import { useHeaderAction } from "@/components/layout/header-actions"
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
@@ -1012,89 +1010,12 @@ export default function BudgetsPage() {
   const { vsActual, allBudgets, categories, groups, currency } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const setHeaderAction = useHeaderAction()
 
   const today = new Date().toISOString().slice(0, 7)
   const month = search.month ?? today
   const tab   = search.tab   ?? "overview"
 
   const isCurrentMonth = month === today
-  const budgetRows = useMemo(
-    () => [
-      ...vsActual.categoryBudgets.map((b) => ({ name: b.categoryName, budgeted: b.budgeted, spent: b.spent })),
-      ...vsActual.groupBudgets.map((b) => ({ name: b.groupName, budgeted: b.budgeted, spent: b.spent })),
-    ].sort((a, b) => {
-      const aRatio = a.budgeted > 0 ? a.spent / a.budgeted : 0
-      const bRatio = b.budgeted > 0 ? b.spent / b.budgeted : 0
-      return bRatio - aRatio
-    }),
-    [vsActual.categoryBudgets, vsActual.groupBudgets],
-  )
-  const totalBudgeted = budgetRows.reduce((sum, row) => sum + row.budgeted, 0)
-  const totalSpent = budgetRows.reduce((sum, row) => sum + row.spent, 0)
-  const onTrack = budgetRows.filter((row) => row.spent <= row.budgeted).length
-
-  const aiSummaryAction = useMemo(() => {
-    if (budgetRows.length === 0 && allBudgets.length === 0) return null
-
-    return (
-      <PageAiSummaryDialog
-        request={{
-          kind: "budgets",
-          pageTitle: "Budgets",
-          filters: {
-            presetLabel: displayMonth(month),
-          },
-          totalExpenses: totalSpent,
-          net: totalBudgeted - totalSpent,
-          budgets: budgetRows.slice(0, 8),
-          currency,
-          contextSections: [
-            {
-              title: "Budget status",
-              lines: [
-                `${onTrack} of ${budgetRows.length} active budgets are on track`,
-                `Total budgeted: ${formatCurrency(totalBudgeted, currency)}`,
-                `Total spent: ${formatCurrency(totalSpent, currency)}`,
-                `Remaining: ${formatCurrency(totalBudgeted - totalSpent, currency)}`,
-                `Income actual: ${formatCurrency(vsActual.incomeActual, currency)}`,
-                `Income 3-month average: ${formatCurrency(vsActual.incomeAvg3m, currency)}`,
-              ],
-            },
-            {
-              title: "Unbudgeted spending",
-              lines: vsActual.unbudgeted.slice(0, 6).map((row) =>
-                `${row.categoryName}: ${formatCurrency(row.spent, currency)}`,
-              ),
-            },
-            {
-              title: "Standing budgets",
-              lines: allBudgets.slice(0, 8).map((budget) =>
-                `${budget.categoryName ?? budget.groupName}: ${formatCurrency(budget.monthlyAmount, currency)}/mo`,
-              ),
-            },
-          ],
-        }}
-      />
-    )
-  }, [
-    allBudgets,
-    budgetRows,
-    currency,
-    month,
-    onTrack,
-    totalBudgeted,
-    totalSpent,
-    vsActual.incomeActual,
-    vsActual.incomeAvg3m,
-    vsActual.unbudgeted,
-  ])
-
-  useEffect(() => {
-    setHeaderAction(aiSummaryAction)
-    return () => setHeaderAction(null)
-  }, [aiSummaryAction, setHeaderAction])
-
   function setMonth(m: string) {
     navigate({ search: (s) => ({ ...s, month: m === today ? undefined : m }) })
   }
