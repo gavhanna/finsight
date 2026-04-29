@@ -44,6 +44,7 @@ const SearchSchema = z.object({
 	dateFrom: z.string().optional(),
 	dateTo: z.string().optional(),
 	categoryId: z.coerce.number().optional(),
+	amountSign: z.enum(["in", "out"]).optional(),
 	accountIds: z.array(z.string()).optional(),
 });
 
@@ -78,12 +79,13 @@ function TransactionsPage() {
 	const [chartResult, setChartResult] = useState<{ key: string; stats: ChartStats } | null>(null);
 
 	const hasSearch = !!search.search?.trim();
-	const hasChartFilter = hasSearch || search.categoryId !== undefined;
+	const hasChartFilter = hasSearch || search.categoryId !== undefined || search.amountSign !== undefined;
 	const chartKey = JSON.stringify({
 		search: search.search,
 		dateFrom: search.dateFrom,
 		dateTo: search.dateTo,
 		categoryId: search.categoryId,
+		amountSign: search.amountSign,
 		accountIds: search.accountIds ?? [],
 	});
 
@@ -104,6 +106,7 @@ function TransactionsPage() {
 				dateFrom: search.dateFrom,
 				dateTo: search.dateTo,
 				categoryId: search.categoryId,
+				amountSign: search.amountSign,
 				accountIds: search.accountIds ?? [],
 			},
 		}).then((s) => {
@@ -185,6 +188,7 @@ function TransactionsPage() {
 				dateFrom={search.dateFrom}
 				dateTo={search.dateTo}
 				categoryId={search.categoryId}
+				amountSign={search.amountSign}
 				accountIds={search.accountIds}
 				accounts={accounts}
 				categories={categories}
@@ -197,6 +201,7 @@ function TransactionsPage() {
 				onDateFromChange={(v) => updateSearch({ dateFrom: v })}
 				onDateToChange={(v) => updateSearch({ dateTo: v })}
 				onCategoryChange={(v) => updateSearch({ categoryId: v })}
+				onAmountSignChange={(v) => updateSearch({ amountSign: v })}
 				onAccountChange={(v) => updateSearch({ accountIds: v })}
 			/>
 

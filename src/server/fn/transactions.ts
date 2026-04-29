@@ -8,7 +8,7 @@ import {
   budgets,
   budgetOverrides,
 } from "../../db/schema"
-import { eq, and, gte, lte, desc, inArray, sql, lt, or } from "drizzle-orm"
+import { eq, and, gte, lte, desc, inArray, sql, lt, gt, or } from "drizzle-orm"
 import { z } from "zod"
 import { categorise } from "../services/categoriser.server"
 import { log } from "../../lib/logger.server"
@@ -20,6 +20,7 @@ const FiltersSchema = z.object({
   dateTo: z.string().optional(),
   accountIds: z.array(z.string()).optional(),
   categoryId: z.number().optional(),
+  amountSign: z.enum(["in", "out"]).optional(),
   search: z.string().optional(),
   page: z.number().default(1),
   pageSize: z.number().default(50),
@@ -39,6 +40,8 @@ function buildConditions(filters: z.infer<typeof StatsFiltersSchema>) {
       conditions.push(eq(transactions.categoryId, filters.categoryId))
     }
   }
+  if (filters.amountSign === "in") conditions.push(gt(transactions.amount, 0))
+  if (filters.amountSign === "out") conditions.push(lt(transactions.amount, 0))
   if (filters.search) {
     const term = `%${filters.search}%`
     conditions.push(

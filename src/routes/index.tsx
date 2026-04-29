@@ -9,6 +9,7 @@ import {
   getAccounts,
   getYearOverYearComparison,
 } from "../server/fn/insights"
+import { getCategories } from "../server/fn/categories"
 import { getSetting } from "../server/fn/settings"
 import { getBudgetVsActual, type CategoryBudgetRow, type GroupBudgetRow } from "../server/fn/budgets"
 import { formatCurrency } from "@/lib/utils"
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/")({
     }
     const currentMonth = new Date().toISOString().slice(0, 7)
     return withOfflineCache("dashboard", async () => {
-      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual] =
+      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, categories] =
         await Promise.all([
           getSpendingByCategory({ data: filters }),
           getSpendingTrends({ data: filters }),
@@ -68,8 +69,12 @@ export const Route = createFileRoute("/")({
           getSetting({ data: "preferred_currency" }),
           getYearOverYearComparison({ data: filters }),
           getBudgetVsActual({ data: { month: currentMonth } }),
+          getCategories(),
         ])
-      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth }
+      const incomeCategoryId =
+        categories.find((category) => category.type === "income" && category.name.toLowerCase() === "income")?.id ??
+        categories.find((category) => category.type === "income")?.id
+      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId }
     })
   },
 })
@@ -199,7 +204,7 @@ function BudgetSnapshotCard({
 }
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
@@ -254,6 +259,16 @@ function DashboardPage() {
   }, [incomeVsExp])
 
   const hasData = byCat.length > 0 || stats.totalMoneyIn > 0
+  const activeDates = search.dateFrom || search.dateTo
+    ? { dateFrom: search.dateFrom, dateTo: search.dateTo }
+    : getPresetDates(preset)
+  const transactionSearchBase = {
+    dateFrom: activeDates.dateFrom,
+    dateTo: activeDates.dateTo,
+    accountIds: search.accountIds,
+    page: 1,
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Filters bar */}
@@ -302,49 +317,63 @@ function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-        <StatCard
-          label="Total Spend"
-          value={formatCurrency(stats.totalExpenses, currency)}
-          icon={<TrendingDown className="h-4 w-4 text-negative" />}
-          sub="outgoing"
-          delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
-          accent="negative"
-          className="animate-in stagger-1"
-        />
-        <StatCard
-          label="Total Income"
-          value={formatCurrency(stats.totalIncome, currency)}
-          icon={<TrendingUp className="h-4 w-4 text-positive" />}
-          sub="income category"
-          delta={periodDelta?.income}
-          accent="positive"
-          className="animate-in stagger-2"
-        />
-        <StatCard
-          label="Money In"
-          value={formatCurrency(stats.totalMoneyIn, currency)}
-          icon={<Wallet className="h-4 w-4 text-primary" />}
-          sub="all credits"
-          accent="primary"
-          className="animate-in stagger-3"
-        />
-        <StatCard
-          label="Net Balance"
-          value={formatCurrency(stats.net, currency)}
-          icon={<ArrowLeftRight className="h-4 w-4 text-neutral-data" />}
-          sub={stats.net >= 0 ? "surplus" : "deficit"}
-          valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
-          accent={stats.net >= 0 ? "positive" : "negative"}
-          className="animate-in stagger-4"
-        />
-        <StatCard
-          label="Transactions"
-          value={stats.count.toString()}
-          icon={<Hash className="h-4 w-4 text-muted-foreground" />}
-          sub="total"
-          accent="neutral"
-          className="animate-in stagger-5"
-        />
+        <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "out" }} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <StatCard
+            label="Total Spend"
+            value={formatCurrency(stats.totalExpenses, currency)}
+            icon={<TrendingDown className="h-4 w-4 text-negative" />}
+            sub="outgoing"
+            delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
+            accent="negative"
+            className="animate-in stagger-1"
+          />
+        </Link>
+        <Link
+          to="/transactions"
+          search={{ ...transactionSearchBase, amountSign: "in", categoryId: incomeCategoryId }}
+          className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <StatCard
+            label="Total Income"
+            value={formatCurrency(stats.totalIncome, currency)}
+            icon={<TrendingUp className="h-4 w-4 text-positive" />}
+            sub="income category"
+            delta={periodDelta?.income}
+            accent="positive"
+            className="animate-in stagger-2"
+          />
+        </Link>
+        <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "in" }} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <StatCard
+            label="Money In"
+            value={formatCurrency(stats.totalMoneyIn, currency)}
+            icon={<Wallet className="h-4 w-4 text-primary" />}
+            sub="all credits"
+            accent="primary"
+            className="animate-in stagger-3"
+          />
+        </Link>
+        <Link to="/transactions" search={transactionSearchBase} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <StatCard
+            label="Net Balance"
+            value={formatCurrency(stats.net, currency)}
+            icon={<ArrowLeftRight className="h-4 w-4 text-neutral-data" />}
+            sub={stats.net >= 0 ? "surplus" : "deficit"}
+            valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
+            accent={stats.net >= 0 ? "positive" : "negative"}
+            className="animate-in stagger-4"
+          />
+        </Link>
+        <Link to="/transactions" search={transactionSearchBase} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <StatCard
+            label="Transactions"
+            value={stats.count.toString()}
+            icon={<Hash className="h-4 w-4 text-muted-foreground" />}
+            sub="total"
+            accent="neutral"
+            className="animate-in stagger-5"
+          />
+        </Link>
       </div>
 
       {/* Budget snapshot */}

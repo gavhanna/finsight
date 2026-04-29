@@ -25,6 +25,7 @@ export function TransactionFilters({
 	dateFrom,
 	dateTo,
 	categoryId,
+	amountSign,
 	accountIds,
 	accounts,
 	categories,
@@ -37,6 +38,7 @@ export function TransactionFilters({
 	onDateFromChange,
 	onDateToChange,
 	onCategoryChange,
+	onAmountSignChange,
 	onAccountChange,
 }: {
 	searchInput: string;
@@ -47,6 +49,7 @@ export function TransactionFilters({
 	dateFrom?: string;
 	dateTo?: string;
 	categoryId?: number;
+	amountSign?: "in" | "out";
 	accountIds?: string[];
 	accounts: Account[];
 	categories: Category[];
@@ -59,6 +62,7 @@ export function TransactionFilters({
 	onDateFromChange: (v?: string) => void;
 	onDateToChange: (v?: string) => void;
 	onCategoryChange: (v?: number) => void;
+	onAmountSignChange: (v?: "in" | "out") => void;
 	onAccountChange: (v?: string[]) => void;
 }) {
 	return (
@@ -99,6 +103,21 @@ export function TransactionFilters({
 					/>
 				</div>
 				<div className="flex gap-2 flex-wrap w-full sm:w-auto">
+					<Select
+						value={amountSign ?? "all"}
+						onValueChange={(v) =>
+							onAmountSignChange(v === "in" || v === "out" ? v : undefined)
+						}
+					>
+						<SelectTrigger className="flex-1 sm:flex-none sm:min-w-32">
+							<SelectValue placeholder="All amounts" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All amounts</SelectItem>
+							<SelectItem value="out">Money out</SelectItem>
+							<SelectItem value="in">Money in</SelectItem>
+						</SelectContent>
+					</Select>
 					<Select
 						value={categoryId !== undefined ? String(categoryId) : "all"}
 						onValueChange={(v) =>
