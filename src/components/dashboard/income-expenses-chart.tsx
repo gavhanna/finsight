@@ -5,7 +5,7 @@ import { formatCurrency, formatYearMonth } from "@/lib/utils"
 import { ChartTooltip } from "@/components/chart-tooltip"
 
 export function IncomeExpensesChart({ data, currency = "EUR" }: {
-  data: { month: string; income: number; expenses: number; net: number }[]
+  data: { month: string; income: number; moneyIn: number; expenses: number; net: number }[]
   currency?: string
 }) {
   if (data.length === 0) {
@@ -34,6 +34,7 @@ export function IncomeExpensesChart({ data, currency = "EUR" }: {
         <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: "11px" }} />
         <ReferenceLine yAxisId="left" y={0} stroke="oklch(0.5 0 0 / 0.15)" strokeWidth={1.5} />
         <Line yAxisId="left" type="monotone" dataKey="income" name="Income" stroke="var(--color-chart-2)" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+        <Line yAxisId="left" type="monotone" dataKey="moneyIn" name="Money In" stroke="var(--color-chart-4)" strokeWidth={1.8} strokeDasharray="5 3" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
         <Line yAxisId="left" type="monotone" dataKey="expenses" name="Expenses" stroke="var(--color-chart-5)" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
         <Line yAxisId="left" type="monotone" dataKey="net" name="Net" stroke="var(--color-chart-1)" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
         {hasRateData && (

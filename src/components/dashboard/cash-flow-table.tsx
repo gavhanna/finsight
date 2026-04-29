@@ -9,8 +9,8 @@ export function CashFlowTable({
   stats,
   currency = "EUR",
 }: {
-  data: { month: string; income: number; expenses: number; net: number }[]
-  stats: { totalIncome: number; totalExpenses: number; net: number; count: number }
+  data: { month: string; income: number; moneyIn: number; expenses: number; net: number }[]
+  stats: { totalIncome: number; totalMoneyIn: number; totalExpenses: number; net: number; count: number }
   currency?: string
 }) {
   const dataWithRate = data.map((r) => ({
@@ -29,6 +29,7 @@ export function CashFlowTable({
             <TableRow className="border-b">
               <SortableHead id="month" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="pl-5">Month</SortableHead>
               <SortableHead id="income" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Income</SortableHead>
+              <SortableHead id="moneyIn" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right hidden md:table-cell">Money In</SortableHead>
               <SortableHead id="expenses" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Expenses</SortableHead>
               <SortableHead id="net" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right">Net</SortableHead>
               <SortableHead id="savingsRate" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right pr-5 hidden sm:table-cell">Savings Rate</SortableHead>
@@ -43,6 +44,7 @@ export function CashFlowTable({
                 <TableRow key={row.month} className="hover:bg-muted/30">
                   <TableCell className="pl-5 font-medium">{formatYearMonth(row.month)}</TableCell>
                   <TableCell className="text-right text-positive tabular-nums">{formatCurrency(row.income, currency)}</TableCell>
+                  <TableCell className="text-right text-primary tabular-nums hidden md:table-cell">{formatCurrency(row.moneyIn, currency)}</TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">{formatCurrency(row.expenses, currency)}</TableCell>
                   <TableCell className={cn("text-right tabular-nums font-semibold", net >= 0 ? "text-positive" : "text-negative")}>
                     {formatCurrency(net, currency)}
@@ -58,6 +60,7 @@ export function CashFlowTable({
             <TableRow>
               <TableCell className="font-bold pl-5">Total</TableCell>
               <TableCell className="text-right text-positive tabular-nums font-bold">{formatCurrency(stats.totalIncome, currency)}</TableCell>
+              <TableCell className="text-right text-primary tabular-nums font-bold hidden md:table-cell">{formatCurrency(stats.totalMoneyIn, currency)}</TableCell>
               <TableCell className="text-right tabular-nums font-bold text-muted-foreground">{formatCurrency(stats.totalExpenses, currency)}</TableCell>
               <TableCell className={cn("text-right tabular-nums font-bold", stats.net >= 0 ? "text-positive" : "text-negative")}>
                 {formatCurrency(stats.net, currency)}

@@ -150,20 +150,23 @@ export const getIncomeVsExpenses = createServerFn()
     const rows = await db
       .select({
         month: monthExpr,
-        income: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`,
+        income: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 AND ${categories.type} = 'income' THEN ${transactions.amount} ELSE 0 END)`,
+        moneyIn: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`,
         expenses: sql<number>`SUM(CASE WHEN ${transactions.amount} < 0 THEN ${transactions.amount} ELSE 0 END)`,
         count: sql<number>`COUNT(*)`,
       })
       .from(transactions)
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .groupBy(monthExpr)
       .orderBy(monthExpr)
 
     return rows.map((r) => ({
       month: r.month,
-      income: r.income,
+      income: r.income ?? 0,
+      moneyIn: r.moneyIn ?? 0,
       expenses: Math.abs(r.expenses),
-      net: r.income + r.expenses,
+      net: (r.moneyIn ?? 0) + r.expenses,
     }))
   })
 
@@ -174,18 +177,21 @@ export const getSummaryStats = createServerFn()
 
     const rows = await db
       .select({
-        totalIncome: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`,
+        totalIncome: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 AND ${categories.type} = 'income' THEN ${transactions.amount} ELSE 0 END)`,
+        totalMoneyIn: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`,
         totalExpenses: sql<number>`SUM(CASE WHEN ${transactions.amount} < 0 THEN ${transactions.amount} ELSE 0 END)`,
         count: sql<number>`COUNT(*)`,
       })
       .from(transactions)
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
       .where(conditions.length ? and(...conditions) : undefined)
 
     const row = rows[0]
     return {
       totalIncome: row?.totalIncome ?? 0,
+      totalMoneyIn: row?.totalMoneyIn ?? 0,
       totalExpenses: Math.abs(row?.totalExpenses ?? 0),
-      net: (row?.totalIncome ?? 0) + (row?.totalExpenses ?? 0),
+      net: (row?.totalMoneyIn ?? 0) + (row?.totalExpenses ?? 0),
       count: Number(row?.count ?? 0),
     }
   })
@@ -217,10 +223,12 @@ export const getYearOverYearComparison = createServerFn()
       const rows = await db
         .select({
           month: monthExpr,
-          income: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`,
+          income: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 AND ${categories.type} = 'income' THEN ${transactions.amount} ELSE 0 END)`,
+          moneyIn: sql<number>`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`,
           expenses: sql<number>`SUM(CASE WHEN ${transactions.amount} < 0 THEN ${transactions.amount} ELSE 0 END)`,
         })
         .from(transactions)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .where(conditions.length ? and(...conditions) : undefined)
         .groupBy(monthExpr)
         .orderBy(monthExpr)
@@ -228,8 +236,9 @@ export const getYearOverYearComparison = createServerFn()
       return rows.map((r) => ({
         month: r.month,
         income: r.income ?? 0,
+        moneyIn: r.moneyIn ?? 0,
         expenses: Math.abs(r.expenses ?? 0),
-        net: (r.income ?? 0) + (r.expenses ?? 0),
+        net: (r.moneyIn ?? 0) + (r.expenses ?? 0),
       }))
     }
 

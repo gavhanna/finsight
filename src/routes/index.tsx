@@ -15,7 +15,7 @@ import { formatCurrency } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
-import { TrendingDown, TrendingUp, ArrowLeftRight, Hash, Target, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { TrendingDown, TrendingUp, ArrowLeftRight, Hash, Target, ChevronRight, AlertTriangle, CheckCircle2, Wallet } from "lucide-react"
 import { z } from "zod"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -238,7 +238,7 @@ function DashboardPage() {
   }, [trends])
 
   const periodDelta = useMemo(() => {
-    const data = incomeVsExp as Array<{ month: string; income: number; expenses: number; net: number }>
+    const data = incomeVsExp as Array<{ month: string; income: number; moneyIn: number; expenses: number; net: number }>
     if (data.length < 2) return null
     const mid = Math.floor(data.length / 2)
     const prev = data.slice(0, mid)
@@ -253,7 +253,7 @@ function DashboardPage() {
     }
   }, [incomeVsExp])
 
-  const hasData = byCat.length > 0
+  const hasData = byCat.length > 0 || stats.totalMoneyIn > 0
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Filters bar */}
@@ -301,7 +301,7 @@ function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         <StatCard
           label="Total Spend"
           value={formatCurrency(stats.totalExpenses, currency)}
@@ -315,10 +315,18 @@ function DashboardPage() {
           label="Total Income"
           value={formatCurrency(stats.totalIncome, currency)}
           icon={<TrendingUp className="h-4 w-4 text-positive" />}
-          sub="incoming"
+          sub="income category"
           delta={periodDelta?.income}
           accent="positive"
           className="animate-in stagger-2"
+        />
+        <StatCard
+          label="Money In"
+          value={formatCurrency(stats.totalMoneyIn, currency)}
+          icon={<Wallet className="h-4 w-4 text-primary" />}
+          sub="all credits"
+          accent="primary"
+          className="animate-in stagger-3"
         />
         <StatCard
           label="Net Balance"
@@ -327,7 +335,7 @@ function DashboardPage() {
           sub={stats.net >= 0 ? "surplus" : "deficit"}
           valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
           accent={stats.net >= 0 ? "positive" : "negative"}
-          className="animate-in stagger-3"
+          className="animate-in stagger-4"
         />
         <StatCard
           label="Transactions"
@@ -335,7 +343,7 @@ function DashboardPage() {
           icon={<Hash className="h-4 w-4 text-muted-foreground" />}
           sub="total"
           accent="neutral"
-          className="animate-in stagger-4"
+          className="animate-in stagger-5"
         />
       </div>
 
