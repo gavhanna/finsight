@@ -4,8 +4,10 @@ import { pushSubscriptions, settings, transactions } from "../../db/schema"
 import { eq, and, gte, lt, lte } from "drizzle-orm"
 import { log } from "../../lib/logger.server"
 import { fetchRecurringItems } from "./recurring.server"
-import { canonicalizeMerchantName } from "../../lib/merchant-utils"
-import { loadAliasMap } from "./merchant-aliases.server"
+import {
+  excludeCanonicalMerchants,
+  getHistoricalMerchantExpenseAmounts,
+} from "./merchants.server"
 
 export type NotificationPreferences = {
   syncCompleted: boolean
@@ -120,10 +122,7 @@ export async function notifyLargeTransactions(
   const subs = await getSubscribersForPreference("largeTransactions")
   if (subs.length === 0) return
 
-  const [currency, aliases] = await Promise.all([
-    getDbSetting("preferred_currency"),
-    loadAliasMap(),
-  ])
+  const currency = await getDbSetting("preferred_currency")
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-IE", {
       style: "currency",
@@ -135,38 +134,19 @@ export async function notifyLargeTransactions(
   const expenses = newTxs.filter((tx) => tx.amount < 0 && tx.payee)
 
   for (const tx of expenses) {
-    const canonicalPayee = canonicalizeMerchantName(tx.payee, aliases)
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
     const since = ninetyDaysAgo.toISOString().slice(0, 10)
 
-    const historicalTxs = await db
-      .select({
-        amount: transactions.amount,
-        creditorName: transactions.creditorName,
-        debtorName: transactions.debtorName,
-        description: transactions.description,
-      })
-      .from(transactions)
-      .where(
-        and(
-          gte(transactions.bookingDate, since),
-          lt(transactions.bookingDate, tx.bookingDate),
-          lt(transactions.amount, 0),
-        ),
-      )
-
-    const matchingHistory = historicalTxs.filter((historicalTx) => {
-      const rawPayee =
-        historicalTx.creditorName ?? historicalTx.debtorName ?? historicalTx.description ?? ""
-      if (!rawPayee) return false
-      return canonicalizeMerchantName(rawPayee, aliases) === canonicalPayee
+    const historicalAmounts = await getHistoricalMerchantExpenseAmounts(tx.payee, {
+      dateFrom: since,
+      beforeDate: tx.bookingDate,
     })
 
-    const count = matchingHistory.length
+    const count = historicalAmounts.length
     const avg =
       count > 0
-        ? matchingHistory.reduce((sum, historicalTx) => sum + Math.abs(historicalTx.amount), 0) / count
+        ? historicalAmounts.reduce((sum, amount) => sum + amount, 0) / count
         : 0
     if (!avg || count < 2) continue
 
@@ -238,9 +218,8 @@ export async function checkWeeklyDigest() {
   const dateFrom = lastMonday.toISOString().slice(0, 10)
   const dateTo = lastSunday.toISOString().slice(0, 10)
 
-  const [recurringItems, aliases, weeklyTransactions] = await Promise.all([
+  const [recurringItems, weeklyTransactions] = await Promise.all([
     fetchRecurringItems(true),
-    loadAliasMap(),
     db
       .select({
         amount: transactions.amount,
@@ -259,11 +238,10 @@ export async function checkWeeklyDigest() {
   ])
 
   const recurringPayees = new Set(recurringItems.map((r) => r.payee))
-  const discretionaryTransactions = weeklyTransactions.filter((tx) => {
-    const rawPayee = tx.creditorName ?? tx.debtorName ?? tx.description ?? ""
-    if (!rawPayee) return true
-    return !recurringPayees.has(canonicalizeMerchantName(rawPayee, aliases))
-  })
+  const discretionaryTransactions = await excludeCanonicalMerchants(
+    weeklyTransactions,
+    recurringPayees,
+  )
 
   const total = discretionaryTransactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
   const txCount = discretionaryTransactions.length

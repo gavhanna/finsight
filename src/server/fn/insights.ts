@@ -8,7 +8,7 @@ import { getMedian, classifyInterval, toMonthlyEquiv, type Frequency } from "../
 import { createHash } from "crypto"
 import { narrativeCache } from "../../db/schema"
 import { fetchRecurringItems } from "../services/recurring.server"
-import { normalizeMerchantName, resolveAlias } from "../../lib/merchant-utils"
+import { getTopMerchantSpend } from "../services/merchants.server"
 
 const InsightFilters = z.object({
   dateFrom: z.string().optional(),
@@ -94,52 +94,14 @@ export const getSpendingTrends = createServerFn()
 export const getTopMerchants = createServerFn()
   .inputValidator(InsightFilters.extend({ limit: z.number().default(10), excludeRecurring: z.boolean().default(false) }))
   .handler(async ({ data: filters }) => {
-    const conditions = [
-      ...buildConditions(filters),
-      lt(transactions.amount, 0),
-    ]
-
-    const payee = sql<string>`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}, 'Unknown')`
-
-    const { loadAliasMap } = await import("../services/merchant-aliases.server")
-    const [rows, aliases, recurringItems] = await Promise.all([
-      db
-        .select({
-          payee,
-          total: sql<number>`SUM(${transactions.amount})`,
-          count: sql<number>`COUNT(*)`,
-        })
-        .from(transactions)
-        .where(and(...conditions))
-        .groupBy(payee),
-      loadAliasMap(),
-      filters.excludeRecurring ? fetchRecurringItems(true) : Promise.resolve([]),
-    ])
-
-    const recurringPayees = new Set(recurringItems.map((r) => r.payee))
-
-    // Normalize + resolve aliases, re-aggregate, then take top N
-    const map = new Map<string, { total: number; count: number }>()
-    for (const r of rows) {
-      const name = resolveAlias(normalizeMerchantName(r.payee), aliases)
-      if (filters.excludeRecurring && recurringPayees.has(name)) continue
-      const existing = map.get(name)
-      if (existing) {
-        existing.total += Number(r.total)
-        existing.count += Number(r.count)
-      } else {
-        map.set(name, { total: Number(r.total), count: Number(r.count) })
-      }
-    }
-
-    return Array.from(map.entries())
-      .sort((a, b) => a[1].total - b[1].total) // ascending (most negative first = biggest expense)
-      .slice(0, filters.limit)
-      .map(([name, v]) => ({
-        name,
-        total: Math.abs(v.total),
-        count: v.count,
-      }))
+    const recurringItems = filters.excludeRecurring ? await fetchRecurringItems(true) : []
+    return getTopMerchantSpend({
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+      accountIds: filters.accountIds,
+      limit: filters.limit,
+      excludeMerchantNames: new Set(recurringItems.map((item) => item.payee)),
+    })
   })
 
 export const getIncomeVsExpenses = createServerFn()

@@ -8,12 +8,11 @@ import {
   budgets,
   budgetOverrides,
 } from "../../db/schema"
-import { eq, and, gte, lte, desc, inArray, sql, lt, gt, or } from "drizzle-orm"
+import { eq, and, gte, lte, desc, inArray, sql, lt, gt } from "drizzle-orm"
 import { z } from "zod"
 import { categorise } from "../services/categoriser.server"
 import { log } from "../../lib/logger.server"
-import { normalizeMerchantName, resolveAlias } from "../../lib/merchant-utils"
-import { classifyInterval, getMedian, toMonthlyEquiv } from "../../lib/recurring"
+import { getMerchantContextForTransaction } from "../services/merchants.server"
 
 const FiltersSchema = z.object({
   dateFrom: z.string().optional(),
@@ -221,179 +220,14 @@ export const getTransactionDetail = createServerFn()
     } | null = null
 
     if (row.transaction.amount < 0 && rawMerchantName && rawMerchantName !== "Unknown") {
-      const { loadAliasMap } = await import("../services/merchant-aliases.server")
-      const aliases = await loadAliasMap()
-      const canonicalName = resolveAlias(normalizeMerchantName(rawMerchantName), aliases)
-      const payeeExpr = sql<string>`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}, 'Unknown')`
-
-      const allRaw = await db
-        .selectDistinct({ raw: payeeExpr })
-        .from(transactions)
-        .where(lt(transactions.amount, 0))
-
-      const matchingRaw = allRaw
-        .map((entry) => entry.raw)
-        .filter((name) => resolveAlias(normalizeMerchantName(name), aliases) === canonicalName)
-
-      if (matchingRaw.length > 0) {
-        const nameCondition = or(
-          ...matchingRaw.map(
-            (name) =>
-              sql`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}, 'Unknown') = ${name}`,
-          ),
-        )
-
-        const ninetyDaysAgo = new Date(`${row.transaction.bookingDate}T00:00:00Z`)
-        ninetyDaysAgo.setUTCDate(ninetyDaysAgo.getUTCDate() - 90)
-        const historyWindowStart = ninetyDaysAgo.toISOString().slice(0, 10)
-
-        const [statsRows, recentRows, monthlyRows, timelineRows, historicalRows] = await Promise.all([
-          db
-            .select({
-              count: sql<number>`COUNT(*)`,
-              totalSpend: sql<number>`SUM(ABS(${transactions.amount}))`,
-              averageSpend: sql<number>`AVG(ABS(${transactions.amount}))`,
-              firstSeen: sql<string>`MIN(${transactions.bookingDate})`,
-              lastSeen: sql<string>`MAX(${transactions.bookingDate})`,
-            })
-            .from(transactions)
-            .where(and(lt(transactions.amount, 0), nameCondition)),
-          db
-            .select({
-              id: transactions.id,
-              bookingDate: transactions.bookingDate,
-              amount: transactions.amount,
-              currency: transactions.currency,
-              description: transactions.description,
-              categoryName: categories.name,
-              categoryColor: categories.color,
-            })
-            .from(transactions)
-            .leftJoin(categories, eq(transactions.categoryId, categories.id))
-            .where(and(lt(transactions.amount, 0), nameCondition))
-            .orderBy(desc(transactions.bookingDate), desc(transactions.id))
-            .limit(6),
-          db
-            .select({
-              month: sql<string>`to_char(${transactions.bookingDate}::date, 'YYYY-MM')`,
-              total: sql<number>`SUM(ABS(${transactions.amount}))`,
-              count: sql<number>`COUNT(*)`,
-            })
-            .from(transactions)
-            .where(and(lt(transactions.amount, 0), nameCondition))
-            .groupBy(sql`to_char(${transactions.bookingDate}::date, 'YYYY-MM')`)
-            .orderBy(sql`to_char(${transactions.bookingDate}::date, 'YYYY-MM')`),
-          db
-            .select({
-              bookingDate: transactions.bookingDate,
-              amount: transactions.amount,
-            })
-            .from(transactions)
-            .where(and(lt(transactions.amount, 0), nameCondition))
-            .orderBy(transactions.bookingDate),
-          db
-            .select({
-              amount: transactions.amount,
-            })
-            .from(transactions)
-            .where(
-              and(
-                lt(transactions.amount, 0),
-                nameCondition,
-                gte(transactions.bookingDate, historyWindowStart),
-                lt(transactions.bookingDate, row.transaction.bookingDate),
-              ),
-            ),
-        ])
-
-        const stats = statsRows[0]
-        const sortedTimeline = timelineRows
-          .map((entry) => ({
-            bookingDate: entry.bookingDate,
-            amount: Math.abs(entry.amount),
-          }))
-          .sort((a, b) => a.bookingDate.localeCompare(b.bookingDate))
-        const intervals = sortedTimeline.slice(1).map((entry, index) => {
-          const prev = new Date(`${sortedTimeline[index].bookingDate}T00:00:00Z`).getTime()
-          const curr = new Date(`${entry.bookingDate}T00:00:00Z`).getTime()
-          return Math.round((curr - prev) / 86_400_000)
-        })
-        const medianInterval = getMedian(intervals)
-        const frequency = classifyInterval(medianInterval)
-        const recurringAverage =
-          sortedTimeline.length > 0
-            ? sortedTimeline.reduce((sum, entry) => sum + entry.amount, 0) / sortedTimeline.length
-            : 0
-        const lastSeen = sortedTimeline[sortedTimeline.length - 1]?.bookingDate ?? null
-        const nextExpected =
-          lastSeen && medianInterval > 0
-            ? new Date(
-                new Date(`${lastSeen}T00:00:00Z`).getTime() + medianInterval * 86_400_000,
-              )
-                .toISOString()
-                .slice(0, 10)
-            : null
-        const daysSinceLastSeen =
-          lastSeen
-            ? Math.floor(
-                (Date.now() - new Date(`${lastSeen}T00:00:00Z`).getTime()) / 86_400_000,
-              )
-            : null
-        const historicalAmounts = historicalRows.map((entry) => Math.abs(entry.amount))
-        const averageHistoricalAmount =
-          historicalAmounts.length > 0
-            ? historicalAmounts.reduce((sum, amount) => sum + amount, 0) / historicalAmounts.length
-            : 0
-        const ratioToAverage =
-          averageHistoricalAmount > 0
-            ? Math.abs(row.transaction.amount) / averageHistoricalAmount
-            : 0
-
-        merchant = {
-          canonicalName,
-          transactionCount: Number(stats?.count ?? 0),
-          totalSpend: Number(stats?.totalSpend ?? 0),
-          averageSpend: Number(stats?.averageSpend ?? 0),
-          firstSeen: stats?.firstSeen ?? null,
-          lastSeen: stats?.lastSeen ?? null,
-          recentTransactions: recentRows.map((tx) => ({
-            id: tx.id,
-            bookingDate: tx.bookingDate,
-            amount: Math.abs(tx.amount),
-            currency: tx.currency,
-            description: tx.description,
-            categoryName: tx.categoryName ?? "Uncategorised",
-            categoryColor: tx.categoryColor ?? "#94a3b8",
-          })),
-          monthlySpend: monthlyRows.map((row) => ({
-            month: row.month,
-            total: Number(row.total),
-            count: Number(row.count),
-          })),
-        }
-        merchantContext = {
-          recurring:
-            frequency && lastSeen && nextExpected && daysSinceLastSeen !== null
-              ? {
-                  frequency,
-                  averageAmount: recurringAverage,
-                  monthlyEquivalent: toMonthlyEquiv(recurringAverage, frequency),
-                  nextExpected,
-                  lastSeen,
-                  transactionCount: sortedTimeline.length,
-                  isActive: daysSinceLastSeen < medianInterval * 2,
-                }
-              : null,
-          spendingPattern:
-            historicalAmounts.length >= 2
-              ? {
-                  averageHistoricalAmount,
-                  ratioToAverage,
-                  priorTransactionCount: historicalAmounts.length,
-                  isUnusuallyLarge: ratioToAverage > 2,
-                }
-              : null,
-        }
+      const context = await getMerchantContextForTransaction({
+        rawPayee: rawMerchantName,
+        bookingDate: row.transaction.bookingDate,
+        amount: row.transaction.amount,
+      })
+      if (context) {
+        merchant = context.merchant
+        merchantContext = context.merchantContext
       }
     }
 
