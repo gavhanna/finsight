@@ -4,10 +4,13 @@ import { transactions, categories, accounts, settings } from "../../db/schema"
 import { eq, and, gte, lte, inArray, sql, lt } from "drizzle-orm"
 import { z } from "zod"
 import { generateFinancialNarrative } from "../services/ollama.server"
-import { getMedian, classifyInterval, toMonthlyEquiv, type Frequency } from "../../lib/recurring"
 import { createHash } from "crypto"
 import { narrativeCache } from "../../db/schema"
-import { fetchRecurringItems } from "../services/recurring.server"
+import {
+  fetchRecurringItems,
+  fetchRecurringItemsWithCategories,
+  type RecurringItem,
+} from "../services/recurring.server"
 import { getTopMerchantSpend } from "../services/merchants.server"
 
 const InsightFilters = z.object({
@@ -298,108 +301,8 @@ export const generateNarrative = createServerFn()
     return { narrative, error: null, cached: false }
   })
 
-export type RecurringItem = {
-  payee: string
-  frequency: Frequency
-  medianInterval: number
-  avgAmount: number
-  amountRange: { min: number; max: number }
-  monthlyEquiv: number
-  annualCost: number
-  lastSeen: string
-  nextExpected: string
-  daysSinceLastSeen: number
-  isActive: boolean
-  transactionCount: number
-  categoryId: number | null
-  categoryName: string
-  categoryColor: string
-}
+export type { RecurringItem }
 
 export const getRecurringTransactions = createServerFn().handler(async (): Promise<RecurringItem[]> => {
-  // Fetch all expense transactions ordered by date ascending
-  const txns = await db
-    .select({
-      bookingDate: transactions.bookingDate,
-      amount: transactions.amount,
-      creditorName: transactions.creditorName,
-      debtorName: transactions.debtorName,
-      description: transactions.description,
-      categoryId: transactions.categoryId,
-    })
-    .from(transactions)
-    .where(lt(transactions.amount, 0))
-    .orderBy(transactions.bookingDate)
-
-  // Group by normalised payee in application code
-  const payeeMap = new Map<string, typeof txns>()
-  for (const tx of txns) {
-    const payee = tx.creditorName ?? tx.debtorName ?? tx.description ?? "Unknown"
-    if (payee === "Unknown") continue
-    if (!payeeMap.has(payee)) payeeMap.set(payee, [])
-    payeeMap.get(payee)!.push(tx)
-  }
-
-  const results: Omit<RecurringItem, "categoryName" | "categoryColor">[] = []
-
-  for (const [payee, txList] of payeeMap) {
-    if (txList.length < 3) continue
-
-    const sorted = [...txList].sort((a, b) => a.bookingDate.localeCompare(b.bookingDate))
-
-    const intervals: number[] = []
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = new Date(sorted[i - 1].bookingDate).getTime()
-      const curr = new Date(sorted[i].bookingDate).getTime()
-      intervals.push(Math.round((curr - prev) / 86_400_000))
-    }
-
-    const medianInterval = getMedian(intervals)
-    const frequency = classifyInterval(medianInterval)
-    if (!frequency) continue
-
-    const amounts = txList.map((t) => Math.abs(t.amount))
-    const avgAmount = amounts.reduce((s, a) => s + a, 0) / amounts.length
-    const minAmount = Math.min(...amounts)
-    const maxAmount = Math.max(...amounts)
-    const monthlyEquiv = toMonthlyEquiv(avgAmount, frequency)
-
-    const lastTx = sorted[sorted.length - 1]
-    const lastSeen = lastTx.bookingDate
-    const nextExpected = new Date(new Date(lastSeen).getTime() + medianInterval * 86_400_000)
-      .toISOString()
-      .slice(0, 10)
-    const daysSinceLastSeen = Math.floor((Date.now() - new Date(lastSeen).getTime()) / 86_400_000)
-
-    results.push({
-      payee,
-      frequency,
-      medianInterval,
-      avgAmount,
-      amountRange: { min: minAmount, max: maxAmount },
-      monthlyEquiv,
-      annualCost: monthlyEquiv * 12,
-      lastSeen,
-      nextExpected,
-      daysSinceLastSeen,
-      isActive: daysSinceLastSeen < medianInterval * 2,
-      transactionCount: txList.length,
-      categoryId: lastTx.categoryId,
-    })
-  }
-
-  // Resolve category names and colours with a single second query
-  const uniqueCatIds = [...new Set(results.map((r) => r.categoryId).filter((id): id is number => id !== null))]
-  const catRows = uniqueCatIds.length > 0
-    ? await db.select().from(categories).where(inArray(categories.id, uniqueCatIds))
-    : []
-  const catMap = new Map(catRows.map((c) => [c.id, c]))
-
-  return results
-    .map((r) => ({
-      ...r,
-      categoryName: r.categoryId ? (catMap.get(r.categoryId)?.name ?? "Uncategorised") : "Uncategorised",
-      categoryColor: r.categoryId ? (catMap.get(r.categoryId)?.color ?? "#94a3b8") : "#94a3b8",
-    }))
-    .sort((a, b) => b.monthlyEquiv - a.monthlyEquiv)
+  return fetchRecurringItemsWithCategories(false)
 })

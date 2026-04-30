@@ -2,8 +2,8 @@ import { and, desc, eq, gte, inArray, lt, lte, or, sql } from "drizzle-orm"
 import { db } from "../../db/index.server"
 import { categories, transactions } from "../../db/schema"
 import { normalizeMerchantName, resolveAlias } from "../../lib/merchant-utils"
-import { classifyInterval, getMedian, toMonthlyEquiv } from "../../lib/recurring"
 import { loadAliasMap } from "./merchant-aliases.server"
+import { analyseRecurringTransactions } from "./recurring.server"
 
 export type MerchantFilters = {
   dateFrom?: string
@@ -389,28 +389,16 @@ export async function getMerchantContextForTransaction(input: {
       amount: Math.abs(entry.amount),
     }))
     .sort((a, b) => a.bookingDate.localeCompare(b.bookingDate))
-  const intervals = sortedTimeline.slice(1).map((entry, index) => {
-    const prev = new Date(`${sortedTimeline[index].bookingDate}T00:00:00Z`).getTime()
-    const curr = new Date(`${entry.bookingDate}T00:00:00Z`).getTime()
-    return Math.round((curr - prev) / 86_400_000)
-  })
-  const medianInterval = getMedian(intervals)
-  const frequency = classifyInterval(medianInterval)
-  const recurringAverage =
-    sortedTimeline.length > 0
-      ? sortedTimeline.reduce((sum, entry) => sum + entry.amount, 0) / sortedTimeline.length
-      : 0
-  const lastSeen = sortedTimeline[sortedTimeline.length - 1]?.bookingDate ?? null
-  const nextExpected =
-    lastSeen && medianInterval > 0
-      ? new Date(new Date(`${lastSeen}T00:00:00Z`).getTime() + medianInterval * 86_400_000)
-          .toISOString()
-          .slice(0, 10)
-      : null
-  const daysSinceLastSeen =
-    lastSeen
-      ? Math.floor((Date.now() - new Date(`${lastSeen}T00:00:00Z`).getTime()) / 86_400_000)
-      : null
+  const recurring = analyseRecurringTransactions(
+    sortedTimeline.map((entry) => ({
+      bookingDate: entry.bookingDate,
+      amount: -entry.amount,
+      creditorName: null,
+      debtorName: null,
+      description: canonicalName,
+      categoryId: null,
+    })),
+  )
   const historicalAmounts = historicalRows.map((entry) => Math.abs(entry.amount))
   const averageHistoricalAmount =
     historicalAmounts.length > 0
@@ -444,15 +432,15 @@ export async function getMerchantContextForTransaction(input: {
     },
     merchantContext: {
       recurring:
-        frequency && lastSeen && nextExpected && daysSinceLastSeen !== null
+        recurring
           ? {
-              frequency,
-              averageAmount: recurringAverage,
-              monthlyEquivalent: toMonthlyEquiv(recurringAverage, frequency),
-              nextExpected,
-              lastSeen,
+              frequency: recurring.frequency,
+              averageAmount: recurring.avgAmount,
+              monthlyEquivalent: recurring.monthlyEquiv,
+              nextExpected: recurring.nextExpected,
+              lastSeen: recurring.lastSeen,
               transactionCount: sortedTimeline.length,
-              isActive: daysSinceLastSeen < medianInterval * 2,
+              isActive: recurring.isActive,
             }
           : null,
       spendingPattern:
