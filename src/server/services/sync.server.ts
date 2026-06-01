@@ -1,7 +1,7 @@
 import { db } from "../../db/index.server"
 import { accounts, bankConnections, transactions as txTable, settings } from "../../db/schema"
 import { eq, desc } from "drizzle-orm"
-import { getAccountTransactions } from "./gocardless.server"
+import { getAccountTransactions, getAccountBalances } from "./gocardless.server"
 import { categorise } from "./categoriser.server"
 import { createHash } from "crypto"
 import { log } from "../../lib/logger.server"
@@ -64,6 +64,22 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
     accountId,
     dateFrom,
   )
+
+  // Fetch and store current balance
+  const balances = await getAccountBalances(secretId, secretKey, accountId)
+  const interimBalance = balances.find((b) => b.balanceType === "interimBooked")
+  const currentBalance = interimBalance || balances[0]
+  if (currentBalance) {
+    const amount = parseFloat(currentBalance.balanceAmount.amount)
+    await db
+      .update(accounts)
+      .set({
+        balance: amount,
+        balanceCurrency: currentBalance.balanceAmount.currency,
+        balanceUpdatedAt: new Date(),
+      })
+      .where(eq(accounts.id, accountId))
+  }
 
   log.info("account.sync.fetched", {
     accountId,

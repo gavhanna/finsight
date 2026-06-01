@@ -222,6 +222,18 @@ export const getAccounts = createServerFn().handler(async () => {
   return db.select().from(accounts)
 })
 
+export const getTotalBalance = createServerFn().handler(async () => {
+  const allAccounts = await db.select().from(accounts)
+  const balanceMap = new Map<string, number>()
+  for (const acc of allAccounts) {
+    if (acc.balance != null && acc.balanceCurrency != null) {
+      const current = balanceMap.get(acc.balanceCurrency) ?? 0
+      balanceMap.set(acc.balanceCurrency, current + acc.balance)
+    }
+  }
+  return { balances: Object.fromEntries(balanceMap), hasData: allAccounts.some(a => a.balance != null) }
+})
+
 export const generateNarrative = createServerFn()
   .inputValidator(z.object({
     kind: z.enum([

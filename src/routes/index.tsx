@@ -8,6 +8,7 @@ import {
   getSummaryStats,
   getAccounts,
   getYearOverYearComparison,
+  getTotalBalance,
 } from "../server/fn/insights"
 import { getCategories } from "../server/fn/categories"
 import { getSetting } from "../server/fn/settings"
@@ -16,7 +17,7 @@ import { formatCurrency } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
 import { DatePicker } from "@/components/ui/date-picker"
-import { TrendingDown, TrendingUp, ArrowLeftRight, Hash, Target, ChevronRight, AlertTriangle, CheckCircle2, Wallet } from "lucide-react"
+import { TrendingDown, TrendingUp, ArrowLeftRight, Target, ChevronRight, AlertTriangle, CheckCircle2, Wallet } from "lucide-react"
 import { z } from "zod"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -58,7 +59,7 @@ export const Route = createFileRoute("/")({
     }
     const currentMonth = new Date().toISOString().slice(0, 7)
     return withOfflineCache("dashboard", async () => {
-      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, categories] =
+      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, categories, totalBalance] =
         await Promise.all([
           getSpendingByCategory({ data: filters }),
           getSpendingTrends({ data: filters }),
@@ -70,11 +71,12 @@ export const Route = createFileRoute("/")({
           getYearOverYearComparison({ data: filters }),
           getBudgetVsActual({ data: { month: currentMonth } }),
           getCategories(),
+          getTotalBalance(),
         ])
       const incomeCategoryId =
         categories.find((category) => category.type === "income" && category.name.toLowerCase() === "income")?.id ??
         categories.find((category) => category.type === "income")?.id
-      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId }
+      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance }
     })
   },
 })
@@ -204,7 +206,7 @@ function BudgetSnapshotCard({
 }
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
@@ -364,16 +366,18 @@ function DashboardPage() {
             className="animate-in stagger-4"
           />
         </Link>
-        <Link to="/transactions" search={transactionSearchBase} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <div className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <StatCard
-            label="Transactions"
-            value={stats.count.toString()}
-            icon={<Hash className="h-4 w-4 text-muted-foreground" />}
-            sub="total"
-            accent="neutral"
+            label="Total Balance"
+            value={totalBalance.balances[currency ?? "EUR"] != null
+              ? formatCurrency(totalBalance.balances[currency ?? "EUR"], currency)
+              : "Sync to see"}
+            icon={<Wallet className="h-4 w-4 text-primary" />}
+            sub={totalBalance.hasData ? "across all accounts" : "no data"}
+            accent="primary"
             className="animate-in stagger-5"
           />
-        </Link>
+        </div>
       </div>
 
       {/* Budget snapshot */}

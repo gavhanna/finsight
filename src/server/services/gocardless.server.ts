@@ -165,6 +165,24 @@ export async function getAccountTransactions(
   }
 }
 
+export interface GoCardlessBalance {
+  balanceAmount: { amount: string; currency: string }
+  balanceType: string
+  referenceDate?: string
+}
+
+export async function getAccountBalances(
+  secretId: string,
+  secretKey: string,
+  accountId: string,
+): Promise<GoCardlessBalance[]> {
+  const nordigen = getClient(secretId, secretKey)
+  await ensureToken(nordigen)
+  const account = nordigen.account(accountId)
+  const result = await account.getBalances()
+  return (result?.balances ?? []) as GoCardlessBalance[]
+}
+
 async function ensureToken(nordigen: InstanceType<typeof NordigenClient>) {
   const now = Date.now()
   if (now < tokenExpiresAt - 30_000) return

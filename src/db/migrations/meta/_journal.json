@@ -50,6 +50,13 @@
       "when": 1775800000000,
       "tag": "0006_merchant_aliases",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780308263875,
+      "tag": "0007_right_medusa",
+      "breakpoints": true
     }
   ]
 }

@@ -48,6 +48,9 @@ export const accounts = pgTable("accounts", {
   lastSyncAt: timestamp("last_sync_at", { mode: "date" }),
   syncCallsToday: integer("sync_calls_today").notNull().default(0),
   syncCallsDate: text("sync_calls_date"), // YYYY-MM-DD
+  balance: doublePrecision("balance"),
+  balanceCurrency: text("balance_currency"),
+  balanceUpdatedAt: timestamp("balance_updated_at", { mode: "date" }),
 })
 
 export const categoryGroups = pgTable("category_groups", {
