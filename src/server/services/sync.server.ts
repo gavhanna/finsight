@@ -1,5 +1,5 @@
 import { db } from "../../db/index.server"
-import { accounts, bankConnections, transactions as txTable, settings } from "../../db/schema"
+import { accounts, bankConnections, transactions as txTable, settings, balanceHistory } from "../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { getAccountTransactions, getAccountBalances } from "./gocardless.server"
 import { categorise } from "./categoriser.server"
@@ -79,6 +79,12 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
         balanceUpdatedAt: new Date(),
       })
       .where(eq(accounts.id, accountId))
+    // Record balance history
+    await db.insert(balanceHistory).values({
+      accountId,
+      balance: amount,
+      currency: currentBalance.balanceAmount.currency,
+    })
   }
 
   log.info("account.sync.fetched", {

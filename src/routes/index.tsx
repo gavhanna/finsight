@@ -9,6 +9,7 @@ import {
   getAccounts,
   getYearOverYearComparison,
   getTotalBalance,
+  getBalanceHistory,
 } from "../server/fn/insights"
 import { getCategories } from "../server/fn/categories"
 import { getSetting } from "../server/fn/settings"
@@ -30,6 +31,7 @@ import { IncomeExpensesChart } from "@/components/dashboard/income-expenses-char
 import { TopMerchantsChart } from "@/components/dashboard/top-merchants-chart"
 import { CashFlowTable } from "@/components/dashboard/cash-flow-table"
 import { YearOverYearChart } from "@/components/dashboard/year-over-year-chart"
+import { BalanceHistoryChart } from "@/components/dashboard/balance-history-chart"
 
 type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
 
@@ -73,10 +75,11 @@ export const Route = createFileRoute("/")({
           getCategories(),
           getTotalBalance(),
         ])
+      const balanceHistory = await getBalanceHistory({ data: { days: 90, currency: currency ?? "EUR" } })
       const incomeCategoryId =
         categories.find((category) => category.type === "income" && category.name.toLowerCase() === "income")?.id ??
         categories.find((category) => category.type === "income")?.id
-      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance }
+      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, balanceHistory }
     })
   },
 })
@@ -206,7 +209,7 @@ function BudgetSnapshotCard({
 }
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, balanceHistory } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
@@ -389,6 +392,16 @@ function DashboardPage() {
           month={currentMonth}
         />
       )}
+
+      {/* Balance History */}
+      <div className="space-y-2 animate-in stagger-6">
+        <p className="section-label px-0.5">Net Worth Trend (90 days)</p>
+        <Card>
+          <CardContent className="pt-5">
+            <BalanceHistoryChart data={balanceHistory} currency={currency} />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Empty state */}
       {!hasData ? (

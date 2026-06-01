@@ -179,6 +179,25 @@ export const merchantAliases = pgTable("merchant_aliases", {
   createdAt:     timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
 })
 
+export const balanceHistory = pgTable(
+  "balance_history",
+  {
+    id: serial("id").primaryKey(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    balance: doublePrecision("balance").notNull(),
+    currency: text("currency").notNull(),
+    recordedAt: timestamp("recorded_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    index("idx_balance_history_account_id").on(t.accountId),
+    index("idx_balance_history_recorded_at").on(t.recordedAt),
+  ],
+)
+
 export type PushSubscription = typeof pushSubscriptions.$inferSelect
 export type Setting = typeof settings.$inferSelect
 export type BankConnection = typeof bankConnections.$inferSelect
@@ -191,3 +210,4 @@ export type Transaction = typeof transactions.$inferSelect
 export type Budget = typeof budgets.$inferSelect
 export type BudgetOverride = typeof budgetOverrides.$inferSelect
 export type MerchantAlias = typeof merchantAliases.$inferSelect
+export type BalanceHistory = typeof balanceHistory.$inferSelect

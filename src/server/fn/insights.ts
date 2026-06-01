@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
-import { transactions, categories, accounts, settings } from "../../db/schema"
+import { transactions, categories, accounts, settings, balanceHistory } from "../../db/schema"
 import { eq, and, gte, lte, inArray, sql, lt } from "drizzle-orm"
 import { z } from "zod"
 import { generateFinancialNarrative } from "../services/ollama.server"
@@ -233,6 +233,39 @@ export const getTotalBalance = createServerFn().handler(async () => {
   }
   return { balances: Object.fromEntries(balanceMap), hasData: allAccounts.some(a => a.balance != null) }
 })
+
+export const getBalanceHistory = createServerFn()
+  .inputValidator(z.object({
+    days: z.number().default(90),
+    currency: z.string().default("EUR"),
+  }))
+  .handler(async ({ data: { days, currency } }) => {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+
+    const history = await db
+      .select()
+      .from(balanceHistory)
+      .where(
+        and(
+          eq(balanceHistory.currency, currency),
+          gte(balanceHistory.recordedAt, cutoffDate)
+        )
+      )
+      .orderBy(balanceHistory.recordedAt)
+
+    // Group by date and sum across all accounts
+    const dailyTotals = new Map<string, number>()
+    for (const record of history) {
+      const dateKey = new Date(record.recordedAt).toISOString().slice(0, 10)
+      const current = dailyTotals.get(dateKey) ?? 0
+      dailyTotals.set(dateKey, current + record.balance)
+    }
+
+    return Array.from(dailyTotals.entries())
+      .map(([date, total]) => ({ date, total }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  })
 
 export const generateNarrative = createServerFn()
   .inputValidator(z.object({

@@ -57,6 +57,13 @@
       "when": 1780308263875,
       "tag": "0007_right_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780309381963,
+      "tag": "0008_closed_vindicator",
+      "breakpoints": true
     }
   ]
 }
