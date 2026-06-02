@@ -30,7 +30,7 @@ export function BalanceHistoryChart({
         <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.08)" vertical={false} />
         <XAxis dataKey="date" tickFormatter={formatLabel} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
         <YAxis
-          tickFormatter={(v) => formatCurrency(v, currency, { notation: "compact", maximumFractionDigits: 1 })}
+          tickFormatter={(v) => formatCurrency(v, currency, { notation: "compact", maximumFractionDigits: 1, minimumFractionDigits: 0 })}
           tick={{ fontSize: 10 }}
           tickLine={false}
           axisLine={false}

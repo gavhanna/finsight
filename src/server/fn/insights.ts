@@ -254,12 +254,21 @@ export const getBalanceHistory = createServerFn()
       )
       .orderBy(balanceHistory.recordedAt)
 
-    // Group by date and sum across all accounts
-    const dailyTotals = new Map<string, number>()
+    // Get the latest balance per account for each day
+    // Since history is ordered by recordedAt ascending, later records will overwrite earlier ones.
+    const latestBalancesPerAccount = new Map<string, number>()
     for (const record of history) {
       const dateKey = new Date(record.recordedAt).toISOString().slice(0, 10)
+      const key = `${dateKey}|${record.accountId}`
+      latestBalancesPerAccount.set(key, record.balance)
+    }
+
+    // Sum across all accounts for each day
+    const dailyTotals = new Map<string, number>()
+    for (const [key, balance] of latestBalancesPerAccount.entries()) {
+      const [dateKey] = key.split("|")
       const current = dailyTotals.get(dateKey) ?? 0
-      dailyTotals.set(dateKey, current + record.balance)
+      dailyTotals.set(dateKey, current + balance)
     }
 
     return Array.from(dailyTotals.entries())

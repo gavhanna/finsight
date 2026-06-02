@@ -10,12 +10,26 @@ export function formatCurrency(
   currency = "EUR",
   opts?: Intl.NumberFormatOptions,
 ) {
+  const defaultMinimumFractionDigits = 2
+  const defaultMaximumFractionDigits = 2
+
+  let minFraction = opts?.minimumFractionDigits !== undefined ? opts.minimumFractionDigits : defaultMinimumFractionDigits
+  let maxFraction = opts?.maximumFractionDigits !== undefined ? opts.maximumFractionDigits : defaultMaximumFractionDigits
+
+  if (minFraction > maxFraction) {
+    if (opts?.minimumFractionDigits === undefined) {
+      minFraction = maxFraction
+    } else {
+      maxFraction = minFraction
+    }
+  }
+
   return new Intl.NumberFormat("en-IE", {
     style: "currency",
     currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
     ...opts,
+    minimumFractionDigits: minFraction,
+    maximumFractionDigits: maxFraction,
   }).format(amount)
 }
 

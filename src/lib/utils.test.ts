@@ -30,6 +30,14 @@ describe("formatCurrency", () => {
   it("uses the provided currency symbol", () => {
     expect(formatCurrency(100, "GBP")).toContain("100.00")
   })
+  it("handles maximumFractionDigits override smaller than default minimumFractionDigits", () => {
+    expect(formatCurrency(123.456, "EUR", { maximumFractionDigits: 1 })).not.toThrow
+    expect(formatCurrency(123.456, "EUR", { maximumFractionDigits: 1 })).toContain("123.5")
+    expect(formatCurrency(123.456, "EUR", { maximumFractionDigits: 0 })).toContain("123")
+  })
+  it("handles minimumFractionDigits greater than default maximumFractionDigits", () => {
+    expect(formatCurrency(123.4, "EUR", { minimumFractionDigits: 3 })).toContain("123.400")
+  })
 })
 
 describe("formatDate", () => {
