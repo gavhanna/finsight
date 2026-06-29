@@ -160,6 +160,17 @@ export const completeReconnection = createServerFn()
     if (!secretId || !secretKey) throw new Error("GoCardless credentials not configured")
 
     const requisition = await getRequisition(secretId, secretKey, newRequisitionId)
+    log.info("bank.reconnection.requisition_fetched", {
+      newRequisitionId,
+      oldConnectionId,
+      requisitionStatus: requisition.status,
+      accounts: requisition.accounts ?? null,
+      accountCount: requisition.accounts?.length ?? 0,
+    })
+
+    if (!requisition.accounts?.length) {
+      throw new Error("GoCardless returned no accounts for this requisition — the old connection has been preserved. Please try reconnecting again.")
+    }
 
     await db
       .update(bankConnections)
@@ -167,31 +178,42 @@ export const completeReconnection = createServerFn()
       .where(eq(bankConnections.id, newRequisitionId))
 
     const oldAccounts = await db.select().from(accounts).where(eq(accounts.connectionId, oldConnectionId))
+    log.info("bank.reconnection.old_accounts", {
+      oldConnectionId,
+      count: oldAccounts.length,
+      ibans: oldAccounts.map((a) => a.iban),
+    })
 
-    for (const newAccountId of requisition.accounts ?? []) {
+    for (const newAccountId of requisition.accounts) {
       const details = await getAccountDetails(secretId, secretKey, newAccountId)
-
-      // Insert new account first so FK constraints are satisfied before migrating rows
-      await db.insert(accounts).values({
-        id: newAccountId,
-        connectionId: newRequisitionId,
-        iban: details.iban ?? null,
-        name: details.name ?? null,
-        currency: details.currency ?? null,
-        ownerName: details.ownerName ?? null,
-      }).onConflictDoNothing()
 
       const matched = oldAccounts.find(
         (a) => a.iban && details.iban && a.iban === details.iban,
       )
 
-      if (matched) {
-        await db.update(transactions).set({ accountId: newAccountId }).where(eq(transactions.accountId, matched.id))
-        await db.update(balanceHistory).set({ accountId: newAccountId }).where(eq(balanceHistory.accountId, matched.id))
-        await db.delete(accounts).where(eq(accounts.id, matched.id))
-        log.info("bank.reconnection.account_migrated", { oldAccountId: matched.id, newAccountId, iban: matched.iban })
+      if (matched && matched.id === newAccountId) {
+        // GoCardless reused the same account ID — just point it at the new connection
+        await db.update(accounts).set({ connectionId: newRequisitionId }).where(eq(accounts.id, matched.id))
+        log.info("bank.reconnection.account_reassigned", { accountId: matched.id, newConnectionId: newRequisitionId, iban: matched.iban })
       } else {
-        log.warn("bank.reconnection.no_iban_match", { newAccountId, iban: details.iban })
+        // New account ID — insert it, then migrate history from old account if IBAN matched
+        await db.insert(accounts).values({
+          id: newAccountId,
+          connectionId: newRequisitionId,
+          iban: details.iban ?? null,
+          name: details.name ?? null,
+          currency: details.currency ?? null,
+          ownerName: details.ownerName ?? null,
+        }).onConflictDoNothing()
+
+        if (matched) {
+          await db.update(transactions).set({ accountId: newAccountId }).where(eq(transactions.accountId, matched.id))
+          await db.update(balanceHistory).set({ accountId: newAccountId }).where(eq(balanceHistory.accountId, matched.id))
+          await db.delete(accounts).where(eq(accounts.id, matched.id))
+          log.info("bank.reconnection.account_migrated", { oldAccountId: matched.id, newAccountId, iban: matched.iban })
+        } else {
+          log.warn("bank.reconnection.no_iban_match", { newAccountId, iban: details.iban })
+        }
       }
     }
 

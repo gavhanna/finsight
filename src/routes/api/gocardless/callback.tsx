@@ -9,14 +9,18 @@ export const Route = createFileRoute("/api/gocardless/callback")({
     const ref = url.searchParams.get("ref")
     const replaces = url.searchParams.get("replaces")
 
+    console.log("[gocardless/callback] params received", { ref, replaces, href: location.href })
+
     if (!ref) {
       throw redirect({ to: "/accounts", search: { error: "missing-ref" } })
     }
 
     try {
       if (replaces) {
+        console.log("[gocardless/callback] routing to completeReconnection", { ref, replaces })
         await completeReconnection({ data: { newRequisitionId: ref, oldConnectionId: replaces } })
       } else {
+        console.log("[gocardless/callback] routing to completeConnection", { ref })
         await completeConnection({ data: ref })
       }
       throw redirect({ to: "/accounts", search: { connected: "true" } })
