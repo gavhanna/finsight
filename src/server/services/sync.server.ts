@@ -58,15 +58,24 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
 
   log.info("account.sync.started", { accountId, dateFrom, syncCallsToday: callsToday + 1 })
 
-  const { booked, pending: _pending } = await getAccountTransactions(
-    secretId,
-    secretKey,
-    accountId,
-    dateFrom,
-  )
+  let booked: Awaited<ReturnType<typeof getAccountTransactions>>["booked"]
+  let balances: Awaited<ReturnType<typeof getAccountBalances>>
+  try {
+    ;({ booked } = await getAccountTransactions(secretId, secretKey, accountId, dateFrom))
+    balances = await getAccountBalances(secretId, secretKey, accountId)
+  } catch (err: any) {
+    const status = err?.response?.status ?? err?.response?.data?.status_code ?? err?.status_code
+    const detail: string = err?.response?.data?.detail ?? err?.detail ?? err?.message ?? ""
+    const isExpired = status === 409 || detail.toLowerCase().includes("access not valid") || detail.toLowerCase().includes("expired")
+    if (isExpired) {
+      await db.update(bankConnections).set({ status: "EXPIRED" }).where(eq(bankConnections.id, account.connectionId))
+      log.warn("account.sync.connection_expired", { accountId, connectionId: account.connectionId })
+      throw new Error("Bank connection has expired — please reconnect.")
+    }
+    throw err
+  }
 
   // Fetch and store current balance
-  const balances = await getAccountBalances(secretId, secretKey, accountId)
   const interimBalance = balances.find((b) => b.balanceType === "interimBooked")
   const currentBalance = interimBalance || balances[0]
   if (currentBalance) {

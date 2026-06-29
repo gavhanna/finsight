@@ -1,9 +1,9 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
-import { getConnections, syncAccount, deleteConnection } from "../server/fn/accounts"
+import { getConnections, syncAccount, deleteConnection, initiateReconnection } from "../server/fn/accounts"
 import { formatDate } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
-import { Building2, RefreshCw, Trash2, Plus, AlertCircle, CheckCircle, X } from "lucide-react"
+import { Building2, RefreshCw, Trash2, Plus, AlertCircle, CheckCircle, X, RotateCcw } from "lucide-react"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -32,6 +32,7 @@ function AccountsPage() {
   const router = useRouter()
   const [showPicker, setShowPicker] = useState(false)
   const [syncing, setSyncing] = useState<string | null>(null)
+  const [reconnecting, setReconnecting] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null)
 
   function showToast(msg: string, type: "ok" | "err" = "ok") {
@@ -60,6 +61,24 @@ function AccountsPage() {
     if (!confirm("Delete this bank connection and all its transactions?")) return
     await deleteConnection({ data: connectionId })
     router.invalidate()
+  }
+
+  async function handleReconnect(conn: { id: string; institutionId: string; institutionName: string; institutionLogo: string | null }) {
+    setReconnecting(conn.id)
+    try {
+      const { link } = await initiateReconnection({
+        data: {
+          connectionId: conn.id,
+          institutionId: conn.institutionId,
+          institutionName: conn.institutionName,
+          institutionLogo: conn.institutionLogo ?? undefined,
+        },
+      })
+      window.location.assign(link)
+    } catch (err: any) {
+      showToast(err.message ?? "Failed to initiate reconnection", "err")
+      setReconnecting(null)
+    }
   }
 
   const today = new Date().toISOString().slice(0, 10)
@@ -132,14 +151,27 @@ function AccountsPage() {
                     </div>
                   </div>
                 </div>
-                <Button
-                  variant="ghost" size="icon"
-                  onClick={() => handleDelete(conn.id)}
-                  className="text-muted-foreground hover:text-destructive"
-                  title="Remove connection"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={conn.status === "EXPIRED" ? "outline" : "ghost"}
+                    size="sm"
+                    onClick={() => handleReconnect(conn)}
+                    disabled={reconnecting === conn.id}
+                    className={conn.status === "EXPIRED" ? "h-8 text-xs" : "h-8 text-xs text-muted-foreground"}
+                    title="Re-authenticate with bank"
+                  >
+                    <RotateCcw className={`h-3 w-3 ${reconnecting === conn.id ? "animate-spin" : ""}`} />
+                    {reconnecting === conn.id ? "Redirecting…" : "Reconnect"}
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => handleDelete(conn.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                    title="Remove connection"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardHeader>
 
               {conn.accounts.length > 0 && (
@@ -148,6 +180,7 @@ function AccountsPage() {
                     {conn.accounts.map((acc) => {
                       const callsToday = acc.syncCallsDate === today ? acc.syncCallsToday : 0
                       const atLimit = callsToday >= 4
+                      const connExpired = conn.status === "EXPIRED"
                       return (
                         <div key={acc.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md bg-muted/40 px-3 py-2">
                           <div className="min-w-0">
@@ -159,12 +192,13 @@ function AccountsPage() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {atLimit && <span className="text-xs text-amber-600 font-medium">Rate limit reached</span>}
-                            {!atLimit && <span className="text-xs text-muted-foreground">{callsToday}/4 syncs</span>}
+                            {connExpired && <span className="text-xs text-negative font-medium">Reconnect required</span>}
+                            {!connExpired && atLimit && <span className="text-xs text-amber-600 font-medium">Rate limit reached</span>}
+                            {!connExpired && !atLimit && <span className="text-xs text-muted-foreground">{callsToday}/4 syncs</span>}
                             <Button
                               variant="outline" size="sm"
                               onClick={() => handleSync(acc.id)}
-                              disabled={syncing === acc.id || atLimit}
+                              disabled={syncing === acc.id || atLimit || connExpired}
                               className="h-7 text-xs"
                             >
                               <RefreshCw className={`h-3 w-3 ${syncing === acc.id ? "animate-spin" : ""}`} />

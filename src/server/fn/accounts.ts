@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
-import { accounts, bankConnections, settings } from "../../db/schema"
+import { accounts, bankConnections, balanceHistory, settings, transactions } from "../../db/schema"
 import { eq, desc } from "drizzle-orm"
 import { z } from "zod"
 import {
@@ -122,4 +122,80 @@ export const deleteConnection = createServerFn()
   .handler(async ({ data: connectionId }) => {
     await db.delete(bankConnections).where(eq(bankConnections.id, connectionId))
     log.info("bank.connection.deleted", { connectionId })
+  })
+
+export const initiateReconnection = createServerFn()
+  .inputValidator(z.object({
+    connectionId: z.string(),
+    institutionId: z.string(),
+    institutionName: z.string(),
+    institutionLogo: z.string().optional(),
+  }))
+  .handler(async ({ data: { connectionId, institutionId, institutionName, institutionLogo } }) => {
+    const { secretId, secretKey } = await getCredentials()
+    if (!secretId || !secretKey) throw new Error("GoCardless credentials not configured")
+
+    const baseUrl = process.env["APP_URL"] ?? "http://localhost:3000"
+    const redirectUrl = `${baseUrl}/api/gocardless/callback?replaces=${connectionId}`
+    log.info("bank.reconnection.initiating", { connectionId, institutionId })
+    const requisition = await createRequisition(secretId, secretKey, institutionId, redirectUrl)
+
+    await db.insert(bankConnections).values({
+      id: requisition.id,
+      institutionId,
+      institutionName,
+      institutionLogo: institutionLogo ?? null,
+      status: "CREATED",
+      agreementId: requisition.agreement,
+    })
+
+    log.info("bank.reconnection.initiated", { oldConnectionId: connectionId, newRequisitionId: requisition.id })
+    return { link: requisition.link }
+  })
+
+export const completeReconnection = createServerFn()
+  .inputValidator(z.object({ newRequisitionId: z.string(), oldConnectionId: z.string() }))
+  .handler(async ({ data: { newRequisitionId, oldConnectionId } }) => {
+    const { secretId, secretKey } = await getCredentials()
+    if (!secretId || !secretKey) throw new Error("GoCardless credentials not configured")
+
+    const requisition = await getRequisition(secretId, secretKey, newRequisitionId)
+
+    await db
+      .update(bankConnections)
+      .set({ status: "LINKED" })
+      .where(eq(bankConnections.id, newRequisitionId))
+
+    const oldAccounts = await db.select().from(accounts).where(eq(accounts.connectionId, oldConnectionId))
+
+    for (const newAccountId of requisition.accounts ?? []) {
+      const details = await getAccountDetails(secretId, secretKey, newAccountId)
+
+      // Insert new account first so FK constraints are satisfied before migrating rows
+      await db.insert(accounts).values({
+        id: newAccountId,
+        connectionId: newRequisitionId,
+        iban: details.iban ?? null,
+        name: details.name ?? null,
+        currency: details.currency ?? null,
+        ownerName: details.ownerName ?? null,
+      }).onConflictDoNothing()
+
+      const matched = oldAccounts.find(
+        (a) => a.iban && details.iban && a.iban === details.iban,
+      )
+
+      if (matched) {
+        await db.update(transactions).set({ accountId: newAccountId }).where(eq(transactions.accountId, matched.id))
+        await db.update(balanceHistory).set({ accountId: newAccountId }).where(eq(balanceHistory.accountId, matched.id))
+        await db.delete(accounts).where(eq(accounts.id, matched.id))
+        log.info("bank.reconnection.account_migrated", { oldAccountId: matched.id, newAccountId, iban: matched.iban })
+      } else {
+        log.warn("bank.reconnection.no_iban_match", { newAccountId, iban: details.iban })
+      }
+    }
+
+    // Old connection may now be empty; delete it (cascade removes any unmatched accounts/history)
+    await db.delete(bankConnections).where(eq(bankConnections.id, oldConnectionId))
+    log.info("bank.reconnection.completed", { oldConnectionId, newRequisitionId })
   })
