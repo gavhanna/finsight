@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RefreshCw, Bell, BellOff, BellRing } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   getCurrentPushSubscription,
   subscribeToPush,
@@ -124,8 +124,8 @@ function SettingsPage() {
       setPushSubscription(sub);
       const prefs = await getNotificationPreferences({ data: { endpoint: sub.endpoint } });
       setPushPrefs(prefs);
-    } catch (err: any) {
-      setPushError(err.message ?? "Failed to enable notifications");
+    } catch (err) {
+      setPushError(getErrorMessage(err) || "Failed to enable notifications");
     } finally {
       setPushLoading(false);
     }
@@ -139,8 +139,8 @@ function SettingsPage() {
       await pushSubscription.unsubscribe();
       await removePushSubscription({ data: { endpoint: pushSubscription.endpoint } });
       setPushSubscription(null);
-    } catch (err: any) {
-      setPushError(err.message ?? "Failed to disable notifications");
+    } catch (err) {
+      setPushError(getErrorMessage(err) || "Failed to disable notifications");
     } finally {
       setPushLoading(false);
     }
@@ -161,8 +161,8 @@ function SettingsPage() {
       await saveSettings({ data: formData });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (err: any) {
-      setError(err.message ?? "Failed to save settings");
+    } catch (err) {
+      setError(getErrorMessage(err) || "Failed to save settings");
     }
   };
 

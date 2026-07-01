@@ -6,7 +6,7 @@ import { getMerchantAliases, upsertMerchantAlias, deleteMerchantAlias } from "..
 import { getAccounts } from "../../server/fn/insights"
 import { getSetting } from "../../server/fn/settings"
 import { getPresetDates, type PresetKey } from "@/lib/presets"
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { formatCurrency, formatDate, getErrorMessage } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -379,8 +379,8 @@ function MergeDialog({
     setError("")
     try {
       await onConfirm(value)
-    } catch (err: any) {
-      setError(err.message ?? "Failed to save alias")
+    } catch (err) {
+      setError(getErrorMessage(err) || "Failed to save alias")
       setLoading(false)
     }
   }

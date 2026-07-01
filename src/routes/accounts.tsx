@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { getConnections, syncAccount, deleteConnection, initiateReconnection } from "../server/fn/accounts"
-import { formatDate } from "@/lib/utils"
+import { formatDate, getErrorMessage } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { Building2, RefreshCw, Trash2, Plus, AlertCircle, CheckCircle, X, RotateCcw } from "lucide-react"
 import { z } from "zod"
@@ -50,8 +50,8 @@ function AccountsPage() {
           : `Synced ${result.imported} new of ${result.total} transactions returned.`
       )
       router.invalidate()
-    } catch (err: any) {
-      showToast(err.message ?? "Sync failed", "err")
+    } catch (err) {
+      showToast(getErrorMessage(err) || "Sync failed", "err")
     } finally {
       setSyncing(null)
     }
@@ -75,8 +75,8 @@ function AccountsPage() {
         },
       })
       window.location.assign(link)
-    } catch (err: any) {
-      showToast(err.message ?? "Failed to initiate reconnection", "err")
+    } catch (err) {
+      showToast(getErrorMessage(err) || "Failed to initiate reconnection", "err")
       setReconnecting(null)
     }
   }

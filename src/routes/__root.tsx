@@ -1,5 +1,5 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, Link, useRouterState, type ErrorComponentProps, type NotFoundRouteProps } from "@tanstack/react-router"
-import { useState, useSyncExternalStore } from "react"
+import { useState, useEffect, useSyncExternalStore } from "react"
 import { getUncategorisedCount } from "@/server/fn/transactions"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
@@ -241,14 +241,14 @@ function AppSidebar() {
   const { isMobile, setOpenMobile } = useSidebar()
   const { uncategorisedCount } = Route.useLoaderData()
 
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY)
-      return stored ? new Set(JSON.parse(stored)) : new Set()
-    } catch {
-      return new Set()
-    }
-  })
+      if (stored) setCollapsed(new Set(JSON.parse(stored)))
+    } catch {}
+  }, [])
 
   function toggleGroup(label: string) {
     setCollapsed((prev) => {

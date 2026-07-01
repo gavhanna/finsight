@@ -212,9 +212,6 @@ export const getYearOverYearComparison = createServerFn()
       fetchMonthly(lastYearFrom, lastYearTo),
     ])
 
-    console.log("[yoy] current period:", currentFrom, "→", currentTo, "rows:", current.length)
-    console.log("[yoy] last year period:", lastYearFrom, "→", lastYearTo, "rows:", lastYear.length)
-
     return { current, lastYear }
   })
 

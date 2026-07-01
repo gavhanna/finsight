@@ -100,9 +100,40 @@ export function endOfLastMonth(date = new Date()) {
   return localDateStr(new Date(date.getFullYear(), date.getMonth(), 0))
 }
 
-const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+const MONTH_NAMES_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
 
 export function formatYearMonth(ym: string): string {
   const [year, month] = ym.split("-")
-  return `${MONTH_NAMES[parseInt(month, 10) - 1]} '${year.slice(2)}`
+  return `${MONTH_NAMES_SHORT[parseInt(month, 10) - 1]} '${year.slice(2)}`
+}
+
+export function formatYearMonthLong(ym: string): string {
+  const [year, month] = ym.split("-")
+  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  })
+}
+
+export function parseYM(ym: string): { year: number; month: number } {
+  const [y, m] = ym.split("-").map(Number)
+  return { year: y, month: m }
+}
+
+export function formatYM(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`
+}
+
+export function stepMonth(ym: string, delta: number): string {
+  let { year, month } = parseYM(ym)
+  month += delta
+  if (month > 12) { month = 1; year++ }
+  if (month < 1)  { month = 12; year-- }
+  return formatYM(year, month)
+}
+
+export function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === "string") return err
+  return "An unknown error occurred"
 }

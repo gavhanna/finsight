@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getInstitutionsList, initiateConnection } from "@/server/fn/accounts"
+import { getErrorMessage } from "@/lib/utils"
 import type { GoCardlessInstitution } from "@/server/services/gocardless.server"
 
 export function InstitutionPickerBody({ onClose: _onClose }: { onClose: () => void }) {
@@ -19,8 +20,8 @@ export function InstitutionPickerBody({ onClose: _onClose }: { onClose: () => vo
     try {
       const list = await getInstitutionsList({ data: country })
       setInstitutions(list)
-    } catch (err: any) {
-      setError(err.message ?? "Failed to load institutions")
+    } catch (err) {
+      setError(getErrorMessage(err) || "Failed to load institutions")
     } finally {
       setLoading(false)
     }
@@ -37,8 +38,8 @@ export function InstitutionPickerBody({ onClose: _onClose }: { onClose: () => vo
         },
       })
       window.location.assign(link)
-    } catch (err: any) {
-      setError(err.message ?? "Failed to initiate connection")
+    } catch (err) {
+      setError(getErrorMessage(err) || "Failed to initiate connection")
       setConnecting(false)
     }
   }
