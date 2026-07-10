@@ -116,13 +116,14 @@ function CategoryTrendsPage() {
 
   const allItems = viewMode === "groups" ? allGroups : allCategories
 
+  const TOP_N = 5
   const allKeys = allItems.map(c => String(c.id)).join(",")
   const [selection, setSelection] = useState<{ scope: string; keys: Set<string> }>(() => ({
     scope: allKeys,
-    keys: new Set(allItems.map(c => String(c.id))),
+    keys: new Set(allItems.slice(0, TOP_N).map(c => String(c.id))),
   }))
   const selected = useMemo(
-    () => selection.scope === allKeys ? selection.keys : new Set(allItems.map(c => String(c.id))),
+    () => selection.scope === allKeys ? selection.keys : new Set(allItems.slice(0, TOP_N).map(c => String(c.id))),
     [allItems, allKeys, selection],
   )
 
