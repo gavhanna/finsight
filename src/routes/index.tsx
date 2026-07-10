@@ -23,7 +23,7 @@ import { z } from "zod"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { StatCard } from "@/components/dashboard/stat-card"
+import { HeroStat, MiniStat } from "@/components/dashboard/stat-card"
 import { SpendingPieChart } from "@/components/dashboard/spending-pie-chart"
 import { SpendingBarChart } from "@/components/dashboard/spending-bar-chart"
 import { SpendingTrendsChart } from "@/components/dashboard/spending-trends-chart"
@@ -321,65 +321,54 @@ function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-        <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "out" }} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <StatCard
-            label="Total Spend"
-            value={formatCurrency(stats.totalExpenses, currency)}
-            icon={<TrendingDown className="h-4 w-4 text-negative" />}
-            sub="outgoing"
-            delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
-            accent="negative"
-            className="animate-in stagger-1"
-          />
-        </Link>
-        <Link
-          to="/transactions"
-          search={{ ...transactionSearchBase, amountSign: "in", categoryId: incomeCategoryId }}
-          className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <StatCard
-            label="Total Income"
-            value={formatCurrency(stats.totalIncome, currency)}
-            icon={<TrendingUp className="h-4 w-4 text-positive" />}
-            sub="income category"
-            delta={periodDelta?.income}
-            accent="positive"
-            className="animate-in stagger-2"
-          />
-        </Link>
-        <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "in" }} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <StatCard
-            label="Money In"
-            value={formatCurrency(stats.totalMoneyIn, currency)}
-            icon={<Wallet className="h-4 w-4 text-primary" />}
-            sub="all credits"
-            accent="primary"
-            className="animate-in stagger-3"
-          />
-        </Link>
-        <Link to="/transactions" search={transactionSearchBase} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <StatCard
-            label="Net Balance"
-            value={formatCurrency(stats.net, currency)}
-            icon={<ArrowLeftRight className="h-4 w-4 text-neutral-data" />}
-            sub={stats.net >= 0 ? "surplus" : "deficit"}
-            valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
-            accent={stats.net >= 0 ? "positive" : "negative"}
-            className="animate-in stagger-4"
-          />
-        </Link>
-        <div className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <StatCard
-            label="Total Balance"
-            value={totalBalance.balances[currency ?? "EUR"] != null
-              ? formatCurrency(totalBalance.balances[currency ?? "EUR"], currency)
-              : "Sync to see"}
-            icon={<Wallet className="h-4 w-4 text-primary" />}
-            sub={totalBalance.hasData ? "across all accounts" : "no data"}
-            accent="primary"
-            className="animate-in stagger-5"
-          />
+      <div className="space-y-3">
+        <HeroStat
+          label="Total Balance"
+          value={totalBalance.balances[currency ?? "EUR"] != null
+            ? formatCurrency(totalBalance.balances[currency ?? "EUR"], currency)
+            : "Sync to see"}
+          icon={<Wallet className="h-5 w-5 text-primary" />}
+          sub={totalBalance.hasData ? "across all accounts" : "no data"}
+          accent="primary"
+          className="animate-in stagger-1"
+        />
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border overflow-hidden bg-border animate-in stagger-2">
+          <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "out" }} className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+            <MiniStat
+              label="Total Spend"
+              value={formatCurrency(stats.totalExpenses, currency)}
+              icon={<TrendingDown className="h-3.5 w-3.5 text-negative" />}
+              delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
+            />
+          </Link>
+          <Link
+            to="/transactions"
+            search={{ ...transactionSearchBase, amountSign: "in", categoryId: incomeCategoryId }}
+            className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          >
+            <MiniStat
+              label="Total Income"
+              value={formatCurrency(stats.totalIncome, currency)}
+              icon={<TrendingUp className="h-3.5 w-3.5 text-positive" />}
+              delta={periodDelta?.income}
+            />
+          </Link>
+          <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "in" }} className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+            <MiniStat
+              label="Money In"
+              value={formatCurrency(stats.totalMoneyIn, currency)}
+              icon={<Wallet className="h-3.5 w-3.5 text-primary" />}
+            />
+          </Link>
+          <Link to="/transactions" search={transactionSearchBase} className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+            <MiniStat
+              label="Net Balance"
+              value={formatCurrency(stats.net, currency)}
+              icon={<ArrowLeftRight className="h-3.5 w-3.5 text-neutral-data" />}
+              valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
+            />
+          </Link>
         </div>
       </div>
 

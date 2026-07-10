@@ -2,6 +2,87 @@ import { cn } from "@/lib/utils"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
+export function HeroStat({
+  label,
+  value,
+  icon,
+  sub,
+  accent = "primary",
+  className,
+}: {
+  label: string
+  value: string
+  icon: React.ReactNode
+  sub: string
+  accent?: "positive" | "negative" | "neutral" | "primary"
+  className?: string
+}) {
+  const accentClass = {
+    positive: "accent-positive",
+    negative: "accent-negative",
+    neutral:  "accent-neutral",
+    primary:  "accent-primary",
+  }[accent]
+
+  return (
+    <Card className={cn("hover-glow overflow-hidden", accentClass, className)}>
+      <CardContent className="p-5 sm:p-6 flex items-center justify-between gap-4">
+        <div className="space-y-1 min-w-0">
+          <span className="section-label">{label}</span>
+          <p className="metric-number text-3xl sm:text-4xl">{value}</p>
+          <p className="text-xs text-muted-foreground capitalize">{sub}</p>
+        </div>
+        <div className="rounded-lg bg-muted/70 p-2.5 shrink-0">
+          {icon}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function MiniStat({
+  label,
+  value,
+  icon,
+  delta,
+  valueClass,
+  className,
+}: {
+  label: string
+  value: string
+  icon: React.ReactNode
+  delta?: number | null
+  valueClass?: string
+  className?: string
+}) {
+  return (
+    <div className={cn("flex items-center gap-2.5 p-3 sm:p-4 h-full", className)}>
+      <div className="rounded-md bg-muted/70 p-1.5 shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-muted-foreground truncate">{label}</span>
+          {delta != null && (
+            delta >= 0 ? (
+              <span className="delta-up">
+                <ArrowUpRight className="size-2.5" />
+                {delta.toFixed(1)}%
+              </span>
+            ) : (
+              <span className="delta-down">
+                <ArrowDownRight className="size-2.5" />
+                {Math.abs(delta).toFixed(1)}%
+              </span>
+            )
+          )}
+        </div>
+        <p className={cn("text-sm sm:text-base font-semibold tabular-nums truncate", valueClass)}>{value}</p>
+      </div>
+    </div>
+  )
+}
+
 export function StatCard({
   label,
   value,
