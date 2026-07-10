@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react"
+import { useRouter } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { CheckCheck, SkipForward, SkipBack, Inbox, Zap, X, ArrowLeft } from "lucide-react"
 import { updateTransactionCategory } from "@/server/fn/transactions"
@@ -37,6 +38,7 @@ export function TriageFlow({
   rules: RuleWithPatterns[]
   onBack: () => void
 }) {
+  const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
   const [queue, setQueue] = useState<Transaction[]>(initialQueue)
   const [index, setIndex] = useState(0)
@@ -109,6 +111,7 @@ export function TriageFlow({
             await updateTransactionCategory({ data: { id: snapshot.id, categoryId: snapshot.categoryId } })
             setDoneCount((n) => n - 1)
             setQueue((q) => [snapshot, ...q])
+            router.invalidate()
           },
         },
       })
@@ -116,6 +119,7 @@ export function TriageFlow({
       setQueue((q) => q.filter((_, i) => i !== index))
       closeRuleMode()
       containerRef.current?.scrollIntoView({ block: "start", behavior: "instant" })
+      router.invalidate()
     } finally {
       setSaving(false)
     }
