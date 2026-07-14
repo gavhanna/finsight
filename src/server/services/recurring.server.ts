@@ -1,5 +1,5 @@
 import { db } from "../../db/index.server"
-import { categories, transactions } from "../../db/schema"
+import { categories, recurringIgnores, transactions } from "../../db/schema"
 import { inArray, lt } from "drizzle-orm"
 import {
   getMedian,
@@ -21,8 +21,14 @@ export type RecurringItemBase = {
   nextExpected: string
   daysSinceLastSeen: number
   isActive: boolean
+  isIgnored: boolean
   transactionCount: number
   categoryId: number | null
+}
+
+async function loadIgnoreSet(): Promise<Set<string>> {
+  const rows = await db.select({ payee: recurringIgnores.payee }).from(recurringIgnores)
+  return new Set(rows.map((row) => row.payee))
 }
 
 export type RecurringItem = RecurringItemBase & {
@@ -41,15 +47,18 @@ type RecurringTransaction = {
 }
 
 export async function fetchRecurringItems(activeOnly = true): Promise<RecurringItemBase[]> {
-  const items = await detectRecurringItems()
+  const items = (await detectRecurringItems()).filter((item) => !item.isIgnored)
   return activeOnly ? items.filter((item) => item.isActive) : items
 }
 
 export async function fetchRecurringItemsWithCategories(
   activeOnly = true,
+  includeIgnored = false,
 ): Promise<RecurringItem[]> {
   const items = await detectRecurringItems()
-  const filtered = activeOnly ? items.filter((item) => item.isActive) : items
+  const filtered = (includeIgnored ? items : items.filter((item) => !item.isIgnored)).filter(
+    (item) => (activeOnly ? item.isActive : true),
+  )
 
   const uniqueCatIds = [
     ...new Set(filtered.map((item) => item.categoryId).filter((id): id is number => id !== null)),
@@ -74,7 +83,7 @@ export async function fetchRecurringItemsWithCategories(
 }
 
 async function detectRecurringItems(): Promise<Array<RecurringItemBase & { amountRange: { min: number; max: number } }>> {
-  const aliases = await loadAliasMap()
+  const [aliases, ignoreSet] = await Promise.all([loadAliasMap(), loadIgnoreSet()])
   const txns = await db
     .select({
       bookingDate: transactions.bookingDate,
@@ -105,6 +114,7 @@ async function detectRecurringItems(): Promise<Array<RecurringItemBase & { amoun
     results.push({
       payee,
       ...recurring,
+      isIgnored: ignoreSet.has(payee),
       transactionCount: txList.length,
       categoryId: recurring.lastCategoryId,
     })

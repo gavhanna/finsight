@@ -354,6 +354,8 @@ export const generateNarrative = createServerFn()
 
 export type { RecurringItem }
 
-export const getRecurringTransactions = createServerFn().handler(async (): Promise<RecurringItem[]> => {
-  return fetchRecurringItemsWithCategories(false)
-})
+export const getRecurringTransactions = createServerFn()
+  .inputValidator(z.object({ includeIgnored: z.boolean().default(false) }).optional())
+  .handler(async ({ data }): Promise<RecurringItem[]> => {
+    return fetchRecurringItemsWithCategories(false, data?.includeIgnored ?? false)
+  })

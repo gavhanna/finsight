@@ -179,6 +179,17 @@ export const merchantAliases = pgTable("merchant_aliases", {
   createdAt:     timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
 })
 
+/**
+ * Payees the user has explicitly marked as "not a real recurring payment"
+ * (e.g. Temu, Polonez, St Vincent's) so they're excluded from recurring detection.
+ * Existence of a row = ignored; there's no separate boolean.
+ */
+export const recurringIgnores = pgTable("recurring_ignores", {
+  id: serial("id").primaryKey(),
+  payee: text("payee").notNull().unique(),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
+})
+
 export const balanceHistory = pgTable(
   "balance_history",
   {
@@ -210,4 +221,5 @@ export type Transaction = typeof transactions.$inferSelect
 export type Budget = typeof budgets.$inferSelect
 export type BudgetOverride = typeof budgetOverrides.$inferSelect
 export type MerchantAlias = typeof merchantAliases.$inferSelect
+export type RecurringIgnore = typeof recurringIgnores.$inferSelect
 export type BalanceHistory = typeof balanceHistory.$inferSelect

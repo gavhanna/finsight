@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { getRecurringTransactions, type RecurringItem } from "../server/fn/insights"
+import { ignoreRecurringPayee, unignoreRecurringPayee } from "../server/fn/recurring-ignores"
 import { getSetting } from "../server/fn/settings"
 import { formatCurrency, formatDate, cn } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
-import { Repeat, CalendarClock, TrendingDown } from "lucide-react"
+import { Repeat, CalendarClock, TrendingDown, EyeOff, Undo2 } from "lucide-react"
 import { PageHelp } from "@/components/ui/page-help"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/recurring")({
   loader: () =>
     withOfflineCache("recurring", async () => {
       const [recurring, currency] = await Promise.all([
-        getRecurringTransactions(),
+        getRecurringTransactions({ data: { includeIgnored: true } }),
         getSetting({ data: "preferred_currency" }),
       ])
       return { recurring, currency: currency ?? "EUR" }
@@ -29,11 +30,24 @@ type FreqFilter = "all" | "monthly" | "weekly" | "other"
 
 function RecurringPage() {
   const { recurring: data, currency } = Route.useLoaderData()
+  const router = useRouter()
   const [freqFilter, setFreqFilter] = useState<FreqFilter>("all")
   const [showInactive, setShowInactive] = useState(false)
+  const [showIgnored, setShowIgnored] = useState(false)
 
-  const active = data.filter((d) => d.isActive)
-  const inactive = data.filter((d) => !d.isActive)
+  const ignored = data.filter((d) => d.isIgnored)
+  const active = data.filter((d) => !d.isIgnored && d.isActive)
+  const inactive = data.filter((d) => !d.isIgnored && !d.isActive)
+
+  async function handleIgnore(payee: string) {
+    await ignoreRecurringPayee({ data: { payee } })
+    router.invalidate()
+  }
+
+  async function handleUnignore(payee: string) {
+    await unignoreRecurringPayee({ data: { payee } })
+    router.invalidate()
+  }
 
   const totalMonthly = active.reduce((s, d) => s + d.monthlyEquiv, 0)
   const totalAnnual = active.reduce((s, d) => s + d.annualCost, 0)
@@ -65,6 +79,7 @@ function RecurringPage() {
           <p><strong className="text-foreground">How it works</strong> — transactions from the same payee are grouped and analysed for a consistent interval (weekly, fortnightly, monthly, etc.).</p>
           <p><strong className="text-foreground">Active vs inactive</strong> — a payee is considered active if a charge has occurred within the last two expected cycles. Older patterns are shown as inactive.</p>
           <p><strong className="text-foreground">Monthly equivalent</strong> — all frequencies are normalised to a monthly cost so you can compare them easily.</p>
+          <p><strong className="text-foreground">Not a real recurring payment?</strong> — hover a row and click the eye icon to exclude that payee from detection. It moves to "Not recurring" below, where you can undo it any time.</p>
         </PageHelp>
       </div>
 
@@ -176,7 +191,7 @@ function RecurringPage() {
           </div>
 
           {/* Active recurring table */}
-          <RecurringTable items={filtered} currency={currency} />
+          <RecurringTable items={filtered} currency={currency} onIgnore={handleIgnore} />
 
           {/* Possibly cancelled (collapsed) */}
           {inactive.length > 0 && (
@@ -188,7 +203,25 @@ function RecurringPage() {
                 <span>{showInactive ? "▾" : "▸"}</span>
                 Possibly cancelled ({inactive.length})
               </button>
-              {showInactive && <RecurringTable items={inactive} currency={currency} dimmed />}
+              {showInactive && (
+                <RecurringTable items={inactive} currency={currency} dimmed onIgnore={handleIgnore} />
+              )}
+            </div>
+          )}
+
+          {/* Not recurring (collapsed) */}
+          {ignored.length > 0 && (
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowIgnored((v) => !v)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <span>{showIgnored ? "▾" : "▸"}</span>
+                Not recurring ({ignored.length})
+              </button>
+              {showIgnored && (
+                <RecurringTable items={ignored} currency={currency} dimmed onUnignore={handleUnignore} />
+              )}
             </div>
           )}
         </div>
@@ -197,7 +230,19 @@ function RecurringPage() {
   )
 }
 
-function RecurringTable({ items, currency, dimmed }: { items: RecurringItem[]; currency: string; dimmed?: boolean }) {
+function RecurringTable({
+  items,
+  currency,
+  dimmed,
+  onIgnore,
+  onUnignore,
+}: {
+  items: RecurringItem[]
+  currency: string
+  dimmed?: boolean
+  onIgnore?: (payee: string) => void
+  onUnignore?: (payee: string) => void
+}) {
   const { sorted, sortKey, sortDir, toggle } = useSortable(items, "monthlyEquiv", "desc")
   const today = new Date()
 
@@ -216,6 +261,7 @@ function RecurringTable({ items, currency, dimmed }: { items: RecurringItem[]; c
                 <SortableHead id="annualCost" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right hidden lg:table-cell">Annual</SortableHead>
                 <SortableHead id="lastSeen" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right hidden sm:table-cell">Last Seen</SortableHead>
                 <TableHead className="text-right pr-5 hidden md:table-cell">Next Expected</TableHead>
+                {(onIgnore || onUnignore) && <TableHead className="w-8 pr-4" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -259,6 +305,28 @@ function RecurringTable({ items, currency, dimmed }: { items: RecurringItem[]; c
                       {formatDate(item.nextExpected)}
                       {nextDue && <span className="ml-1 text-amber-500">overdue</span>}
                     </TableCell>
+                    {(onIgnore || onUnignore) && (
+                      <TableCell className="pr-4">
+                        {onIgnore && (
+                          <button
+                            className="p-1 rounded hover:bg-muted"
+                            title="Not a real recurring payment"
+                            onClick={() => onIgnore(item.payee)}
+                          >
+                            <EyeOff className="size-3.5 text-muted-foreground" />
+                          </button>
+                        )}
+                        {onUnignore && (
+                          <button
+                            className="p-1 rounded hover:bg-muted"
+                            title="Mark as recurring again"
+                            onClick={() => onUnignore(item.payee)}
+                          >
+                            <Undo2 className="size-3.5 text-muted-foreground" />
+                          </button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 )
               })}

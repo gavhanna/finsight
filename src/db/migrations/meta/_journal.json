@@ -64,6 +64,13 @@
       "when": 1780309381963,
       "tag": "0008_closed_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784027497343,
+      "tag": "0009_tearful_betty_ross",
+      "breakpoints": true
     }
   ]
 }
