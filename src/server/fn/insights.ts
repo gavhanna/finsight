@@ -233,22 +233,21 @@ export const getTotalBalance = createServerFn().handler(async () => {
 
 export const getBalanceHistory = createServerFn()
   .inputValidator(z.object({
-    days: z.number().default(90),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
+    accountIds: z.array(z.string()).optional(),
     currency: z.string().default("EUR"),
   }))
-  .handler(async ({ data: { days, currency } }) => {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - days)
+  .handler(async ({ data: { dateFrom, dateTo, accountIds, currency } }) => {
+    const conditions = [eq(balanceHistory.currency, currency)]
+    if (dateFrom) conditions.push(gte(balanceHistory.recordedAt, new Date(`${dateFrom}T00:00:00.000Z`)))
+    if (dateTo) conditions.push(lte(balanceHistory.recordedAt, new Date(`${dateTo}T23:59:59.999Z`)))
+    if (accountIds?.length) conditions.push(inArray(balanceHistory.accountId, accountIds))
 
     const history = await db
       .select()
       .from(balanceHistory)
-      .where(
-        and(
-          eq(balanceHistory.currency, currency),
-          gte(balanceHistory.recordedAt, cutoffDate)
-        )
-      )
+      .where(and(...conditions))
       .orderBy(balanceHistory.recordedAt)
 
     // Get the latest balance per account for each day

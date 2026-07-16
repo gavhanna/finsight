@@ -75,7 +75,9 @@ export const Route = createFileRoute("/")({
           getCategories(),
           getTotalBalance(),
         ])
-      const balanceHistory = await getBalanceHistory({ data: { days: 90, currency: currency ?? "EUR" } })
+      const balanceHistory = await getBalanceHistory({
+        data: { dateFrom: filters.dateFrom, dateTo: filters.dateTo, accountIds: filters.accountIds, currency: currency ?? "EUR" },
+      })
       const incomeCategoryId =
         categories.find((category) => category.type === "income" && category.name.toLowerCase() === "income")?.id ??
         categories.find((category) => category.type === "income")?.id
@@ -384,7 +386,7 @@ function DashboardPage() {
 
       {/* Balance History */}
       <div className="space-y-2 animate-in stagger-6">
-        <p className="section-label px-0.5">Net Worth Trend (90 days)</p>
+        <p className="section-label px-0.5">Net Worth Trend</p>
         <Card>
           <CardContent className="pt-5">
             <BalanceHistoryChart data={balanceHistory} currency={currency} />
