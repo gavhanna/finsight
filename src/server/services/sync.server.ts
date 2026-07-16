@@ -37,6 +37,11 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
 
   if (!account) throw new Error("Account not found")
 
+  const [connection] = await db
+    .select({ institutionName: bankConnections.institutionName })
+    .from(bankConnections)
+    .where(eq(bankConnections.id, account.connectionId))
+
   const callsToday = account.syncCallsDate === today ? account.syncCallsToday : 0
   if (callsToday >= 4) {
     log.warn("account.sync.rate_limited", { accountId, callsToday })
@@ -183,7 +188,7 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
   log.info("account.sync.completed", { accountId, fetched: booked.length, imported, skipped })
 
   if (imported > 0) {
-    const accountName = account.name ?? accountId
+    const accountName = account.name ?? connection?.institutionName ?? accountId
     notifySyncCompleted(accountName, imported).catch(() => {})
     notifyLargeTransactions(newTxs).catch(() => {})
   }
