@@ -55,16 +55,21 @@ export const removePushSubscription = createServerFn()
 
 export const getNotificationPreferences = createServerFn()
   .inputValidator(z.object({ endpoint: z.string() }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<NotificationPreferences | null> => {
     const [sub] = await db
       .select()
       .from(pushSubscriptions)
       .where(eq(pushSubscriptions.endpoint, data.endpoint))
-    if (!sub) return DEFAULT_PREFERENCES
+    // Return null when no row exists so the client can recreate the
+    // subscription row, rather than silently treating fabricated defaults as
+    // saved state (which made every checkbox appear checked after a refresh).
+    if (!sub) return null
     try {
-      return JSON.parse(sub.preferences) as NotificationPreferences
+      const parsed = JSON.parse(sub.preferences) as Partial<NotificationPreferences>
+      // Backfill any missing keys (e.g. older rows predating budgetAlerts)
+      return { ...DEFAULT_PREFERENCES, ...parsed }
     } catch {
-      return DEFAULT_PREFERENCES
+      return { ...DEFAULT_PREFERENCES }
     }
   })
 
@@ -76,10 +81,19 @@ export const updateNotificationPreferences = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    await db
+    const result = await db
       .update(pushSubscriptions)
       .set({ preferences: JSON.stringify(data.preferences) })
       .where(eq(pushSubscriptions.endpoint, data.endpoint))
+    // No row matched — the endpoint was likely cleaned up by the 410/404
+    // handler after a push expired. Tell the client so it can re-subscribe
+    // instead of silently succeeding while writing nothing.
+    const updatedCount = (result as { rowCount?: number; changes?: number })?.rowCount
+      ?? (result as { rowCount?: number; changes?: number })?.changes
+      ?? 0
+    if (updatedCount === 0) {
+      return { ok: false, reason: "no_subscription" as const }
+    }
     return { ok: true }
   })
 

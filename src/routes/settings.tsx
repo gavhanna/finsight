@@ -84,12 +84,33 @@ function SettingsPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    getCurrentPushSubscription().then((sub) => {
-      setPushSubscription(sub);
-      if (sub) {
-        getNotificationPreferences({ data: { endpoint: sub.endpoint } }).then(setPushPrefs);
-      }
-    });
+    let cancelled = false;
+    getCurrentPushSubscription()
+      .then((sub) => {
+        if (cancelled) return;
+        setPushSubscription(sub);
+        if (!sub) return;
+        return getNotificationPreferences({ data: { endpoint: sub.endpoint } }).then((prefs) => {
+          if (cancelled) return;
+          if (prefs) setPushPrefs(prefs);
+          // prefs === null means the server row is gone (e.g. cleaned up after
+          // a push endpoint expired) but the browser still holds a stale local
+          // subscription. Drop the local one so the user can re-enable and we
+          // persist a fresh row that toggles will actually write to.
+          else {
+            void sub.unsubscribe().then(() => {
+              if (!cancelled) setPushSubscription(null);
+            });
+          }
+        });
+      })
+      .catch(() => {
+        // Swallow — the all-true initial state remains, and toggles re-trigger
+        // the subscribe flow when the user interacts.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [modelFetchError, setModelFetchError] = useState<string | null>(null);
@@ -123,7 +144,7 @@ function SettingsPage() {
       await savePushSubscription({ data: serializeSubscription(sub) });
       setPushSubscription(sub);
       const prefs = await getNotificationPreferences({ data: { endpoint: sub.endpoint } });
-      setPushPrefs(prefs);
+      if (prefs) setPushPrefs(prefs);
     } catch (err) {
       setPushError(getErrorMessage(err) || "Failed to enable notifications");
     } finally {
@@ -148,9 +169,28 @@ function SettingsPage() {
 
   async function handlePrefToggle(key: keyof NotificationPreferences) {
     if (!pushSubscription) return;
-    const updated = { ...pushPrefs, [key]: !pushPrefs[key] };
+    const prev = pushPrefs;
+    const updated = { ...prev, [key]: !prev[key] };
     setPushPrefs(updated);
-    await updateNotificationPreferences({ data: { endpoint: pushSubscription.endpoint, preferences: updated } });
+    try {
+      const result = await updateNotificationPreferences({
+        data: { endpoint: pushSubscription.endpoint, preferences: updated },
+      });
+      if (result && result.ok === false) {
+        // Server has no row for this endpoint — roll back the optimistic
+        // toggle and clear the local subscription so the user re-enables
+        // notifications and we persist a fresh row.
+        setPushPrefs(prev);
+        await pushSubscription.unsubscribe();
+        setPushSubscription(null);
+        setPushError(
+          "Your notification subscription expired. Please re-enable notifications to save preferences.",
+        );
+      }
+    } catch {
+      setPushPrefs(prev);
+      setPushError("Failed to save notification preference. Please try again.");
+    }
   }
 
   const handleSave = async (e: React.FormEvent) => {
