@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
-import { transactions, categories, accounts, settings, balanceHistory } from "../../db/schema"
+import { transactions, categories, accounts, settings } from "../../db/schema"
 import { eq, and, gte, lte, inArray, sql, lt } from "drizzle-orm"
 import { z } from "zod"
 import { generateFinancialNarrative } from "../services/ollama.server"
@@ -230,47 +230,6 @@ export const getTotalBalance = createServerFn().handler(async () => {
   }
   return { balances: Object.fromEntries(balanceMap), hasData: allAccounts.some(a => a.balance != null) }
 })
-
-export const getBalanceHistory = createServerFn()
-  .inputValidator(z.object({
-    dateFrom: z.string().optional(),
-    dateTo: z.string().optional(),
-    accountIds: z.array(z.string()).optional(),
-    currency: z.string().default("EUR"),
-  }))
-  .handler(async ({ data: { dateFrom, dateTo, accountIds, currency } }) => {
-    const conditions = [eq(balanceHistory.currency, currency)]
-    if (dateFrom) conditions.push(gte(balanceHistory.recordedAt, new Date(`${dateFrom}T00:00:00.000Z`)))
-    if (dateTo) conditions.push(lte(balanceHistory.recordedAt, new Date(`${dateTo}T23:59:59.999Z`)))
-    if (accountIds?.length) conditions.push(inArray(balanceHistory.accountId, accountIds))
-
-    const history = await db
-      .select()
-      .from(balanceHistory)
-      .where(and(...conditions))
-      .orderBy(balanceHistory.recordedAt)
-
-    // Get the latest balance per account for each day
-    // Since history is ordered by recordedAt ascending, later records will overwrite earlier ones.
-    const latestBalancesPerAccount = new Map<string, number>()
-    for (const record of history) {
-      const dateKey = new Date(record.recordedAt).toISOString().slice(0, 10)
-      const key = `${dateKey}|${record.accountId}`
-      latestBalancesPerAccount.set(key, record.balance)
-    }
-
-    // Sum across all accounts for each day
-    const dailyTotals = new Map<string, number>()
-    for (const [key, balance] of latestBalancesPerAccount.entries()) {
-      const [dateKey] = key.split("|")
-      const current = dailyTotals.get(dateKey) ?? 0
-      dailyTotals.set(dateKey, current + balance)
-    }
-
-    return Array.from(dailyTotals.entries())
-      .map(([date, total]) => ({ date, total }))
-      .sort((a, b) => a.date.localeCompare(b.date))
-  })
 
 export const generateNarrative = createServerFn()
   .inputValidator(z.object({

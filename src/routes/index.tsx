@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import {
   getSpendingByCategory,
   getSpendingTrends,
@@ -9,20 +9,22 @@ import {
   getAccounts,
   getYearOverYearComparison,
   getTotalBalance,
-  getBalanceHistory,
 } from "../server/fn/insights"
+import { getNetWorthProjection } from "../server/fn/analytics"
 import { getCategories } from "../server/fn/categories"
 import { getSetting } from "../server/fn/settings"
 import { getBudgetVsActual, type CategoryBudgetRow, type GroupBudgetRow } from "../server/fn/budgets"
 import { formatCurrency } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
+import { buildProjection } from "@/lib/net-worth-projection"
 import { DatePicker } from "@/components/ui/date-picker"
 import { TrendingDown, TrendingUp, ArrowLeftRight, Target, ChevronRight, AlertTriangle, CheckCircle2, Wallet } from "lucide-react"
 import { z } from "zod"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PageHelp } from "@/components/ui/page-help"
 import { HeroStat, MiniStat } from "@/components/dashboard/stat-card"
 import { SpendingPieChart } from "@/components/dashboard/spending-pie-chart"
 import { SpendingBarChart } from "@/components/dashboard/spending-bar-chart"
@@ -31,7 +33,7 @@ import { IncomeExpensesChart } from "@/components/dashboard/income-expenses-char
 import { TopMerchantsChart } from "@/components/dashboard/top-merchants-chart"
 import { CashFlowTable } from "@/components/dashboard/cash-flow-table"
 import { YearOverYearChart } from "@/components/dashboard/year-over-year-chart"
-import { BalanceHistoryChart } from "@/components/dashboard/balance-history-chart"
+import { NetWorthProjectionChart } from "@/components/analytics/net-worth-projection-chart"
 
 type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
 
@@ -75,16 +77,23 @@ export const Route = createFileRoute("/")({
           getCategories(),
           getTotalBalance(),
         ])
-      const balanceHistory = await getBalanceHistory({
-        data: { dateFrom: filters.dateFrom, dateTo: filters.dateTo, accountIds: filters.accountIds, currency: currency ?? "EUR" },
+      const projection = await getNetWorthProjection({
+        data: { currency: currency ?? "EUR", accountIds: filters.accountIds },
       })
       const incomeCategoryId =
         categories.find((category) => category.type === "income" && category.name.toLowerCase() === "income")?.id ??
         categories.find((category) => category.type === "income")?.id
-      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, balanceHistory }
+      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, projection }
     })
   },
 })
+
+const NET_WORTH_HORIZONS = [
+  { months: 6, label: "6M" },
+  { months: 12, label: "1Y" },
+  { months: 24, label: "2Y" },
+  { months: 60, label: "5Y" },
+] as const
 
 const PRESET_LABELS: Record<DatePreset, string> = {
   month: "This Month",
@@ -211,11 +220,13 @@ function BudgetSnapshotCard({
 }
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, balanceHistory } = Route.useLoaderData()
+  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, projection } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const chartType = search.chartType ?? "pie"
   const preset = search.preset
+  const [netWorthHorizon, setNetWorthHorizon] = useState(12)
+  const netWorthProjected = projection.fit ? buildProjection(projection.fit, netWorthHorizon) : null
 
   function setPreset(p: DatePreset) {
     const dates = getPresetDates(p)
@@ -384,12 +395,46 @@ function DashboardPage() {
         />
       )}
 
-      {/* Balance History */}
+      {/* Net Worth Trend + Projection */}
       <div className="space-y-2 animate-in stagger-6">
-        <p className="section-label px-0.5">Net Worth Trend</p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <p className="section-label px-0.5">Net Worth Trend</p>
+            <PageHelp title="Net Worth Trend">
+              <p>Your tracked account balances over time, with the dashed line projecting forward at your current rate of change.</p>
+              <p>The shaded band is a likely range (~80%) that widens the further out we project. This is a mechanical extrapolation of past balances, not advice.</p>
+            </PageHelp>
+          </div>
+          {projection.fit && (
+            <Tabs value={String(netWorthHorizon)} onValueChange={(v) => v && setNetWorthHorizon(Number(v))}>
+              <TabsList className="h-7">
+                {NET_WORTH_HORIZONS.map((h) => (
+                  <TabsTrigger key={h.months} value={String(h.months)} className="text-xs px-2.5">
+                    {h.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
         <Card>
           <CardContent className="pt-5">
-            <BalanceHistoryChart data={balanceHistory} currency={currency} />
+            {projection.fit && netWorthProjected ? (
+              <>
+                <NetWorthProjectionChart
+                  history={projection.history}
+                  fit={projection.fit}
+                  horizonMonths={netWorthHorizon}
+                  currency={currency}
+                  zeroDate={netWorthProjected.milestones.zeroDate}
+                />
+                <p className="text-xs text-muted-foreground mt-3 px-1">
+                  {netWorthProjected.milestones.trendingUp ? "Trending up" : "Trending down"} ~{formatCurrency(Math.abs(netWorthProjected.milestones.monthlyChange), currency)}/mo · fitted over {projection.fit.windowDays} days of history
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">No balance history yet. Sync your account to start tracking.</p>
+            )}
           </CardContent>
         </Card>
       </div>
