@@ -1,6 +1,7 @@
 export * from "./savings-rate"
 export * from "./inflation"
 export * from "./forecast"
+export * from "./net-worth-projection"
 export * from "./cash-flow"
 export * from "./patterns"
 export * from "./finance-score"

@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { getSpendingForecast } from "../../server/fn/analytics"
+import { useState } from "react"
+import { getSpendingForecast, getNetWorthProjection } from "../../server/fn/analytics"
 import { getSetting } from "../../server/fn/settings"
 import { formatCurrency } from "@/lib/utils"
-import { Telescope, TrendingDown, Repeat } from "lucide-react"
+import { Telescope, TrendingDown, TrendingUp, Repeat, Wallet, CalendarClock } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { PageHelp } from "@/components/ui/page-help"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { NetWorthProjectionChart } from "@/components/analytics/net-worth-projection-chart"
+import { buildProjection } from "@/lib/net-worth-projection"
 import { withOfflineCache } from "@/lib/loader-cache"
 import {
   BarChart,
@@ -21,17 +25,36 @@ export const Route = createFileRoute("/analytics/forecast")({
   component: ForecastPage,
   loader: () =>
     withOfflineCache("analytics:forecast", async () => {
-      const [forecast, currency] = await Promise.all([
+      const currency = (await getSetting({ data: "preferred_currency" })) ?? "EUR"
+      const [forecast, projection] = await Promise.all([
         getSpendingForecast(),
-        getSetting({ data: "preferred_currency" }),
+        getNetWorthProjection({ data: { currency } }),
       ])
-      return { forecast, currency: currency ?? "EUR" }
+      return { forecast, projection, currency }
     }),
 })
 
+const HORIZONS = [
+  { months: 3, label: "3M" },
+  { months: 6, label: "6M" },
+  { months: 12, label: "1Y" },
+  { months: 24, label: "2Y" },
+  { months: 60, label: "5Y" },
+] as const
+
+const CONFIDENCE_LABEL = {
+  low: "Low confidence — short history",
+  moderate: "Moderate confidence",
+  high: "High confidence",
+} as const
+
 function ForecastPage() {
-  const { forecast, currency } = Route.useLoaderData()
+  const { forecast, projection, currency } = Route.useLoaderData()
   const { fixedTotal, variableTotal, grandTotal, variableCategories, topRecurring, totalVariance, nextMonthLabel } = forecast
+
+  const [horizonMonths, setHorizonMonths] = useState(12)
+  const horizonLabel = HORIZONS.find((h) => h.months === horizonMonths)?.label ?? `${horizonMonths}M`
+  const projected = projection?.fit ? buildProjection(projection.fit, horizonMonths) : null
 
   const chartData = [
     {
@@ -51,6 +74,95 @@ function ForecastPage() {
           <p><strong className="text-foreground">Variable</strong> — a 3-month rolling average of your non-recurring category spend. This smooths out one-off months.</p>
           <p><strong className="text-foreground">Confidence</strong> — based on how much your variable spending has varied month-to-month. Low variance = higher confidence.</p>
         </PageHelp>
+      </div>
+
+      {/* Net Worth Projection */}
+      <div className="space-y-3 animate-in stagger-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <p className="section-label px-0.5">Net Worth Projection</p>
+            <PageHelp title="Net Worth Projection">
+              <p>Fits a trend line to your recent net worth (sum of tracked account balances) and extends it forward.</p>
+              <p><strong className="text-foreground">The dashed line</strong> continues from today at your current rate of change. The shaded band is a likely range (~80%) that widens the further out we project.</p>
+              <p><strong className="text-foreground">Assumes nothing changes</strong> — it's a mechanical extrapolation of past balances, not advice. Large one-off events and short history reduce accuracy.</p>
+            </PageHelp>
+          </div>
+          {projected && (
+            <Tabs value={String(horizonMonths)} onValueChange={(v) => v && setHorizonMonths(Number(v))}>
+              <TabsList className="h-7">
+                {HORIZONS.map((h) => (
+                  <TabsTrigger key={h.months} value={String(h.months)} className="text-xs px-2.5">
+                    {h.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
+
+        {projected && projection?.fit ? (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <StatCard
+                label="Current Net Worth"
+                value={formatCurrency(projection.fit.lastValue, currency)}
+                icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
+                sub="tracked balances"
+                accent="neutral"
+              />
+              <StatCard
+                label="Monthly Change"
+                value={`${projected.milestones.monthlyChange >= 0 ? "+" : ""}${formatCurrency(projected.milestones.monthlyChange, currency)}`}
+                icon={projected.milestones.trendingUp
+                  ? <TrendingUp className="h-4 w-4 text-positive" />
+                  : <TrendingDown className="h-4 w-4 text-negative" />}
+                sub="at current rate"
+                accent={projected.milestones.trendingUp ? "positive" : "negative"}
+              />
+              <StatCard
+                label={`Projected in ${horizonLabel}`}
+                value={formatCurrency(projected.milestones.projectedValue, currency)}
+                icon={<Telescope className="h-4 w-4 text-muted-foreground" />}
+                sub="if trend holds"
+                accent={projected.milestones.projectedValue >= projection.fit.lastValue ? "positive" : "negative"}
+              />
+              <StatCard
+                label="Runway to €0"
+                value={projected.milestones.zeroDate
+                  ? new Date(projected.milestones.zeroDate).toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+                  : "—"}
+                icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />}
+                sub={projected.milestones.zeroDate ? "at current rate" : "trending up — no crossing"}
+                accent={projected.milestones.zeroDate ? "negative" : "positive"}
+              />
+            </div>
+
+            <Card>
+              <CardContent className="pt-5">
+                <div className="chart-bg p-3 -mx-2">
+                  <NetWorthProjectionChart
+                    history={projection.history}
+                    fit={projection.fit}
+                    horizonMonths={horizonMonths}
+                    currency={currency}
+                    zeroDate={projected.milestones.zeroDate}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-3 px-1">
+                  {CONFIDENCE_LABEL[projected.milestones.confidence]} · fitted over {projection.fit.windowDays} days of history
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card>
+            <CardContent className="py-10">
+              <p className="text-sm text-muted-foreground text-center">
+                Not enough balance history yet to project. Sync your accounts over a few weeks to build a trend.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
