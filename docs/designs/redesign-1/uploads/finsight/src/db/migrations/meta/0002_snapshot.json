@@ -1,0 +1,271 @@
+{
+  "id": "a2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+  "prevId": "858d200d-8bd1-4a4d-b719-02ca5997f17d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.accounts": {
+      "name": "accounts",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true },
+        "connection_id": { "name": "connection_id", "type": "text", "primaryKey": false, "notNull": true },
+        "iban": { "name": "iban", "type": "text", "primaryKey": false, "notNull": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": false },
+        "currency": { "name": "currency", "type": "text", "primaryKey": false, "notNull": false },
+        "owner_name": { "name": "owner_name", "type": "text", "primaryKey": false, "notNull": false },
+        "last_sync_at": { "name": "last_sync_at", "type": "timestamp", "primaryKey": false, "notNull": false },
+        "sync_calls_today": { "name": "sync_calls_today", "type": "integer", "primaryKey": false, "notNull": true, "default": 0 },
+        "sync_calls_date": { "name": "sync_calls_date", "type": "text", "primaryKey": false, "notNull": false }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounts_connection_id_bank_connections_id_fk": {
+          "name": "accounts_connection_id_bank_connections_id_fk",
+          "tableFrom": "accounts",
+          "columnsFrom": ["connection_id"],
+          "tableTo": "bank_connections",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bank_connections": {
+      "name": "bank_connections",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true },
+        "institution_id": { "name": "institution_id", "type": "text", "primaryKey": false, "notNull": true },
+        "institution_name": { "name": "institution_name", "type": "text", "primaryKey": false, "notNull": true },
+        "institution_logo": { "name": "institution_logo", "type": "text", "primaryKey": false, "notNull": false },
+        "status": { "name": "status", "type": "text", "primaryKey": false, "notNull": true, "default": "'CREATED'" },
+        "agreement_id": { "name": "agreement_id", "type": "text", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()" },
+        "expires_at": { "name": "expires_at", "type": "timestamp", "primaryKey": false, "notNull": false },
+        "last_sync_at": { "name": "last_sync_at", "type": "timestamp", "primaryKey": false, "notNull": false }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.category_groups": {
+      "name": "category_groups",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
+        "color": { "name": "color", "type": "text", "primaryKey": false, "notNull": true }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "category_groups_name_unique": {
+          "name": "category_groups_name_unique",
+          "columns": ["name"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.categories": {
+      "name": "categories",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
+        "color": { "name": "color", "type": "text", "primaryKey": false, "notNull": true },
+        "icon": { "name": "icon", "type": "text", "primaryKey": false, "notNull": false },
+        "type": { "name": "type", "type": "text", "primaryKey": false, "notNull": true, "default": "'expense'" },
+        "is_default": { "name": "is_default", "type": "boolean", "primaryKey": false, "notNull": true, "default": false },
+        "group_id": { "name": "group_id", "type": "integer", "primaryKey": false, "notNull": false }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "categories_group_id_category_groups_id_fk": {
+          "name": "categories_group_id_category_groups_id_fk",
+          "tableFrom": "categories",
+          "columnsFrom": ["group_id"],
+          "tableTo": "category_groups",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "categories_name_unique": {
+          "name": "categories_name_unique",
+          "columns": ["name"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rules": {
+      "name": "rules",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
+        "category_id": { "name": "category_id", "type": "integer", "primaryKey": false, "notNull": true },
+        "priority": { "name": "priority", "type": "integer", "primaryKey": false, "notNull": true, "default": 0 }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rules_category_id_categories_id_fk": {
+          "name": "rules_category_id_categories_id_fk",
+          "tableFrom": "rules",
+          "columnsFrom": ["category_id"],
+          "tableTo": "categories",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rule_patterns": {
+      "name": "rule_patterns",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "serial", "primaryKey": true, "notNull": true },
+        "rule_id": { "name": "rule_id", "type": "integer", "primaryKey": false, "notNull": true },
+        "pattern": { "name": "pattern", "type": "text", "primaryKey": false, "notNull": true },
+        "field": { "name": "field", "type": "text", "primaryKey": false, "notNull": true, "default": "'description'" },
+        "match_type": { "name": "match_type", "type": "text", "primaryKey": false, "notNull": true, "default": "'contains'" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rule_patterns_rule_id_rules_id_fk": {
+          "name": "rule_patterns_rule_id_rules_id_fk",
+          "tableFrom": "rule_patterns",
+          "columnsFrom": ["rule_id"],
+          "tableTo": "rules",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.settings": {
+      "name": "settings",
+      "schema": "",
+      "columns": {
+        "key": { "name": "key", "type": "text", "primaryKey": true, "notNull": true },
+        "value": { "name": "value", "type": "text", "primaryKey": false, "notNull": false },
+        "updated_at": { "name": "updated_at", "type": "timestamp", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.transactions": {
+      "name": "transactions",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true },
+        "account_id": { "name": "account_id", "type": "text", "primaryKey": false, "notNull": true },
+        "external_id": { "name": "external_id", "type": "text", "primaryKey": false, "notNull": false },
+        "booking_date": { "name": "booking_date", "type": "text", "primaryKey": false, "notNull": true },
+        "value_date": { "name": "value_date", "type": "text", "primaryKey": false, "notNull": false },
+        "amount": { "name": "amount", "type": "double precision", "primaryKey": false, "notNull": true },
+        "currency": { "name": "currency", "type": "text", "primaryKey": false, "notNull": true, "default": "'GBP'" },
+        "creditor_name": { "name": "creditor_name", "type": "text", "primaryKey": false, "notNull": false },
+        "debtor_name": { "name": "debtor_name", "type": "text", "primaryKey": false, "notNull": false },
+        "description": { "name": "description", "type": "text", "primaryKey": false, "notNull": false },
+        "merchant_category_code": { "name": "merchant_category_code", "type": "text", "primaryKey": false, "notNull": false },
+        "category_id": { "name": "category_id", "type": "integer", "primaryKey": false, "notNull": false },
+        "categorised_by": { "name": "categorised_by", "type": "text", "primaryKey": false, "notNull": false },
+        "dedupe_hash": { "name": "dedupe_hash", "type": "text", "primaryKey": false, "notNull": true },
+        "raw_data": { "name": "raw_data", "type": "text", "primaryKey": false, "notNull": false }
+      },
+      "indexes": {
+        "idx_transactions_booking_date": {
+          "name": "idx_transactions_booking_date",
+          "columns": [{ "expression": "booking_date", "isExpression": false, "asc": true, "nulls": "last" }],
+          "isUnique": false, "with": {}, "method": "btree", "concurrently": false
+        },
+        "idx_transactions_account_id": {
+          "name": "idx_transactions_account_id",
+          "columns": [{ "expression": "account_id", "isExpression": false, "asc": true, "nulls": "last" }],
+          "isUnique": false, "with": {}, "method": "btree", "concurrently": false
+        },
+        "idx_transactions_category_id": {
+          "name": "idx_transactions_category_id",
+          "columns": [{ "expression": "category_id", "isExpression": false, "asc": true, "nulls": "last" }],
+          "isUnique": false, "with": {}, "method": "btree", "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "transactions_account_id_accounts_id_fk": {
+          "name": "transactions_account_id_accounts_id_fk",
+          "tableFrom": "transactions",
+          "columnsFrom": ["account_id"],
+          "tableTo": "accounts",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "transactions_category_id_categories_id_fk": {
+          "name": "transactions_category_id_categories_id_fk",
+          "tableFrom": "transactions",
+          "columnsFrom": ["category_id"],
+          "tableTo": "categories",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uniq_dedupe_hash": {
+          "name": "uniq_dedupe_hash",
+          "columns": ["dedupe_hash"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
