@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as RecurringRouteImport } from './routes/recurring'
 import { Route as LogsRouteImport } from './routes/logs'
+import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ComparisonRouteImport } from './routes/comparison'
 import { Route as CategoryTrendsRouteImport } from './routes/category-trends'
 import { Route as CategoriesRouteImport } from './routes/categories'
@@ -57,6 +58,11 @@ const RecurringRoute = RecurringRouteImport.update({
 const LogsRoute = LogsRouteImport.update({
   id: '/logs',
   path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComparisonRoute = ComparisonRouteImport.update({
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/categories': typeof CategoriesRoute
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
+  '/explore': typeof ExploreRoute
   '/logs': typeof LogsRoute
   '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/categories': typeof CategoriesRoute
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
+  '/explore': typeof ExploreRoute
   '/logs': typeof LogsRoute
   '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/categories': typeof CategoriesRoute
   '/category-trends': typeof CategoryTrendsRoute
   '/comparison': typeof ComparisonRoute
+  '/explore': typeof ExploreRoute
   '/logs': typeof LogsRoute
   '/recurring': typeof RecurringRoute
   '/rules': typeof RulesRoute
@@ -245,6 +254,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/category-trends'
     | '/comparison'
+    | '/explore'
     | '/logs'
     | '/recurring'
     | '/rules'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/category-trends'
     | '/comparison'
+    | '/explore'
     | '/logs'
     | '/recurring'
     | '/rules'
@@ -297,6 +308,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/category-trends'
     | '/comparison'
+    | '/explore'
     | '/logs'
     | '/recurring'
     | '/rules'
@@ -324,6 +336,7 @@ export interface RootRouteChildren {
   CategoriesRoute: typeof CategoriesRoute
   CategoryTrendsRoute: typeof CategoryTrendsRoute
   ComparisonRoute: typeof ComparisonRoute
+  ExploreRoute: typeof ExploreRoute
   LogsRoute: typeof LogsRoute
   RecurringRoute: typeof RecurringRoute
   RulesRoute: typeof RulesRoute
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/logs'
       fullPath: '/logs'
       preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comparison': {
@@ -524,6 +544,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriesRoute: CategoriesRoute,
   CategoryTrendsRoute: CategoryTrendsRoute,
   ComparisonRoute: ComparisonRoute,
+  ExploreRoute: ExploreRoute,
   LogsRoute: LogsRoute,
   RecurringRoute: RecurringRoute,
   RulesRoute: RulesRoute,

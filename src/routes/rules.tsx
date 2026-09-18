@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SelectGroup } from "@/components/ui/select"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { withOfflineCache } from "@/lib/loader-cache"
 import type { Category } from "../db/schema"
@@ -74,12 +76,13 @@ function RulesPage() {
   }, [rules])
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-5">
       {/* Header */}
-      <div className="animate-in space-y-1">
+      <div className="animate-in flex flex-col gap-1">
+        <p className="section-label">First match wins</p>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight">Rules</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Categorisation rules</h1>
             <PageHelp title="Categorisation Rules">
               <p>Rules automatically assign a category to transactions based on patterns matched against the payee name or description.</p>
               <p><strong className="text-foreground">Priority</strong> — rules are evaluated from highest to lowest. The first match wins. Drag to reorder.</p>
@@ -89,11 +92,11 @@ function RulesPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" onClick={handleApplyAll} disabled={applying}>
-              <RefreshCw className={cn("h-4 w-4", applying && "animate-spin")} />
+              <RefreshCw data-icon="inline-start" className={cn(applying && "animate-spin")} />
               {applying ? "Applying…" : "Apply to history"}
             </Button>
             <Button onClick={() => setShowNew(true)}>
-              <Plus className="h-4 w-4" />
+              <Plus data-icon="inline-start" />
               New Rule
             </Button>
           </div>
@@ -125,12 +128,14 @@ function RulesPage() {
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {ruleCategories.map(c => (
-                  <SelectItem key={c.id} value={String(c.id)} label={c.name} startIcon={<CategoryDot category={c} />}>
-                    {c.name}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {ruleCategories.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)} label={c.name} startIcon={<CategoryDot category={c} />}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           )}
@@ -139,13 +144,16 @@ function RulesPage() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 text-center">
-          <p className="text-muted-foreground text-sm">
+        <Card>
+          <CardHeader className="items-center text-center">
+            <CardTitle>No matching rules</CardTitle>
+            <CardDescription>
             {search || filterCatId !== null
               ? "No rules match your filters."
               : "No rules yet. Add one to start auto-categorising transactions."}
-          </p>
-        </div>
+            </CardDescription>
+          </CardHeader>
+        </Card>
       ) : (
         <div className="rounded-xl border overflow-hidden divide-y">
           {filtered.map((rule) => (

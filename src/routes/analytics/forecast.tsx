@@ -65,9 +65,9 @@ function ForecastPage() {
   ]
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold tracking-tight">Spending Forecast</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Spending Forecast</h1>
         <PageHelp title="Spending Forecast">
           <p>Estimates your total spend for next month by combining two components.</p>
           <p><strong className="text-foreground">Fixed</strong> — your active recurring payments (subscriptions, bills, rent). These are known amounts.</p>

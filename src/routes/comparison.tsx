@@ -112,10 +112,10 @@ function ComparisonPage() {
   const hasData = trends.length > 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       {/* Header + Filters */}
       <div className="animate-in space-y-3">
-        <h1 className="text-xl font-bold tracking-tight">Monthly Comparison</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Monthly Comparison</h1>
 
         <div className="overflow-x-auto">
           <Tabs value={preset} onValueChange={(v) => v && setPreset(v as Preset)}>

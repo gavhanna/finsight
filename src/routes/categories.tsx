@@ -28,12 +28,13 @@ function CategoriesPage() {
   function refresh() { router.invalidate() }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div>
+        <div className="flex flex-col gap-1">
+          <p className="section-label">Setup</p>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight">Categories</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
             <PageHelp title="Categories">
               <p>Categories are the labels you assign to transactions — e.g. Groceries, Transport, Dining Out.</p>
               <p><strong className="text-foreground">Groups</strong> — optionally organise categories into groups (e.g. "Living Costs") for rolled-up reporting in charts.</p>
@@ -41,13 +42,13 @@ function CategoriesPage() {
               <p>Head to <strong className="text-foreground">Rules</strong> to set up automatic matching so transactions are categorised on import.</p>
             </PageHelp>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage spending categories. Add keyword rules under <strong>Rules</strong>.
+          <p className="text-sm text-muted-foreground">
+            The labels behind every report. Add matching logic under <strong className="text-foreground">Rules</strong>.
           </p>
         </div>
         <Button onClick={() => setShowNew(true)} size="sm">
-          <Plus className="h-4 w-4" />
-          New
+          <Plus data-icon="inline-start" />
+          New category
         </Button>
       </div>
 

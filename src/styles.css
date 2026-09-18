@@ -84,46 +84,46 @@
 ───────────────────────────────────────────────── */
 .dark {
     /* Surface */
-    --background:          oklch(0.130 0.018 252);
-    --foreground:          oklch(0.944 0.006 243);
+    --background:          #0b1017;
+    --foreground:          #edf1f5;
 
-    --card:                oklch(0.167 0.018 252);
-    --card-foreground:     oklch(0.944 0.006 243);
+    --card:                #141b25;
+    --card-foreground:     #edf1f5;
 
-    --popover:             oklch(0.185 0.018 252);
-    --popover-foreground:  oklch(0.944 0.006 243);
+    --popover:             #131b25;
+    --popover-foreground:  #edf1f5;
 
     /* Brand — electric teal */
-    --primary:             oklch(0.72 0.175 195);
-    --primary-foreground:  oklch(0.10 0.015 252);
+    --primary:             #38d0e3;
+    --primary-foreground:  #04222a;
 
     /* Neutral surfaces */
-    --secondary:           oklch(0.215 0.016 252);
-    --secondary-foreground: oklch(0.88 0.006 243);
+    --secondary:           #131b25;
+    --secondary-foreground: #c9d4e0;
 
-    --muted:               oklch(0.200 0.015 252);
-    --muted-foreground:    oklch(0.56 0.012 252);
+    --muted:               #1d2734;
+    --muted-foreground:    #8a97a8;
 
-    --accent:              oklch(0.215 0.016 252);
-    --accent-foreground:   oklch(0.88 0.006 243);
+    --accent:              #1d2734;
+    --accent-foreground:   #edf1f5;
 
     /* Feedback */
     --destructive:         oklch(0.67 0.215 25);
     --destructive-foreground: oklch(0.10 0.012 252);
 
     /* Chrome */
-    --border:              oklch(1 0 0 / 9%);
-    --input:               oklch(1 0 0 / 12%);
-    --ring:                oklch(0.72 0.175 195);
+    --border:              rgb(255 255 255 / 8%);
+    --input:               rgb(255 255 255 / 11%);
+    --ring:                #38d0e3;
 
     /* ── Financial semantic tokens ── */
-    --positive:            oklch(0.68 0.175 145);
+    --positive:            #3fd08a;
     --positive-muted:      oklch(0.22 0.055 145);
     --negative:            oklch(0.67 0.215 25);
     --negative-muted:      oklch(0.22 0.055 25);
-    --warning:             oklch(0.75 0.175 65);
+    --warning:             #f0b429;
     --warning-muted:       oklch(0.22 0.055 65);
-    --neutral-data:        oklch(0.72 0.175 195);
+    --neutral-data:        #38d0e3;
 
     /* ── Chart palette ── */
     --chart-1:  oklch(0.72 0.175 195);   /* teal       */
@@ -232,6 +232,7 @@
 
     body {
         @apply bg-background text-foreground;
+        min-width: 320px;
     }
 
     /* Tabular numbers for financial data */
@@ -275,6 +276,23 @@
    UTILITY LAYER — Financial helpers
 ───────────────────────────────────────────────── */
 @layer utilities {
+    .console-page {
+        width: min(100%, 1440px);
+        margin-inline: auto;
+        padding: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .console-page { padding: 1.25rem; }
+    }
+
+    .scrollbar-none {
+        scrollbar-width: none;
+    }
+    .scrollbar-none::-webkit-scrollbar {
+        display: none;
+    }
+
     /* Positive / negative / warning value colors */
     .text-positive  { color: var(--positive); }
     .text-negative  { color: var(--negative); }

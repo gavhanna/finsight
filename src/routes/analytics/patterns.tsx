@@ -105,9 +105,9 @@ function PatternsPage() {
   const hasData = dowData.some((d) => d.total > 0)
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold tracking-tight">Spending Patterns</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Spending Patterns</h1>
         <PageHelp title="Spending Patterns">
           <p>When do you spend? Two views reveal your habits across different time dimensions.</p>
           <p><strong className="text-foreground">Day of week</strong> — which days you spend most. Useful for spotting habitual patterns (e.g. weekend splurges).</p>

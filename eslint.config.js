@@ -7,7 +7,7 @@ export default [
   ...tanstackConfig,
   reactHooks.configs.flat["recommended-latest"],
   {
-    ignores: [".output/**", "dist/**", "public/sw.js"],
+    ignores: [".output/**", "dist/**", "public/sw.js", "docs/designs/**"],
   },
   {
     files: ["**/*.{js,ts,tsx}"],

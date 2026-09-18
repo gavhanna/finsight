@@ -1,49 +1,52 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
+import { z } from "zod"
 import {
-  getSpendingByCategory,
-  getSpendingTrends,
-  getTopMerchants,
-  getIncomeVsExpenses,
-  getSummaryStats,
   getAccounts,
-  getYearOverYearComparison,
+  getIncomeVsExpenses,
+  getRecurringTransactions,
+  getSpendingByCategory,
+  getSummaryStats,
   getTotalBalance,
-} from "../server/fn/insights"
-import { getNetWorthProjection } from "../server/fn/analytics"
-import { getCategories } from "../server/fn/categories"
-import { getSetting } from "../server/fn/settings"
-import { getBudgetVsActual, type CategoryBudgetRow, type GroupBudgetRow } from "../server/fn/budgets"
+} from "@/server/fn/insights"
+import { getNetWorthProjection } from "@/server/fn/analytics"
+import { getCategories } from "@/server/fn/categories"
+import { getUncategorisedCount } from "@/server/fn/transactions"
+import { getSetting } from "@/server/fn/settings"
+import { getBudgetVsActual } from "@/server/fn/budgets"
 import { formatCurrency } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
 import { getPresetDates } from "@/lib/presets"
 import { buildProjection } from "@/lib/net-worth-projection"
-import { DatePicker } from "@/components/ui/date-picker"
-import { TrendingDown, TrendingUp, ArrowLeftRight, Target, ChevronRight, AlertTriangle, CheckCircle2, Wallet } from "lucide-react"
-import { z } from "zod"
-import { Card, CardContent } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { buttonVariants } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PageHelp } from "@/components/ui/page-help"
-import { HeroStat, MiniStat } from "@/components/dashboard/stat-card"
-import { SpendingPieChart } from "@/components/dashboard/spending-pie-chart"
-import { SpendingBarChart } from "@/components/dashboard/spending-bar-chart"
-import { SpendingTrendsChart } from "@/components/dashboard/spending-trends-chart"
-import { IncomeExpensesChart } from "@/components/dashboard/income-expenses-chart"
-import { TopMerchantsChart } from "@/components/dashboard/top-merchants-chart"
-import { CashFlowTable } from "@/components/dashboard/cash-flow-table"
-import { YearOverYearChart } from "@/components/dashboard/year-over-year-chart"
 import { NetWorthProjectionChart } from "@/components/analytics/net-worth-projection-chart"
-
-type DatePreset = "month" | "3months" | "6months" | "ytd" | "all"
+import { ArrowRight, CircleAlert, ReceiptText } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const SearchSchema = z.object({
+  accountIds: z.array(z.string()).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
-  accountIds: z.array(z.string()).optional(),
-  preset: z.enum(["month", "3months", "6months", "ytd", "all"]).default("3months"),
-  chartType: z.enum(["pie", "bar"]).optional(),
-  excludeRecurring: z.boolean().default(true),
+  preset: z.enum(["month"]).default("month"),
 })
 
 export const Route = createFileRoute("/")({
@@ -51,9 +54,9 @@ export const Route = createFileRoute("/")({
   component: DashboardPage,
   loaderDeps: ({ search }) => {
     const dates = !search.dateFrom && !search.dateTo
-      ? getPresetDates(search.preset)
+      ? getPresetDates("month")
       : { dateFrom: search.dateFrom, dateTo: search.dateTo }
-    return { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo, excludeRecurring: search.excludeRecurring ?? true }
+    return { ...search, ...dates }
   },
   loader: async ({ deps }) => {
     const filters = {
@@ -62,31 +65,73 @@ export const Route = createFileRoute("/")({
       accountIds: deps.accountIds ?? [],
     }
     const currentMonth = new Date().toISOString().slice(0, 7)
-    return withOfflineCache("dashboard", async () => {
-      const [byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, categories, totalBalance] =
-        await Promise.all([
-          getSpendingByCategory({ data: filters }),
-          getSpendingTrends({ data: filters }),
-          getTopMerchants({ data: { ...filters, limit: 10, excludeRecurring: deps.excludeRecurring } }),
-          getIncomeVsExpenses({ data: filters }),
-          getSummaryStats({ data: filters }),
-          getAccounts(),
-          getSetting({ data: "preferred_currency" }),
-          getYearOverYearComparison({ data: filters }),
-          getBudgetVsActual({ data: { month: currentMonth } }),
-          getCategories(),
-          getTotalBalance(),
-        ])
-      const projection = await getNetWorthProjection({
-        data: { currency: currency ?? "EUR", accountIds: filters.accountIds },
-      })
+    return withOfflineCache("dashboard-console", async () => {
+      const [
+        byCat,
+        stats,
+        accounts,
+        currency,
+        budgetVsActual,
+        categories,
+        totalBalance,
+        projection,
+        recurring,
+        monthHistory,
+        uncategorisedCount,
+      ] = await Promise.all([
+        getSpendingByCategory({ data: filters }).catch(() => []),
+        getSummaryStats({ data: filters }).catch(() => ({
+          totalIncome: 0,
+          totalMoneyIn: 0,
+          totalExpenses: 0,
+          net: 0,
+          count: 0,
+        })),
+        getAccounts().catch(() => []),
+        getSetting({ data: "preferred_currency" }).catch(() => "EUR"),
+        getBudgetVsActual({ data: { month: currentMonth } }).catch(() => ({
+          month: currentMonth,
+          categoryBudgets: [],
+          groupBudgets: [],
+          unbudgeted: [],
+          incomeActual: 0,
+          incomeAvg3m: 0,
+        })),
+        getCategories().catch(() => []),
+        getTotalBalance().catch(() => ({ balances: {} as Record<string, number>, hasData: false })),
+        getNetWorthProjection({ data: { currency: "EUR", accountIds: filters.accountIds } })
+          .catch(() => ({ history: [], fit: null })),
+        getRecurringTransactions({ data: { includeIgnored: false } })
+          .catch(() => []),
+        getIncomeVsExpenses({ data: { accountIds: filters.accountIds } }).catch(() => []),
+        getUncategorisedCount().catch(() => 0),
+      ])
+      const resolvedCurrency = currency ?? "EUR"
       const incomeCategoryId =
         categories.find((category) => category.type === "income" && category.name.toLowerCase() === "income")?.id ??
         categories.find((category) => category.type === "income")?.id
-      return { byCat, trends, merchants, incomeVsExp, stats, accounts, currency: currency ?? "EUR", yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, projection }
+      return {
+        byCat,
+        stats,
+        accounts,
+        currency: resolvedCurrency,
+        budgetVsActual,
+        currentMonth,
+        totalBalance,
+        projection,
+        recurring,
+        monthHistory,
+        uncategorisedCount,
+        incomeCategoryId,
+      }
     })
   },
 })
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+]
 
 const NET_WORTH_HORIZONS = [
   { months: 6, label: "6M" },
@@ -95,332 +140,312 @@ const NET_WORTH_HORIZONS = [
   { months: 60, label: "5Y" },
 ] as const
 
-const PRESET_LABELS: Record<DatePreset, string> = {
-  month: "This Month",
-  "3months": "Last 3 Mo",
-  "6months": "Last 6 Mo",
-  ytd: "YTD",
-  all: "All Time",
+function monthName(value: string) {
+  const [year, month] = value.split("-").map(Number)
+  return `${MONTH_NAMES[month - 1]} ${year}`
 }
 
-
-const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"]
-function fmtMonth(ym: string) {
-  const [y, m] = ym.split("-").map(Number)
-  return `${MONTH_NAMES[m - 1]} ${y}`
-}
-
-const BAR_TRACK = "h-0.5 rounded-full bg-muted overflow-hidden"
-const BAR_FILL_COLOR: Record<"green" | "amber" | "red", string> = {
-  green: "h-full rounded-full bg-positive transition-all duration-500",
-  amber: "h-full rounded-full bg-amber-500 transition-all duration-500",
-  red:   "h-full rounded-full bg-negative transition-all duration-500",
-}
-const BADGE_CLS: Record<"green" | "amber" | "red", string> = {
-  green: "bg-positive/10 text-positive border-positive/20",
-  amber: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  red:   "bg-negative/10 text-negative border-negative/20",
-}
-
-function budgetColor(ratio: number): "green" | "amber" | "red" {
-  if (ratio > 1) return "red"
-  if (ratio >= 0.75) return "amber"
-  return "green"
-}
-
-function BudgetSnapshotCard({
-  categoryBudgets,
-  groupBudgets,
-  currency,
-  month,
-}: {
-  categoryBudgets: CategoryBudgetRow[]
-  groupBudgets: GroupBudgetRow[]
-  currency: string
-  month: string
-}) {
-  const allRows = [
-    ...categoryBudgets.map((b) => ({ name: b.categoryName, budgeted: b.budgeted, spent: b.spent })),
-    ...groupBudgets.map((b) => ({ name: b.groupName, budgeted: b.budgeted, spent: b.spent })),
-  ]
-  if (allRows.length === 0) return null
-
-  const sorted = [...allRows].sort((a, b) => {
-    const ra = a.budgeted > 0 ? a.spent / a.budgeted : 0
-    const rb = b.budgeted > 0 ? b.spent / b.budgeted : 0
-    return rb - ra
-  })
-
-  const visible = sorted.slice(0, 6)
-  const onTrack = allRows.filter((r) => r.spent <= r.budgeted).length
-  const total = allRows.length
-  const allOnTrack = onTrack === total
-
-  return (
-    <Card className="animate-in stagger-5">
-      <CardContent className="p-3 md:p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Target className="size-3.5 text-muted-foreground/60" />
-            <p className="section-label mb-0">{fmtMonth(month)} Budgets</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`flex items-center gap-1 text-xs font-medium ${allOnTrack ? "text-positive" : "text-amber-500"}`}>
-              {allOnTrack
-                ? <CheckCircle2 className="size-3.5" />
-                : <AlertTriangle className="size-3.5" />}
-              {onTrack} / {total} on track
-            </span>
-            <Link
-              to="/budgets"
-              className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              View all <ChevronRight className="size-3" />
-            </Link>
-          </div>
-        </div>
-
-        <div className="space-y-2.5">
-          {visible.map((row) => {
-            const ratio = row.budgeted > 0 ? row.spent / row.budgeted : 0
-            const col = budgetColor(ratio)
-            const pct = row.budgeted > 0 ? Math.round(ratio * 100) : 0
-            return (
-              <div key={row.name} className="space-y-1">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs truncate text-muted-foreground">{row.name}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {formatCurrency(row.spent, currency)}<span className="text-muted-foreground/50"> / {formatCurrency(row.budgeted, currency)}</span>
-                    </span>
-                    <span className={`text-[10px] font-semibold border rounded-full px-1.5 py-0 ${BADGE_CLS[col]}`}>
-                      {pct}%
-                    </span>
-                  </div>
-                </div>
-                <div className={BAR_TRACK}>
-                  <div className={BAR_FILL_COLOR[col]} style={{ width: `${Math.min(ratio * 100, 100)}%` }} />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {sorted.length > 6 && (
-          <Link
-            to="/budgets"
-            className="flex items-center justify-center gap-1 mt-3 pt-3 border-t text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {sorted.length - 6} more budget{sorted.length - 6 !== 1 ? "s" : ""} <ChevronRight className="size-3" />
-          </Link>
-        )}
-      </CardContent>
-    </Card>
-  )
+function shortMonth(value: string) {
+  const [year, month] = value.split("-").map(Number)
+  return `${MONTH_NAMES[month - 1].slice(0, 3)} ${String(year).slice(2)}`
 }
 
 function DashboardPage() {
-  const { byCat, trends, merchants, incomeVsExp, stats, accounts, currency, yoy, budgetVsActual, currentMonth, incomeCategoryId, totalBalance, projection } = Route.useLoaderData()
+  const {
+    byCat,
+    stats,
+    accounts,
+    currency,
+    budgetVsActual,
+    currentMonth,
+    totalBalance,
+    projection,
+    recurring,
+    monthHistory,
+    uncategorisedCount,
+    incomeCategoryId,
+  } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const chartType = search.chartType ?? "pie"
-  const preset = search.preset
   const [netWorthHorizon, setNetWorthHorizon] = useState(12)
+
+  const today = new Date()
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const elapsedDays = Math.max(1, today.getDate())
+  const remainingDays = Math.max(1, daysInMonth - elapsedDays)
+
+  const budgetRows = useMemo(() => [
+    ...budgetVsActual.categoryBudgets.map((row) => ({
+      name: row.categoryName,
+      spent: row.spent,
+      budgeted: row.budgeted,
+    })),
+    ...budgetVsActual.groupBudgets.map((row) => ({
+      name: row.groupName,
+      spent: row.spent,
+      budgeted: row.budgeted,
+    })),
+  ], [budgetVsActual])
+
+  const planned = budgetRows.reduce((sum, row) => sum + row.budgeted, 0)
+  const projectedSpend = stats.totalExpenses / elapsedDays * daysInMonth
+  const variance = projectedSpend - planned
+  const safeDaily = planned > 0 ? Math.max(0, (planned - stats.totalExpenses) / remainingDays) : 0
+  const budgetProgress = planned > 0 ? Math.min(100, stats.totalExpenses / planned * 100) : 0
+  const monthProgress = elapsedDays / daysInMonth * 100
+  const activeRecurring = recurring.filter((item) => item.isActive && !item.isIgnored)
+  const monthlyRecurring = activeRecurring.reduce((sum, item) => sum + item.monthlyEquiv, 0)
+  const monthlyChange = projection.fit ? buildProjection(projection.fit, 12).milestones.monthlyChange : null
   const netWorthProjected = projection.fit ? buildProjection(projection.fit, netWorthHorizon) : null
+  const netWorth = totalBalance.balances[currency] ?? projection.fit?.lastValue ?? null
+  const overBudget = budgetRows
+    .filter((row) => row.budgeted > 0 && row.spent > row.budgeted)
+    .sort((a, b) => (b.spent - b.budgeted) - (a.spent - a.budgeted))
+  const recentMonths = [...monthHistory].slice(-4).reverse()
+  const topCategories = [...byCat].sort((a, b) => b.total - a.total).slice(0, 6)
+  const largestCategory = topCategories[0]?.total ?? 1
+  const monthLabel = monthName(currentMonth)
+  const hasPlan = planned > 0
+  const onTrack = !hasPlan || variance <= 0
 
-  function setPreset(p: DatePreset) {
-    const dates = getPresetDates(p)
-    navigate({ search: { ...search, dateFrom: dates.dateFrom, dateTo: dates.dateTo, preset: p } })
-  }
-
-  function setChartType(t: "pie" | "bar") {
-    navigate({ search: { ...search, chartType: t } })
-  }
-
-  const trendData = useMemo(() => {
-    const allTrends = trends as Array<{ month: string; categoryName: string; categoryColor: string; total: number }>
-    const months = [...new Set(allTrends.map((t) => t.month))].sort()
-    const cats = [...new Set(allTrends.map((t) => t.categoryName))].slice(0, 6)
-    return months.map((month) => {
-      const row: Record<string, any> = { month }
-      for (const cat of cats) {
-        const found = allTrends.find((t) => t.month === month && t.categoryName === cat)
-        row[cat] = found?.total ?? 0
-      }
-      return row
-    })
-  }, [trends])
-
-  const trendCategories = useMemo(() => {
-    const allTrends = trends as Array<{ month: string; categoryName: string; categoryColor: string; total: number }>
-    const cats = [...new Set(allTrends.map((t) => t.categoryName))]
-    return cats.slice(0, 6).map((name) => ({
-      name: name as string,
-      color: allTrends.find((t) => t.categoryName === name)?.categoryColor ?? "#94a3b8",
-    }))
-  }, [trends])
-
-  const periodDelta = useMemo(() => {
-    const data = incomeVsExp as Array<{ month: string; income: number; moneyIn: number; expenses: number; net: number }>
-    if (data.length < 2) return null
-    const mid = Math.floor(data.length / 2)
-    const prev = data.slice(0, mid)
-    const curr = data.slice(mid)
-    const prevIncome = prev.reduce((s, d) => s + d.income, 0)
-    const currIncome = curr.reduce((s, d) => s + d.income, 0)
-    const prevExpenses = prev.reduce((s, d) => s + d.expenses, 0)
-    const currExpenses = curr.reduce((s, d) => s + d.expenses, 0)
-    return {
-      income: prevIncome === 0 ? null : ((currIncome - prevIncome) / prevIncome) * 100,
-      expenses: prevExpenses === 0 ? null : ((currExpenses - prevExpenses) / prevExpenses) * 100,
-    }
-  }, [incomeVsExp])
-
-  const hasData = byCat.length > 0 || stats.totalMoneyIn > 0
-  const activeDates = search.dateFrom || search.dateTo
-    ? { dateFrom: search.dateFrom, dateTo: search.dateTo }
-    : getPresetDates(preset)
-  const transactionSearchBase = {
-    dateFrom: activeDates.dateFrom,
-    dateTo: activeDates.dateTo,
+  const transactionSearch = {
+    dateFrom: search.dateFrom,
+    dateTo: search.dateTo,
     accountIds: search.accountIds,
     page: 1,
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      {/* Filters bar */}
-      <div className="animate-in space-y-3">
-        <div className="overflow-x-auto">
-          <Tabs value={preset} onValueChange={(v) => v && setPreset(v as DatePreset)}>
-            <TabsList>
-              {(Object.entries(PRESET_LABELS) as [DatePreset, string][]).map(([key, label]) => (
-                <TabsTrigger key={key} value={key} className="whitespace-nowrap text-xs">{label}</TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="flex gap-2 flex-wrap">
-            <DatePicker
-              value={search.dateFrom}
-              onChange={(v) => navigate({ search: { ...search, dateFrom: v, preset: undefined } })}
-              placeholder="From date"
-            />
-            <DatePicker
-              value={search.dateTo}
-              onChange={(v) => navigate({ search: { ...search, dateTo: v, preset: undefined } })}
-              placeholder="To date"
-            />
-          </div>
-          {accounts.length > 1 && (
-            <Select
-              value={(search.accountIds ?? [])[0] ?? "all"}
-              onValueChange={(v) => navigate({ search: { ...search, accountIds: v && v !== "all" ? [v] : undefined } })}
-            >
-              <SelectTrigger className="w-full sm:w-auto">
-                <SelectValue placeholder="All accounts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All accounts</SelectItem>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name ?? a.iban ?? a.id}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      </div>
-
-      {/* Stat cards */}
-      <div className="space-y-3">
-        <HeroStat
-          label="Total Balance"
-          value={totalBalance.balances[currency ?? "EUR"] != null
-            ? formatCurrency(totalBalance.balances[currency ?? "EUR"], currency)
-            : "Sync to see"}
-          icon={<Wallet className="h-5 w-5 text-primary" />}
-          sub={totalBalance.hasData ? "across all accounts" : "no data"}
-          accent="primary"
-          className="animate-in stagger-1"
-        />
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border overflow-hidden bg-border animate-in stagger-2">
-          <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "out" }} className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
-            <MiniStat
-              label="Total Spend"
-              value={formatCurrency(stats.totalExpenses, currency)}
-              icon={<TrendingDown className="h-3.5 w-3.5 text-negative" />}
-              delta={periodDelta?.expenses != null ? -periodDelta.expenses : undefined}
-            />
-          </Link>
-          <Link
-            to="/transactions"
-            search={{ ...transactionSearchBase, amountSign: "in", categoryId: incomeCategoryId }}
-            className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+    <div className="console-page flex flex-col gap-3.5">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <span className="mr-auto text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
+          {monthLabel}
+        </span>
+        {accounts.length > 1 && (
+          <Select
+            value={(search.accountIds ?? [])[0] ?? "all"}
+            onValueChange={(value) => navigate({
+              search: { ...search, accountIds: value && value !== "all" ? [value] : undefined },
+            })}
           >
-            <MiniStat
-              label="Total Income"
-              value={formatCurrency(stats.totalIncome, currency)}
-              icon={<TrendingUp className="h-3.5 w-3.5 text-positive" />}
-              delta={periodDelta?.income}
-            />
-          </Link>
-          <Link to="/transactions" search={{ ...transactionSearchBase, amountSign: "in" }} className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
-            <MiniStat
-              label="Money In"
-              value={formatCurrency(stats.totalMoneyIn, currency)}
-              icon={<Wallet className="h-3.5 w-3.5 text-primary" />}
-            />
-          </Link>
-          <Link to="/transactions" search={transactionSearchBase} className="bg-card hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
-            <MiniStat
-              label="Net Balance"
-              value={formatCurrency(stats.net, currency)}
-              icon={<ArrowLeftRight className="h-3.5 w-3.5 text-neutral-data" />}
-              valueClass={stats.net >= 0 ? "text-positive" : "text-negative"}
-            />
-          </Link>
-        </div>
+            <SelectTrigger size="sm">
+              <SelectValue placeholder="All accounts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">All accounts</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name ?? account.iban ?? account.id}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {/* Budget snapshot */}
-      {(budgetVsActual.categoryBudgets.length > 0 || budgetVsActual.groupBudgets.length > 0) && (
-        <BudgetSnapshotCard
-          categoryBudgets={budgetVsActual.categoryBudgets}
-          groupBudgets={budgetVsActual.groupBudgets}
-          currency={currency}
-          month={currentMonth}
-        />
-      )}
-
-      {/* Net Worth Trend + Projection */}
-      <div className="space-y-2 animate-in stagger-6">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <p className="section-label px-0.5">Net Worth Trend</p>
-            <PageHelp title="Net Worth Trend">
-              <p>Your tracked account balances over time, with the dashed line projecting forward at your current rate of change.</p>
-              <p>The shaded band is a likely range (~80%) that widens the further out we project. This is a mechanical extrapolation of past balances, not advice.</p>
-            </PageHelp>
-          </div>
-          {projection.fit && (
-            <Tabs value={String(netWorthHorizon)} onValueChange={(v) => v && setNetWorthHorizon(Number(v))}>
-              <TabsList className="h-7">
-                {NET_WORTH_HORIZONS.map((h) => (
-                  <TabsTrigger key={h.months} value={String(h.months)} className="text-xs px-2.5">
-                    {h.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          )}
-        </div>
-        <Card>
-          <CardContent className="pt-5">
-            {projection.fit && netWorthProjected ? (
+      <Card className="animate-in gap-0 py-0">
+        <CardHeader className="gap-3 px-5 py-5 sm:px-6 sm:py-5">
+          <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.11em]">
+            {today.toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" })} · {remainingDays} days left
+          </CardDescription>
+          <CardTitle className="max-w-5xl text-pretty text-xl font-medium leading-[1.45] tracking-[-0.015em] sm:text-[25px]">
+            {hasPlan ? (
               <>
+                At today&rsquo;s pace you&rsquo;ll finish {MONTH_NAMES[today.getMonth()]} on{" "}
+                <span className="font-mono font-semibold">{formatCurrency(projectedSpend, currency)}</span>
+                {variance > 0 ? (
+                  <> &mdash; <span className="font-semibold text-warning">{formatCurrency(variance, currency)} over</span> your <span className="font-mono">{formatCurrency(planned, currency)}</span> plan. Holding to <span className="font-mono font-semibold">{formatCurrency(safeDaily, currency)}</span> a day brings it level.</>
+                ) : (
+                  <> &mdash; <span className="font-semibold text-positive">{formatCurrency(Math.abs(variance), currency)} under</span> your <span className="font-mono">{formatCurrency(planned, currency)}</span> plan.</>
+                )}
+              </>
+            ) : (
+              <>
+                You&rsquo;ve spent <span className="font-mono font-semibold">{formatCurrency(stats.totalExpenses, currency)}</span> so far this month. Add a budget to see your projected finish and safe daily spend.
+              </>
+            )}
+          </CardTitle>
+          <CardAction>
+            <Badge variant={onTrack ? "secondary" : "outline"} className={cn(onTrack ? "text-positive" : "text-warning")}>
+              <span className={cn("size-1.5 rounded-full", onTrack ? "bg-positive" : "bg-warning")} />
+              {hasPlan ? (onTrack ? "On track" : "Trending over") : "No plan yet"}
+            </Badge>
+          </CardAction>
+        </CardHeader>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-12">
+        <Card className="animate-in stagger-1 lg:col-span-7">
+          <CardHeader>
+            <CardTitle className="section-label">Month status</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
+              <p className="font-mono text-4xl font-semibold tracking-[-0.04em] sm:text-[42px]">
+                {formatCurrency(stats.totalExpenses, currency)}
+              </p>
+              <p className="pb-1 text-xs text-muted-foreground">
+                spent{hasPlan ? <> of <span className="font-mono text-secondary-foreground">{formatCurrency(planned, currency)}</span> planned</> : " this month"}
+              </p>
+            </div>
+
+            {hasPlan && (
+              <div className="flex flex-col gap-2">
+                <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-gradient-to-r from-primary to-positive" style={{ width: `${budgetProgress}%` }} />
+                  <span className="absolute inset-y-[-3px] w-0.5 bg-foreground/80" style={{ left: `${monthProgress}%` }} />
+                </div>
+                <div className="flex justify-between gap-3 font-mono text-[11px] text-muted-foreground">
+                  <span>{Math.round(budgetProgress)}% of plan used</span>
+                  <span>{Math.round(monthProgress)}% of month elapsed</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border">
+              <StatusMetric label="Safe daily" value={hasPlan ? formatCurrency(safeDaily, currency) : "—"} />
+              <StatusMetric label="Money in" value={formatCurrency(stats.totalMoneyIn, currency)} />
+              <StatusMetric label="Kept" value={formatCurrency(stats.net, currency)} positive={stats.net >= 0} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in stagger-2 lg:col-span-5">
+          <CardHeader>
+            <CardTitle className="section-label">Needs you</CardTitle>
+            <CardAction className="font-mono text-xs text-muted-foreground">
+              {uncategorisedCount + overBudget.length}
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col">
+            {uncategorisedCount > 0 && (
+              <ActionRow
+                title={`${uncategorisedCount} transaction${uncategorisedCount === 1 ? "" : "s"} need a category`}
+                meta="Ready to review"
+                to="/triage"
+                action="Review"
+                warning
+              />
+            )}
+            {overBudget.slice(0, 2).map((row) => (
+              <ActionRow
+                key={row.name}
+                title={`${row.name} is ${formatCurrency(row.spent - row.budgeted, currency)} over plan`}
+                meta={`${formatCurrency(row.spent, currency)} spent`}
+                to="/budgets"
+                action="Adjust"
+              />
+            ))}
+            {uncategorisedCount === 0 && overBudget.length === 0 && (
+              <div className="flex min-h-28 flex-col items-center justify-center gap-2 text-center">
+                <span className="size-2 rounded-full bg-positive" />
+                <p className="text-sm font-medium">Nothing needs your attention</p>
+                <p className="text-xs text-muted-foreground">Transactions and budgets look tidy.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in stagger-3 lg:col-span-4">
+          <CardHeader>
+            <CardTitle className="section-label">Where it went</CardTitle>
+            <CardAction>
+              <Link to="/category-trends" className="text-xs font-medium text-primary">Explore &rsaquo;</Link>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {topCategories.length > 0 ? topCategories.map((category) => (
+              <div key={category.categoryId ?? category.categoryName} className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-sm" style={{ backgroundColor: category.categoryColor }} />
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-secondary-foreground">{category.categoryName}</span>
+                  <span className="font-mono text-xs">{formatCurrency(category.total, currency)}</span>
+                </div>
+                <div className="h-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full" style={{ width: `${category.total / largestCategory * 100}%`, backgroundColor: category.categoryColor }} />
+                </div>
+              </div>
+            )) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">No spending this month.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in stagger-4 lg:col-span-4">
+          <CardHeader>
+            <CardTitle className="section-label">Net worth</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="font-mono text-[26px] font-semibold tracking-[-0.03em]">
+              {netWorth == null ? "—" : formatCurrency(netWorth, currency)}
+            </p>
+            <p className={cn("font-mono text-xs font-medium", monthlyChange == null ? "text-muted-foreground" : monthlyChange >= 0 ? "text-positive" : "text-negative")}>
+              {monthlyChange == null ? "Sync balances to start tracking" : `${monthlyChange >= 0 ? "+" : ""}${formatCurrency(monthlyChange, currency)} per month`}
+            </p>
+            <Sparkline points={projection.history.map((point) => point.total)} />
+            <div className="flex justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+              <span>Trend confidence</span>
+              <span className="font-mono text-secondary-foreground">{projection.fit ? buildProjection(projection.fit, 12).milestones.confidence : "—"}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in stagger-5 lg:col-span-4">
+          <CardHeader>
+            <CardTitle className="section-label">Fixed costs</CardTitle>
+            <CardAction>
+              <Link to="/recurring" className="text-xs font-medium text-primary">Recurring &rsaquo;</Link>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex items-baseline gap-2">
+              <p className="font-mono text-[26px] font-semibold tracking-[-0.03em]">{formatCurrency(monthlyRecurring, currency)}</p>
+              <span className="text-xs text-muted-foreground">/ month</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {stats.totalExpenses > 0 ? `${Math.round(monthlyRecurring / stats.totalExpenses * 100)}% of this month’s spend` : "No monthly spend to compare"} · {formatCurrency(monthlyRecurring * 12, currency)} a year
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {activeRecurring.slice(0, 4).map((item) => (
+                <div key={item.payee} className="flex items-center gap-3 text-xs">
+                  <span className="w-12 shrink-0 font-mono text-muted-foreground">{new Date(item.nextExpected).toLocaleDateString("en", { day: "numeric", month: "short" })}</span>
+                  <span className="min-w-0 flex-1 truncate text-secondary-foreground">{item.payee}</span>
+                  <span className="font-mono">{formatCurrency(item.avgAmount, currency)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in stagger-6 lg:col-span-12">
+          <CardHeader className="gap-y-2">
+            <CardTitle className="flex items-center gap-2">
+              <span className="section-label">Net worth projection</span>
+              <PageHelp title="Net worth projection">
+                <p>Your tracked account balances over time, with the dashed line projecting forward at your current rate of change.</p>
+                <p>The shaded band is a likely range that widens further into the future. This is a mechanical extrapolation of past balances, not financial advice.</p>
+              </PageHelp>
+            </CardTitle>
+            <CardDescription>Balance history and projected trajectory</CardDescription>
+            {projection.fit && (
+              <CardAction>
+                <Tabs value={String(netWorthHorizon)} onValueChange={(value) => value && setNetWorthHorizon(Number(value))}>
+                  <TabsList>
+                    {NET_WORTH_HORIZONS.map((horizon) => (
+                      <TabsTrigger key={horizon.months} value={String(horizon.months)}>
+                        {horizon.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              </CardAction>
+            )}
+          </CardHeader>
+          <CardContent>
+            {projection.fit && netWorthProjected ? (
+              <div className="flex flex-col gap-3">
                 <NetWorthProjectionChart
                   history={projection.history}
                   fit={projection.fit}
@@ -428,118 +453,106 @@ function DashboardPage() {
                   currency={currency}
                   zeroDate={netWorthProjected.milestones.zeroDate}
                 />
-                <p className="text-xs text-muted-foreground mt-3 px-1">
-                  {netWorthProjected.milestones.trendingUp ? "Trending up" : "Trending down"} ~{formatCurrency(Math.abs(netWorthProjected.milestones.monthlyChange), currency)}/mo · fitted over {projection.fit.windowDays} days of history
+                <p className="px-1 text-xs text-muted-foreground">
+                  {netWorthProjected.milestones.trendingUp ? "Trending up" : "Trending down"}{" "}
+                  ~{formatCurrency(Math.abs(netWorthProjected.milestones.monthlyChange), currency)}/mo · fitted over {projection.fit.windowDays} days of history
                 </p>
-              </>
+              </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No balance history yet. Sync your account to start tracking.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No balance history yet. Sync your accounts to start tracking.</p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="animate-in stagger-6 lg:col-span-12">
+          <CardHeader>
+            <CardTitle className="section-label">Month by month</CardTitle>
+            <CardAction>
+              <Link to="/comparison" className="text-xs font-medium text-primary">Comparison &rsaquo;</Link>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="px-0">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.3fr] border-b border-border px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
+              <span>Month</span><span className="text-right">In</span><span className="text-right">Out</span><span className="text-right">Net</span><span className="pl-6">Rate</span>
+            </div>
+            {recentMonths.map((month) => {
+              const rate = month.income > 0 ? month.net / month.income * 100 : 0
+              return (
+                <div key={month.month} className="grid grid-cols-[1fr_1fr_1fr_1fr_1.3fr] items-center border-b border-border/60 px-4 py-3 text-xs last:border-0">
+                  <span className="font-medium">{shortMonth(month.month)}</span>
+                  <span className="text-right font-mono text-muted-foreground">{formatCurrency(month.moneyIn, currency)}</span>
+                  <span className="text-right font-mono text-muted-foreground">{formatCurrency(month.expenses, currency)}</span>
+                  <span className={cn("text-right font-mono font-medium", month.net >= 0 ? "text-positive" : "text-negative")}>{formatCurrency(month.net, currency)}</span>
+                  <span className="flex items-center gap-2 pl-6">
+                    <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-positive" style={{ width: `${Math.max(0, Math.min(100, rate))}%` }} /></span>
+                    <span className="w-10 text-right font-mono text-muted-foreground">{Math.round(rate)}%</span>
+                  </span>
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
       </div>
 
-      {/* Empty state */}
-      {!hasData ? (
-        <div className="animate-in stagger-3 rounded-2xl border-2 border-dashed p-12 sm:p-20 text-center flex flex-col items-center gap-3">
-          <div className="rounded-full bg-muted size-14 flex items-center justify-center">
-            <TrendingUp className="size-6 text-muted-foreground/50" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">No data for this period</p>
-            <p className="text-sm text-muted-foreground">Connect a bank account and sync transactions to get started.</p>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4 sm:space-y-6 animate-in stagger-7">
-          <div className="space-y-2">
-            <p className="section-label px-0.5">Cash Flow</p>
-            <Card>
-              <CardContent className="pt-5">
-                <div className="chart-bg -ml-10 -mr-4">
-                  <IncomeExpensesChart data={incomeVsExp} currency={currency} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-2">
-            <p className="section-label px-0.5">Year over Year</p>
-            <Card>
-              <CardContent className="pt-5">
-                <div className="chart-bg p-3 -ml-8 -mr-4">
-                  <YearOverYearChart current={yoy.current} lastYear={yoy.lastYear} currency={currency} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
-            <div className="space-y-2">
-              <p className="section-label px-0.5">Spending by Category</p>
-              <Card>
-                <CardContent className="pt-5">
-                  <div className="flex justify-end mb-2">
-                    <Tabs value={chartType} onValueChange={(v) => v && setChartType(v as "pie" | "bar")}>
-                      <TabsList className="h-7">
-                        <TabsTrigger value="pie" className="text-xs px-2.5">Pie</TabsTrigger>
-                        <TabsTrigger value="bar" className="text-xs px-2.5">Bar</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </div>
-                  {chartType === "pie" ? (
-                    <SpendingPieChart
-                      data={byCat}
-                      currency={currency}
-                      budgets={preset === "month" ? budgetVsActual.categoryBudgets : undefined}
-                    />
-                  ) : (
-                    <div className="chart-bg p-2 -ml-16">
-                      <SpendingBarChart data={byCat} currency={currency} />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-2">
-              <p className="section-label px-0.5">Spending Trends</p>
-              <Card>
-                <CardContent className="pt-5">
-                  <div className="chart-bg p-2 -ml-10 -mr-4">
-                    <SpendingTrendsChart data={trendData} categories={trendCategories} currency={currency} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="section-label px-0.5">Month by Month</p>
-            <CashFlowTable data={incomeVsExp} stats={stats} currency={currency} />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-0.5">
-              <p className="section-label">Top Merchants</p>
-              <button
-                onClick={() => navigate({ search: { ...search, excludeRecurring: !search.excludeRecurring } })}
-                className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${search.excludeRecurring ? "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30" : "bg-primary text-primary-foreground border-primary"}`}
-              >
-                {search.excludeRecurring ? "Show recurring" : "Hide recurring"}
-              </button>
-            </div>
-            <Card>
-              <CardContent className="pt-5">
-                <div className="chart-bg p-2 -ml-4 -mr-4">
-                  <TopMerchantsChart data={merchants} currency={currency} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-        </div>
-      )}
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+        <Link to="/transactions" search={{ ...transactionSearch, amountSign: "out" }} className={cn(buttonVariants({ variant: "outline" }), "justify-between")}>Review spending <ArrowRight /></Link>
+        <Link to="/transactions" search={{ ...transactionSearch, amountSign: "in", categoryId: incomeCategoryId }} className={cn(buttonVariants({ variant: "outline" }), "justify-between")}>Review income <ArrowRight /></Link>
+        <Link to="/budgets" className={cn(buttonVariants({ variant: "outline" }), "justify-between")}>Manage budgets <ArrowRight /></Link>
+      </div>
     </div>
+  )
+}
+
+function StatusMetric({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5 border-r border-border px-3 py-3 last:border-0">
+      <span className="truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</span>
+      <span className={cn("truncate font-mono text-sm font-semibold sm:text-base", positive && "text-positive")}>{value}</span>
+    </div>
+  )
+}
+
+function ActionRow({
+  title,
+  meta,
+  to,
+  action,
+  warning,
+}: {
+  title: string
+  meta: string
+  to: "/triage" | "/budgets"
+  action: string
+  warning?: boolean
+}) {
+  return (
+    <div className="flex items-start gap-3 border-b border-border/70 py-3 first:pt-0 last:border-0 last:pb-0">
+      {warning ? <CircleAlert className="mt-0.5 size-4 shrink-0 text-warning" /> : <ReceiptText className="mt-0.5 size-4 shrink-0 text-primary" />}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium leading-snug">{title}</p>
+        <p className="mt-1 font-mono text-[11px] text-muted-foreground">{meta}</p>
+      </div>
+      <Link to={to} className={buttonVariants({ variant: "outline", size: "xs" })}>{action}</Link>
+    </div>
+  )
+}
+
+function Sparkline({ points }: { points: number[] }) {
+  if (points.length < 2) return <div className="h-20 rounded-lg bg-muted/40" />
+  const sample = points.slice(-24)
+  const min = Math.min(...sample)
+  const max = Math.max(...sample)
+  const range = Math.max(1, max - min)
+  const coords = sample.map((value, index) => {
+    const x = sample.length === 1 ? 0 : index / (sample.length - 1) * 300
+    const y = 70 - (value - min) / range * 60
+    return `${x},${y}`
+  }).join(" ")
+
+  return (
+    <svg viewBox="0 0 300 80" className="h-20 w-full" preserveAspectRatio="none" aria-label="Net worth trend">
+      <polyline points={`${coords} 300,80 0,80`} fill="var(--primary)" opacity="0.1" stroke="none" />
+      <polyline points={coords} fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

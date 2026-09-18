@@ -84,11 +84,14 @@ function AccountsPage() {
   const today = new Date().toISOString().slice(0, 10)
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold tracking-tight">Bank Accounts</h1>
+        <div className="flex flex-col gap-1">
+          <p className="section-label">Connected institutions</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Accounts</h1>
+        </div>
         <Button onClick={() => setShowPicker(true)} className="shrink-0">
-          <Plus className="h-4 w-4" />
+          <Plus data-icon="inline-start" />
           <span className="hidden sm:inline">Connect Bank</span>
           <span className="sm:hidden">Connect</span>
         </Button>

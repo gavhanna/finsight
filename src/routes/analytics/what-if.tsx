@@ -153,9 +153,9 @@ function WhatIfPage() {
   const hasSaving = totalMonthlySaving > 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold tracking-tight">What If?</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">What If?</h1>
         <PageHelp title="What If Calculator">
           <p>Build spending reduction scenarios and see the combined impact on your monthly and annual budget.</p>
           <p><strong className="text-foreground">Scenarios</strong> — add as many cuts as you like. Each one targets a category or merchant at a reduction percentage.</p>

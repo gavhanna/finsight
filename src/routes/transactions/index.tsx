@@ -6,10 +6,13 @@ import { CategoryDot } from "@/components/rules/category-dot";
 import { TransactionChartPanel } from "@/components/transactions/chart-panel";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -57,9 +60,9 @@ export const Route = createFileRoute("/transactions/")({
 			const [txData, categories, accounts] = await Promise.all([
 				getTransactions({
 					data: { ...deps, accountIds: deps.accountIds ?? [] },
-				}),
-				getCategories(),
-				getAccounts(),
+				}).catch(() => ({ transactions: [], total: 0, page: deps.page, pageSize: 50 })),
+				getCategories().catch(() => []),
+				getAccounts().catch(() => []),
 			]);
 			return { txData, categories, accounts };
 		}),
@@ -125,6 +128,13 @@ function TransactionsPage() {
 	]);
 	const chartStats = chartResult?.key === chartKey ? chartResult.stats : null;
 	const chartLoading = showChart && hasChartFilter && chartStats === null;
+	const activeView = search.categoryId === -1
+		? "uncategorised"
+		: search.amountSign === "in"
+			? "money-in"
+			: search.amountSign === "out"
+				? "money-out"
+				: "all";
 
 	const {
 		sorted: transactions,
@@ -178,7 +188,37 @@ function TransactionsPage() {
 	}
 
 	return (
-		<div className="flex flex-col h-full">
+		<div className="console-page flex flex-col gap-3.5">
+			<div className="flex flex-wrap items-center gap-3">
+				<span className="section-label">Saved views</span>
+				<div className="max-w-full overflow-x-auto">
+					<Tabs
+						value={activeView}
+						onValueChange={(value) => {
+							if (!value) return;
+							if (value === "uncategorised") updateSearch({ categoryId: -1, amountSign: undefined });
+							else if (value === "money-in") updateSearch({ categoryId: undefined, amountSign: "in" });
+							else if (value === "money-out") updateSearch({ categoryId: undefined, amountSign: "out" });
+							else updateSearch({ categoryId: undefined, amountSign: undefined });
+						}}
+					>
+						<TabsList>
+							<TabsTrigger value="all">All</TabsTrigger>
+							<TabsTrigger value="uncategorised">Uncategorised</TabsTrigger>
+							<TabsTrigger value="money-out">Money out</TabsTrigger>
+							<TabsTrigger value="money-in">Money in</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
+				<p className="ml-auto font-mono text-xs text-muted-foreground">
+					{total} transaction{total !== 1 ? "s" : ""}
+				</p>
+			</div>
+
+			<Card className="min-h-0 gap-0 py-0">
+				<CardHeader className="border-b py-3">
+					<CardTitle className="section-label">Transactions</CardTitle>
+				</CardHeader>
 			<TransactionFilters
 				searchInput={searchInput}
 				onSearchChange={handleSearchChange}
@@ -205,13 +245,13 @@ function TransactionsPage() {
 				onAccountChange={(v) => updateSearch({ accountIds: v })}
 			/>
 
-			{showChart && hasChartFilter && (
-				<TransactionChartPanel chartStats={chartStats} loading={chartLoading} />
-			)}
+				{showChart && hasChartFilter && (
+					<TransactionChartPanel chartStats={chartStats} loading={chartLoading} />
+				)}
 
-			<div className="flex-1 overflow-auto">
+			<CardContent className="overflow-x-auto px-0">
 				<Table>
-					<TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+					<TableHeader className="bg-muted/30">
 						<TableRow>
 							<TableHead className="w-10 px-3">
 								<Checkbox
@@ -330,6 +370,7 @@ function TransactionsPage() {
 												</SelectValue>
 											</SelectTrigger>
 											<SelectContent>
+												<SelectGroup>
 												<SelectItem value="uncategorised">
 													<span className="flex items-center gap-2">
 														<CategoryDot category={null} />
@@ -344,6 +385,7 @@ function TransactionsPage() {
 														</span>
 													</SelectItem>
 												))}
+												</SelectGroup>
 											</SelectContent>
 										</Select>
 									</TableCell>
@@ -352,9 +394,9 @@ function TransactionsPage() {
 						)}
 					</TableBody>
 				</Table>
-			</div>
+			</CardContent>
 
-			<div className="flex items-center justify-between border-t px-4 py-3">
+			<CardFooter className="justify-between border-t bg-transparent px-4 py-3">
 				<p className="text-sm text-muted-foreground">
 					{total} transaction{total !== 1 ? "s" : ""} · page {page} of{" "}
 					{totalPages || 1}
@@ -366,7 +408,7 @@ function TransactionsPage() {
 						onClick={() => navigate({ search: { ...search, page: page - 1 } })}
 						disabled={page <= 1}
 					>
-						<ChevronLeft className="h-4 w-4" />
+						<ChevronLeft />
 					</Button>
 					<Button
 						variant="outline"
@@ -374,10 +416,11 @@ function TransactionsPage() {
 						onClick={() => navigate({ search: { ...search, page: page + 1 } })}
 						disabled={page >= totalPages}
 					>
-						<ChevronRight className="h-4 w-4" />
+						<ChevronRight />
 					</Button>
 				</div>
-			</div>
+			</CardFooter>
+			</Card>
 		</div>
 	);
 }

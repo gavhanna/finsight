@@ -48,9 +48,9 @@ function SavingsRatePage() {
   const hasData = history.length > 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold tracking-tight">Savings Rate</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Savings Rate</h1>
         <PageHelp title="Savings Rate">
           <p>Your savings rate is the percentage of income you keep each month after expenses.</p>
           <p><strong className="text-foreground">Formula</strong> — (Income − Expenses) ÷ Income × 100</p>

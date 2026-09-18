@@ -231,11 +231,11 @@ function CategoryTrendsPage() {
   const noData = trends.length === 0
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       {/* Header */}
       <div className="animate-in space-y-3">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold tracking-tight">Category Trends</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Category Trends</h1>
           <PageHelp title="Category Trends">
             <p>Shows how your spending per category (or group) has changed month by month over the selected period.</p>
             <p><strong className="text-foreground">Area vs Bar</strong> — area chart shows cumulative stacked spending; bar chart makes it easier to compare individual months side by side.</p>

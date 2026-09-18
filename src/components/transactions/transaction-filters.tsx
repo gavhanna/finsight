@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -66,11 +67,11 @@ export function TransactionFilters({
 	onAccountChange: (v?: string[]) => void;
 }) {
 	return (
-		<div className="border-b p-3 sm:p-4 space-y-3">
+		<div className="flex flex-col gap-3 border-b p-3 sm:p-4">
 			<div className="flex flex-wrap gap-2 sm:gap-3">
 				<div className="relative flex-1 min-w-0 w-full sm:min-w-48 sm:w-auto flex gap-2">
 					<div className="relative flex-1">
-						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+						<Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
 						<Input
 							type="text"
 							value={searchInput}
@@ -86,7 +87,7 @@ export function TransactionFilters({
 							onClick={onToggleChart}
 							title="Toggle chart view"
 						>
-							<BarChart2 className="h-4 w-4" />
+							<BarChart2 />
 						</Button>
 					)}
 				</div>
@@ -113,9 +114,11 @@ export function TransactionFilters({
 							<SelectValue placeholder="All amounts" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="all">All amounts</SelectItem>
-							<SelectItem value="out">Money out</SelectItem>
-							<SelectItem value="in">Money in</SelectItem>
+							<SelectGroup>
+								<SelectItem value="all">All amounts</SelectItem>
+								<SelectItem value="out">Money out</SelectItem>
+								<SelectItem value="in">Money in</SelectItem>
+							</SelectGroup>
 						</SelectContent>
 					</Select>
 					<Select
@@ -144,6 +147,7 @@ export function TransactionFilters({
 							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
+							<SelectGroup>
 							<SelectItem value="all">All categories</SelectItem>
 							<SelectItem value="-1">
 								<span className="flex items-center gap-2">
@@ -159,6 +163,7 @@ export function TransactionFilters({
 									</span>
 								</SelectItem>
 							))}
+							</SelectGroup>
 						</SelectContent>
 					</Select>
 					{accounts.length > 1 && (
@@ -172,12 +177,14 @@ export function TransactionFilters({
 								<SelectValue placeholder="All accounts" />
 							</SelectTrigger>
 							<SelectContent>
+								<SelectGroup>
 								<SelectItem value="all">All accounts</SelectItem>
 								{accounts.map((a) => (
 									<SelectItem key={a.id} value={a.id}>
 										{a.name ?? a.iban ?? a.id}
 									</SelectItem>
 								))}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					)}
@@ -194,19 +201,21 @@ export function TransactionFilters({
 						<SelectTrigger className="h-8 w-auto min-w-40 text-sm">
 							<SelectValue placeholder="Assign category…" />
 						</SelectTrigger>
-						<SelectContent>
+					<SelectContent>
+						<SelectGroup>
 							<SelectItem value="none" disabled>
 								Assign category…
 							</SelectItem>
-							{categories.map((c) => (
+						{categories.map((c) => (
 								<SelectItem key={c.id} value={String(c.id)}>
 									<span className="flex items-center gap-2">
 										<CategoryDot category={c} />
 										{c.name}
 									</span>
 								</SelectItem>
-							))}
-						</SelectContent>
+						))}
+						</SelectGroup>
+					</SelectContent>
 					</Select>
 					<Button
 						size="sm"

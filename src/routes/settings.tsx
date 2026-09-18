@@ -207,8 +207,11 @@ function SettingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6  mx-auto w-full space-y-6">
-      <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+    <div className="console-page flex w-full flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <p className="section-label">Setup</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      </div>
 
       <form onSubmit={handleSave} className="space-y-8">
         <section className="space-y-4">

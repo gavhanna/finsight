@@ -89,11 +89,11 @@ function CashFlowCalendarPage() {
   const maxDayAmount = Math.max(...days.map((d) => Math.max(d.income, d.expenses)), 1)
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold tracking-tight">Cash Flow Calendar</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Cash Flow Calendar</h1>
           <PageHelp title="Cash Flow Calendar">
             <p>A day-by-day view of money in and out for the selected month.</p>
             <p><strong className="text-foreground">Green bars</strong> — income received that day.</p>

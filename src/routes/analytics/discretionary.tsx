@@ -154,10 +154,10 @@ function DiscretionaryPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="console-page flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold tracking-tight">Discretionary Spend</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Discretionary Spend</h1>
         <PageHelp title="Discretionary Spend">
           <p>See what you're actually spending on day-to-day purchases, with recurring payments filtered out.</p>
           <p><strong className="text-foreground">Active recurring</strong> — excludes only payees that are currently active (charged within the expected interval).</p>
