@@ -57,6 +57,7 @@ export const categoryGroups = pgTable("category_groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   color: text("color").notNull(),
+  position: integer("position").notNull().default(0),
 })
 
 export const categories = pgTable("categories", {
@@ -72,6 +73,7 @@ export const categories = pgTable("categories", {
   groupId: integer("group_id").references(() => categoryGroups.id, {
     onDelete: "set null",
   }),
+  position: integer("position").notNull().default(0),
 })
 
 export const rules = pgTable("rules", {
@@ -119,6 +121,7 @@ export const transactions = pgTable(
       onDelete: "set null",
     }),
     categorisedBy: text("categorised_by").$type<"manual" | "rule" | "llm" | "mcc">(),
+    reviewedAt: timestamp("reviewed_at", { mode: "date" }),
     dedupeHash: text("dedupe_hash").notNull(),
     rawData: text("raw_data"), // JSON
   },
@@ -128,6 +131,36 @@ export const transactions = pgTable(
     index("idx_transactions_account_id").on(t.accountId),
     index("idx_transactions_category_id").on(t.categoryId),
   ],
+)
+
+export const transactionSplits = pgTable(
+  "transaction_splits",
+  {
+    id: serial("id").primaryKey(),
+    transactionId: text("transaction_id")
+      .notNull()
+      .references(() => transactions.id, { onDelete: "cascade" }),
+    categoryId: integer("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    amount: doublePrecision("amount").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
+  },
+  (t) => [index("idx_transaction_splits_transaction_id").on(t.transactionId)],
+)
+
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: serial("id").primaryKey(),
+    scope: text("scope").notNull().$type<"transactions" | "explore">(),
+    name: text("name").notNull(),
+    definition: text("definition").notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().default(sql`now()`),
+  },
+  (t) => [unique("uniq_saved_view_scope_name").on(t.scope, t.name)],
 )
 
 export const narrativeCache = pgTable("narrative_cache", {
@@ -190,6 +223,27 @@ export const recurringIgnores = pgTable("recurring_ignores", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
 })
 
+export const recurringCommitments = pgTable(
+  "recurring_commitments",
+  {
+    id: serial("id").primaryKey(),
+    payee: text("payee").notNull(),
+    categoryId: integer("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    amount: doublePrecision("amount").notNull(),
+    currency: text("currency").notNull().default("EUR"),
+    cadence: text("cadence")
+      .notNull()
+      .$type<"daily" | "weekly" | "fortnightly" | "monthly" | "quarterly" | "annual">(),
+    nextExpected: text("next_expected").notNull(),
+    source: text("source").notNull().$type<"detected" | "manual">(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().default(sql`now()`),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().default(sql`now()`),
+  },
+  (t) => [unique("uniq_recurring_commitment_payee").on(t.payee)],
+)
+
 export const balanceHistory = pgTable(
   "balance_history",
   {
@@ -218,8 +272,11 @@ export type Category = typeof categories.$inferSelect
 export type Rule = typeof rules.$inferSelect
 export type RulePattern = typeof rulePatterns.$inferSelect
 export type Transaction = typeof transactions.$inferSelect
+export type TransactionSplit = typeof transactionSplits.$inferSelect
+export type SavedView = typeof savedViews.$inferSelect
 export type Budget = typeof budgets.$inferSelect
 export type BudgetOverride = typeof budgetOverrides.$inferSelect
 export type MerchantAlias = typeof merchantAliases.$inferSelect
 export type RecurringIgnore = typeof recurringIgnores.$inferSelect
+export type RecurringCommitment = typeof recurringCommitments.$inferSelect
 export type BalanceHistory = typeof balanceHistory.$inferSelect

@@ -149,6 +149,7 @@ export async function syncAccountById(accountId: string): Promise<{ imported: nu
         merchantCategoryCode: tx.merchantCategoryCode ?? null,
         categoryId,
         categorisedBy,
+        reviewedAt: categoryId === null ? null : new Date(),
         dedupeHash,
         rawData: JSON.stringify(tx),
       })

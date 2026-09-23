@@ -1,13 +1,11 @@
 import { useState } from "react"
-import { Pencil, Trash2, Check, X } from "lucide-react"
+import { Pencil, Trash2, Check, X, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useSortable } from "@/hooks/use-sortable"
-import { SortableHead } from "@/components/ui/sortable-head"
-import { updateCategory, deleteCategory, assignCategoryGroup } from "@/server/fn/categories"
+import { updateCategory, deleteCategory, assignCategoryGroup, reorderCategories } from "@/server/fn/categories"
 import { ColorPicker } from "./color-picker"
 import type { getCategoriesWithRules, getCategoryGroups } from "@/server/fn/categories"
 
@@ -30,7 +28,7 @@ export function CategoryTable({
   groups: Group[]
   onRefresh: () => void
 }) {
-  const { sorted: categories, sortKey, sortDir, toggle } = useSortable(rawCategories, "name")
+  const categories = rawCategories
   const [editId, setEditId] = useState<number | null>(null)
   const [editFields, setEditFields] = useState({ name: "", color: "#94a3b8", type: "expense" as CategoryType })
 
@@ -57,16 +55,26 @@ export function CategoryTable({
     onRefresh()
   }
 
+  async function move(id: number, direction: -1 | 1) {
+    const index = categories.findIndex((category) => category.id === id)
+    const target = index + direction
+    if (index < 0 || target < 0 || target >= categories.length) return
+    const ids = categories.map((category) => category.id)
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    await reorderCategories({ data: { ids } })
+    onRefresh()
+  }
+
   return (
     <div className="rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
-            <SortableHead id="name" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Category</SortableHead>
-            <SortableHead id="type" sortKey={sortKey} sortDir={sortDir} onSort={toggle}>Type</SortableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Group</TableHead>
-            <SortableHead id="transactionCount" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="text-right hidden sm:table-cell">Transactions</SortableHead>
-            <SortableHead id="rules" sortKey={sortKey} sortDir={sortDir} onSort={toggle} className="hidden sm:table-cell">Rules</SortableHead>
+            <TableHead className="text-right hidden sm:table-cell">Transactions</TableHead>
+            <TableHead className="hidden sm:table-cell">Rules</TableHead>
             <TableHead />
           </TableRow>
         </TableHeader>
@@ -150,6 +158,8 @@ export function CategoryTable({
                 <TableCell className="text-muted-foreground hidden sm:table-cell">{cat.rules}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => move(cat.id, -1)} disabled={categories[0]?.id === cat.id} className="h-7 w-7 text-muted-foreground" aria-label={`Move ${cat.name} up`}><ChevronUp /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => move(cat.id, 1)} disabled={categories.at(-1)?.id === cat.id} className="h-7 w-7 text-muted-foreground" aria-label={`Move ${cat.name} down`}><ChevronDown /></Button>
                     <Button
                       variant="ghost" size="icon"
                       onClick={() => startEdit(cat)}

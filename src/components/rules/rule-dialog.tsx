@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
-  createRule, updateRule, addPattern, updatePattern, deletePattern, previewPatterns,
+  createRule, updateRule, addPattern, updatePattern, deletePattern, previewPatterns, applyRuleToHistory,
 } from "@/server/fn/categories"
 import type { Category, RulePattern } from "@/db/schema"
 import type { RuleWithMeta, PatternDraft, PreviewTx } from "./types"
@@ -15,9 +15,11 @@ import { FIELDS, MATCH_TYPES } from "./types"
 import { CategoryDot } from "./category-dot"
 import { PreviewTable } from "./preview-table"
 
-export function RuleDialog({ open, onOpenChange, rule, categories, onSaved }: {
+type RuleDraft = { name: string; categoryId?: number; pattern: string; field?: RulePattern["field"] }
+
+export function RuleDialog({ open, onOpenChange, rule, draft, categories, onSaved }: {
   open: boolean; onOpenChange: (v: boolean) => void
-  rule?: RuleWithMeta; categories: Category[]; onSaved: () => void
+  rule?: RuleWithMeta; draft?: RuleDraft; categories: Category[]; onSaved: () => void
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -32,8 +34,9 @@ export function RuleDialog({ open, onOpenChange, rule, categories, onSaved }: {
         </DialogHeader>
         <div className="overflow-y-auto flex-1 px-6 py-5">
           <RuleForm
-            key={rule?.id ?? "new"}
+            key={rule?.id ?? `${draft?.pattern ?? "new"}-${open}`}
             rule={rule}
+            draft={draft}
             categories={categories}
             onClose={() => onOpenChange(false)}
             onSaved={onSaved}
@@ -44,18 +47,18 @@ export function RuleDialog({ open, onOpenChange, rule, categories, onSaved }: {
   )
 }
 
-function RuleForm({ rule, categories, onClose, onSaved }: {
-  rule?: RuleWithMeta; categories: Category[]
+function RuleForm({ rule, draft, categories, onClose, onSaved }: {
+  rule?: RuleWithMeta; draft?: RuleDraft; categories: Category[]
   onClose: () => void; onSaved: () => void
 }) {
   const isEdit = !!rule
-  const [name, setName] = useState(rule?.name ?? "")
-  const [categoryId, setCategoryId] = useState(rule?.categoryId ?? categories[0]?.id ?? 0)
+  const [name, setName] = useState(rule?.name ?? draft?.name ?? "")
+  const [categoryId, setCategoryId] = useState(rule?.categoryId ?? draft?.categoryId ?? categories[0]?.id ?? 0)
   const [priority, setPriority] = useState(rule?.priority ?? 0)
   const [patterns, setPatterns] = useState<PatternDraft[]>(
     rule?.patterns.length
       ? rule.patterns.map(p => ({ id: p.id, pattern: p.pattern, field: p.field, matchType: p.matchType }))
-      : [{ pattern: "", field: "description", matchType: "contains" }]
+      : [{ pattern: draft?.pattern ?? "", field: draft?.field ?? "creditorName", matchType: "contains" }]
   )
   const [preview, setPreview] = useState<{ count: number; capped: boolean; transactions: PreviewTx[] } | null>(null)
   const [previewing, setPreviewing] = useState(false)
@@ -101,19 +104,20 @@ function RuleForm({ rule, categories, onClose, onSaved }: {
     else setPatterns(ps => ps.filter((_, i) => i !== fullIdx))
   }
 
-  async function handleSave() {
+  async function handleSave(applyHistory = false) {
     const hasValid = visiblePatterns.some(p => p.pattern.trim())
     if (!name.trim() || !hasValid || !categoryId) return
     setSaving(true)
     try {
       if (!isEdit) {
-        await createRule({
+        const created = await createRule({
           data: {
             name: name.trim(), categoryId, priority,
             patterns: visiblePatterns.filter(p => p.pattern.trim())
               .map(p => ({ pattern: p.pattern, field: p.field, matchType: p.matchType })),
           },
         })
+        if (applyHistory) await applyRuleToHistory({ data: { ruleId: created.id, categoryId } })
       } else {
         await updateRule({ data: { id: rule.id, name: name.trim(), categoryId, priority } })
         for (const p of patterns) {
@@ -236,9 +240,12 @@ function RuleForm({ rule, categories, onClose, onSaved }: {
       <Separator />
 
       <div className="flex gap-2">
-        <Button onClick={handleSave} disabled={saving || !canSave}>
-          {saving ? "Saving…" : isEdit ? "Save Changes" : "Save Rule"}
+        <Button onClick={() => handleSave(false)} disabled={saving || !canSave}>
+          {saving ? "Saving…" : isEdit ? "Save Changes" : "Future transactions only"}
         </Button>
+        {!isEdit && <Button variant="secondary" onClick={() => handleSave(true)} disabled={saving || !canSave}>
+          Create and apply to {visiblePreview?.count ?? 0} matches
+        </Button>}
         <Button variant="outline" onClick={onClose}>Cancel</Button>
       </div>
     </div>

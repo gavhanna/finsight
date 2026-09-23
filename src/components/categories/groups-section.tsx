@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react"
+import { Plus, Pencil, Trash2, Check, X, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createCategoryGroup, updateCategoryGroup, deleteCategoryGroup } from "@/server/fn/categories"
+import { createCategoryGroup, updateCategoryGroup, deleteCategoryGroup, reorderCategoryGroups } from "@/server/fn/categories"
 import { ColorPicker } from "./color-picker"
 import type { getCategoryGroups, getCategoriesWithRules } from "@/server/fn/categories"
 
@@ -41,6 +41,16 @@ export function GroupsSection({
     if (!editFields.name.trim() || editId === null) return
     await updateCategoryGroup({ data: { id: editId, ...editFields } })
     setEditId(null)
+    onRefresh()
+  }
+
+  async function move(id: number, direction: -1 | 1) {
+    const index = groups.findIndex((group) => group.id === id)
+    const target = index + direction
+    if (index < 0 || target < 0 || target >= groups.length) return
+    const ids = groups.map((group) => group.id)
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    await reorderCategoryGroups({ data: { ids } })
     onRefresh()
   }
 
@@ -107,6 +117,8 @@ export function GroupsSection({
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => move(group.id, -1)} disabled={groups[0]?.id === group.id} className="h-7 w-7 text-muted-foreground" aria-label={`Move ${group.name} up`}><ChevronUp /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => move(group.id, 1)} disabled={groups.at(-1)?.id === group.id} className="h-7 w-7 text-muted-foreground" aria-label={`Move ${group.name} down`}><ChevronDown /></Button>
                   <Button
                     variant="ghost" size="icon"
                     onClick={() => { setEditId(group.id); setEditFields({ name: group.name, color: group.color }) }}

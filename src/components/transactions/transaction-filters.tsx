@@ -1,4 +1,4 @@
-import { BarChart2, Search } from "lucide-react";
+import { BarChart2, Check, ListTree, Search, WandSparkles } from "lucide-react";
 import { CategoryDot } from "@/components/rules/category-dot";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -35,6 +35,9 @@ export function TransactionFilters({
 	onBulkCatChange,
 	onBulkApply,
 	onBulkClear,
+	onBulkReviewed,
+	onBulkRule,
+	onBulkSplit,
 	bulkLoading,
 	onDateFromChange,
 	onDateToChange,
@@ -59,6 +62,9 @@ export function TransactionFilters({
 	onBulkCatChange: (v: string) => void;
 	onBulkApply: () => void;
 	onBulkClear: () => void;
+	onBulkReviewed: () => void;
+	onBulkRule: () => void;
+	onBulkSplit: () => void;
 	bulkLoading: boolean;
 	onDateFromChange: (v?: string) => void;
 	onDateToChange: (v?: string) => void;
@@ -226,6 +232,15 @@ export function TransactionFilters({
 					</Button>
 					<Button size="sm" variant="ghost" onClick={onBulkClear}>
 						Clear
+					</Button>
+					<Button size="sm" variant="outline" onClick={onBulkRule} disabled={selected.size !== 1} title="Select one transaction to create a rule">
+						<WandSparkles /> Create rule
+					</Button>
+					<Button size="sm" variant="outline" onClick={onBulkReviewed} disabled={bulkLoading}>
+						<Check /> Mark reviewed
+					</Button>
+					<Button size="sm" variant="outline" onClick={onBulkSplit} disabled={selected.size !== 1} title="Select one transaction to split">
+						<ListTree /> Split
 					</Button>
 				</div>
 			)}

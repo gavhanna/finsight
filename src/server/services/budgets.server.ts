@@ -62,18 +62,22 @@ export async function getBudgetVsActualInternal(month: string): Promise<BudgetVs
     // 3. Income — positive transactions in the selected month
     db.execute(sql`
       SELECT COALESCE(SUM(amount), 0)::float AS income
-      FROM transactions
-      WHERE amount > 0
-        AND to_char(booking_date::date, 'YYYY-MM') = ${month}
+      FROM transactions t
+      JOIN categories c ON c.id = t.category_id
+      WHERE t.amount > 0
+        AND c.type = 'income'
+        AND to_char(t.booking_date::date, 'YYYY-MM') = ${month}
     `),
 
     // 4. Average monthly income over the 3 full months preceding the selected month
     db.execute(sql`
       SELECT COALESCE(SUM(amount) / NULLIF(COUNT(DISTINCT to_char(booking_date::date, 'YYYY-MM')), 0), 0)::float AS avg_income
-      FROM transactions
-      WHERE amount > 0
-        AND to_char(booking_date::date, 'YYYY-MM') < ${month}
-        AND booking_date::date >= (${`${month}-01`}::date - INTERVAL '3 months')
+      FROM transactions t
+      JOIN categories c ON c.id = t.category_id
+      WHERE t.amount > 0
+        AND c.type = 'income'
+        AND to_char(t.booking_date::date, 'YYYY-MM') < ${month}
+        AND t.booking_date::date >= (${`${month}-01`}::date - INTERVAL '3 months')
     `),
 
     // 5. Spending on categories that have no budget (neither individual nor via group)

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { db } from "../../db/index.server"
 import { accounts, bankConnections, balanceHistory, settings, transactions } from "../../db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, sql } from "drizzle-orm"
 import { z } from "zod"
 import {
   createRequisition,
@@ -34,6 +34,46 @@ export const getConnections = createServerFn().handler(async () => {
     ...conn,
     accounts: allAccounts.filter((a) => a.connectionId === conn.id),
   }))
+})
+
+export const getAccountConsoleData = createServerFn().handler(async () => {
+  const [connections, allAccounts, history, coverageRows, duplicateRows, transferRows] = await Promise.all([
+    db.select().from(bankConnections).orderBy(desc(bankConnections.createdAt)),
+    db.select().from(accounts),
+    db.select().from(balanceHistory).orderBy(balanceHistory.recordedAt),
+    db.execute(sql`
+      SELECT MIN(booking_date) AS "firstDate", MAX(booking_date) AS "lastDate",
+        COUNT(*)::int AS "transactionCount",
+        COUNT(*) FILTER (WHERE category_id IS NOT NULL)::int AS "categorisedCount"
+      FROM transactions
+    `),
+    db.execute(sql`
+      SELECT booking_date AS "bookingDate", ROUND(ABS(amount)::numeric, 2)::float AS amount,
+        ARRAY_AGG(id) AS ids,
+        ARRAY_AGG(account_id) AS "accountIds",
+        ARRAY_AGG(COALESCE(creditor_name, debtor_name, description, 'Unknown')) AS payees
+      FROM transactions
+      WHERE amount < 0
+      GROUP BY booking_date, ROUND(ABS(amount)::numeric, 2)
+      HAVING COUNT(DISTINCT account_id) > 1
+      ORDER BY booking_date DESC
+      LIMIT 12
+    `),
+    db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM transactions t
+      JOIN categories c ON c.id = t.category_id
+      WHERE c.type = 'transfer'
+    `),
+  ])
+  return {
+    connections: connections.map((connection) => ({ ...connection, accounts: allAccounts.filter((account) => account.connectionId === connection.id) })),
+    accounts: allAccounts,
+    history,
+    coverage: Array.from(coverageRows)[0] as { firstDate: string | null; lastDate: string | null; transactionCount: number; categorisedCount: number },
+    duplicates: Array.from(duplicateRows) as Array<{ bookingDate: string; amount: number; ids: string[]; accountIds: string[]; payees: string[] }>,
+    transferCount: Number((Array.from(transferRows)[0] as { count?: number })?.count ?? 0),
+  }
 })
 
 export const getInstitutionsList = createServerFn()

@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState, useMemo } from "react"
-import { getAllRules, getCategories, deleteRule } from "../server/fn/categories"
+import { getAllRules, getCategories, deleteRule, reorderRules } from "../server/fn/categories"
 import { recategoriseAll } from "../server/fn/transactions"
 import { Plus, Search, Filter, RefreshCw } from "lucide-react"
 import { PageHelp } from "@/components/ui/page-help"
@@ -58,12 +58,21 @@ function RulesPage() {
         r.category?.name.toLowerCase().includes(q)
       )
     }
-    return [...list].sort((a, b) => a.name.localeCompare(b.name))
+    return list
   }, [rules, search, filterCatId])
 
   async function handleDelete(id: number) {
     if (!confirm("Delete this rule and all its patterns?")) return
     await deleteRule({ data: id })
+    router.invalidate()
+  }
+
+  async function moveRule(index: number, direction: -1 | 1) {
+    const target = index + direction
+    if (target < 0 || target >= filtered.length) return
+    const ids = filtered.map((rule) => rule.id)
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    await reorderRules({ data: { ids } })
     router.invalidate()
   }
 
@@ -156,7 +165,7 @@ function RulesPage() {
         </Card>
       ) : (
         <div className="rounded-xl border overflow-hidden divide-y">
-          {filtered.map((rule) => (
+          {filtered.map((rule, index) => (
             <RuleRow
               key={rule.id}
               rule={rule}
@@ -165,6 +174,8 @@ function RulesPage() {
               onToggle={() => setExpandedId(expandedId === rule.id ? null : rule.id)}
               onDelete={() => handleDelete(rule.id)}
               onRefresh={() => router.invalidate()}
+              onMoveUp={!search.trim() && filterCatId === null && index > 0 ? () => moveRule(index, -1) : undefined}
+              onMoveDown={!search.trim() && filterCatId === null && index < filtered.length - 1 ? () => moveRule(index, 1) : undefined}
             />
           ))}
         </div>

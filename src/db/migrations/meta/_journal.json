@@ -71,6 +71,13 @@
       "when": 1784027497343,
       "tag": "0009_tearful_betty_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789745902066,
+      "tag": "0010_previous_stranger",
+      "breakpoints": true
     }
   ]
 }

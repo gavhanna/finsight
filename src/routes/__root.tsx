@@ -20,7 +20,7 @@ import {
   WifiOff,
   House,
 } from "lucide-react"
-import { getUncategorisedCount } from "@/server/fn/transactions"
+import { getNeedsReviewCount } from "@/server/fn/transactions"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -34,7 +34,7 @@ import appCss from "../styles.css?url"
 export const Route = createRootRoute({
   loader: async () => {
     try {
-      return { uncategorisedCount: await getUncategorisedCount() }
+      return { uncategorisedCount: await getNeedsReviewCount() }
     } catch {
       return { uncategorisedCount: 0 }
     }
@@ -139,21 +139,30 @@ const primaryNav = [
 const subNav = {
   home: [
     { to: "/", label: "Overview" },
-    { to: "/comparison", label: "Cash flow" },
-    { to: "/category-trends", label: "Month in review" },
+    { to: "/", label: "Cash flow", search: { view: "cash-flow" as const } },
+    { to: "/", label: "Month in review", search: { view: "month-review" as const } },
   ],
   transactions: [
     { to: "/transactions", label: "All transactions" },
-    { to: "/triage", label: "Needs review" },
+    { to: "/transactions", label: "Needs review", search: { page: 1, reviewState: "needs-review" as const } },
+    { to: "/triage", label: "Review mode" },
   ],
-  budgets: [{ to: "/budgets", label: "Overview & manage" }],
+  budgets: [
+    { to: "/budgets", label: "This month" },
+    { to: "/budgets", label: "Plan", search: { view: "plan" as const } },
+    { to: "/budgets", label: "History", search: { view: "history" as const } },
+  ],
   explore: [
     { to: "/explore", label: "All analyses" },
     { to: "/recurring", label: "Recurring" },
     { to: "/comparison", label: "Comparison" },
     { to: "/merchants", label: "Merchants" },
   ],
-  accounts: [{ to: "/accounts", label: "Connected accounts" }],
+  accounts: [
+    { to: "/accounts", label: "Accounts" },
+    { to: "/accounts", label: "Balances", search: { view: "balances" as const } },
+    { to: "/accounts", label: "Data quality", search: { view: "data-quality" as const } },
+  ],
   setup: [
     { to: "/categories", label: "Categories" },
     { to: "/rules", label: "Rules" },
@@ -196,8 +205,11 @@ function ConnectionStatus() {
 function ConsoleShell({ children }: { children: React.ReactNode }) {
   const { location } = useRouterState()
   const { uncategorisedCount } = Route.useLoaderData()
+  const embedded = Boolean((location.search as Record<string, unknown>).embed)
   const section = activeSection(location.pathname)
   const monthLabel = new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date())
+
+  if (embedded) return <main className="min-h-svh bg-background">{children}</main>
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
@@ -255,18 +267,24 @@ function ConsoleShell({ children }: { children: React.ReactNode }) {
 
         <nav aria-label="Section navigation" className="scrollbar-none flex h-[42px] items-center gap-5 overflow-x-auto border-t border-border/60 px-5">
           {subNav[section].map((item) => {
-            const active = isSubNavActive(location.pathname, item.to)
+            const reviewItem = item.label === "Needs review"
+            const itemView = "search" in item ? (item.search as Record<string, unknown>).view : undefined
+            const currentView = (location.search as Record<string, unknown>).view
+            const defaultView = section === "home" ? "overview" : section === "budgets" ? "this-month" : section === "accounts" ? "accounts" : undefined
+            const viewMatches = itemView ? currentView === itemView : !defaultView || currentView === undefined || currentView === defaultView
+            const active = isSubNavActive(location.pathname, item.to) && viewMatches && (section !== "transactions" || reviewItem === ((location.search as Record<string, unknown>).reviewState === "needs-review"))
             return (
               <Link
-                key={item.to}
+                key={`${item.to}-${item.label}`}
                 to={item.to}
+                search={"search" in item ? item.search : undefined}
                 className={cn(
                   "relative flex h-full shrink-0 items-center text-[13px] font-medium transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary after:opacity-0",
                   active ? "text-foreground after:opacity-100" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {item.label}
-                {item.to === "/triage" && uncategorisedCount > 0 && (
+                {item.label === "Needs review" && uncategorisedCount > 0 && (
                   <span className="ml-1.5 rounded-full bg-primary px-1.5 font-mono text-[10px] font-semibold text-primary-foreground">
                     {uncategorisedCount > 99 ? "99+" : uncategorisedCount}
                   </span>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Trash2, Pencil, ChevronRight, ChevronDown, Check, Zap } from "lucide-react"
+import { Trash2, Pencil, ChevronRight, ChevronDown, ChevronUp, Check, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { applyRuleToHistory, deletePattern } from "@/server/fn/categories"
@@ -10,11 +10,12 @@ import { PatternRow, AddPatternRow } from "./pattern-row"
 import { RuleDialog } from "./rule-dialog"
 
 export function RuleRow({
-  rule, categories, isExpanded, onToggle, onDelete, onRefresh,
+  rule, categories, isExpanded, onToggle, onDelete, onRefresh, onMoveUp, onMoveDown,
 }: {
   rule: RuleWithMeta; categories: Category[]
   isExpanded: boolean; onToggle: () => void
   onDelete: () => void; onRefresh: () => void
+  onMoveUp?: () => void; onMoveDown?: () => void
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [applying, setApplying] = useState(false)
@@ -71,6 +72,8 @@ export function RuleRow({
         </span>
 
         <div className="flex items-center gap-0.5 shrink-0">
+          <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={(event) => { event.stopPropagation(); onMoveUp?.() }} disabled={!onMoveUp} title="Move rule up"><ChevronUp /></Button>
+          <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={(event) => { event.stopPropagation(); onMoveDown?.() }} disabled={!onMoveDown} title="Move rule down"><ChevronDown /></Button>
           <Button
             variant="ghost" size="icon"
             className="size-7 text-muted-foreground hover:text-foreground"

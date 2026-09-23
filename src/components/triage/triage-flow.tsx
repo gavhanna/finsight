@@ -160,7 +160,7 @@ export function TriageFlow({
           <CheckCheck className="size-12 mx-auto text-positive" />
           <p className="font-medium">All done!</p>
           <p className="text-sm text-muted-foreground">
-            You fixed {doneCount} transaction{doneCount !== 1 ? "s" : ""} in "{filterLabel}".
+            You reviewed {doneCount} transaction{doneCount !== 1 ? "s" : ""} in "{filterLabel}".
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={onBack}>
@@ -350,7 +350,7 @@ export function TriageFlow({
                 ? "Pick a category — will add pattern to rule"
                 : "Pick a category — will create rule"
               : categoryId !== null
-                ? "Move to a different category"
+                ? "Confirm or choose another category"
                 : "Pick a category"}
           </p>
           <div className="flex items-center gap-1">

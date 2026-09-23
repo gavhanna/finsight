@@ -1,8 +1,10 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
-import { EyeOff, Repeat, Undo2 } from "lucide-react"
+import { Check, EyeOff, Plus, Repeat, Undo2 } from "lucide-react"
 import { getRecurringTransactions, type RecurringItem } from "@/server/fn/insights"
 import { ignoreRecurringPayee, unignoreRecurringPayee } from "@/server/fn/recurring-ignores"
+import { getRecurringCommitments, saveRecurringCommitment } from "@/server/fn/recurring-commitments"
+import { getCategories } from "@/server/fn/categories"
 import { getSetting } from "@/server/fn/settings"
 import { cn, formatCurrency, formatDate } from "@/lib/utils"
 import { withOfflineCache } from "@/lib/loader-cache"
@@ -20,30 +22,51 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useSortable } from "@/hooks/use-sortable"
 import { SortableHead } from "@/components/ui/sortable-head"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export const Route = createFileRoute("/recurring")({
   component: RecurringPage,
   loader: () => withOfflineCache("recurring", async () => {
-    const [recurring, currency] = await Promise.all([
+    const [recurring, currency, commitments, categories] = await Promise.all([
       getRecurringTransactions({ data: { includeIgnored: true } }).catch(() => []),
       getSetting({ data: "preferred_currency" }).catch(() => "EUR"),
+      getRecurringCommitments().catch(() => []),
+      getCategories().catch(() => []),
     ])
-    return { recurring, currency: currency ?? "EUR" }
+    return { recurring, currency: currency ?? "EUR", commitments, categories }
   }),
 })
 
 type FreqFilter = "all" | "monthly" | "weekly" | "other"
 
 function RecurringPage() {
-  const { recurring: data, currency } = Route.useLoaderData()
+  const { recurring: detected, currency, commitments, categories } = Route.useLoaderData()
   const router = useRouter()
   const [freqFilter, setFreqFilter] = useState<FreqFilter>("all")
   const [showInactive, setShowInactive] = useState(false)
   const [showIgnored, setShowIgnored] = useState(false)
+  const [manualOpen, setManualOpen] = useState(false)
+
+  const cadenceLabel = { daily: "Daily", weekly: "Weekly", fortnightly: "Fortnightly", monthly: "Monthly", quarterly: "Quarterly", annual: "Annual" } as const
+  const interval = { daily: 1, weekly: 7, fortnightly: 14, monthly: 30, quarterly: 91, annual: 365 } as const
+  const factor = { daily: 30.44, weekly: 4.345, fortnightly: 2.1725, monthly: 1, quarterly: 1 / 3, annual: 1 / 12 } as const
+  const detectedPayees = new Set(detected.map((item) => item.payee))
+  const manualItems: RecurringItem[] = commitments.filter((item) => item.source === "manual" && !detectedPayees.has(item.payee)).map((item) => ({
+    payee: item.payee, frequency: cadenceLabel[item.cadence] as RecurringItem["frequency"], monthlyEquiv: item.amount * factor[item.cadence], annualCost: item.amount * factor[item.cadence] * 12,
+    avgAmount: item.amount, medianInterval: interval[item.cadence], lastSeen: item.createdAt.toISOString().slice(0, 10), nextExpected: item.nextExpected, daysSinceLastSeen: 0, isActive: true, isIgnored: false,
+    transactionCount: 0, categoryId: item.categoryId ?? null, amountRange: { min: item.amount, max: item.amount }, categoryName: categories.find((category) => category.id === item.categoryId)?.name ?? "Uncategorised", categoryColor: categories.find((category) => category.id === item.categoryId)?.color ?? "#94a3b8",
+  }))
+  const data = [...detected, ...manualItems]
+  const confirmedPayees = new Set(commitments.map((item) => item.payee))
 
   const ignored = data.filter((item) => item.isIgnored)
   const active = data.filter((item) => !item.isIgnored && item.isActive)
   const inactive = data.filter((item) => !item.isIgnored && !item.isActive)
+  const unconfirmed = active.filter((item) => !confirmedPayees.has(item.payee))
   const totalMonthly = active.reduce((sum, item) => sum + item.monthlyEquiv, 0)
   const totalAnnual = active.reduce((sum, item) => sum + item.annualCost, 0)
 
@@ -74,6 +97,12 @@ function RecurringPage() {
     router.invalidate()
   }
 
+  async function confirm(item: RecurringItem) {
+    const cadence = item.frequency === "Daily" ? "daily" : item.frequency === "Weekly" ? "weekly" : item.frequency === "Fortnightly" ? "fortnightly" : item.frequency === "Quarterly" ? "quarterly" : item.frequency === "Annual" ? "annual" : "monthly"
+    await saveRecurringCommitment({ data: { payee: item.payee, categoryId: item.categoryId, amount: item.avgAmount, currency, cadence, nextExpected: item.nextExpected, source: "detected" } })
+    router.invalidate()
+  }
+
   return (
     <div className="console-page flex flex-col gap-3.5">
       <Card className="animate-in">
@@ -83,10 +112,18 @@ function RecurringPage() {
             <span className="font-mono font-semibold">{formatCurrency(totalMonthly, currency)}</span> is already committed each month across <span className="font-mono font-semibold">{active.length}</span> recurring payments. That&rsquo;s <span className="font-mono font-semibold">{formatCurrency(totalAnnual, currency)}</span> a year.
           </CardTitle>
           <CardAction>
-            <Badge variant="secondary"><Repeat /> Active patterns</Badge>
+            <div className="flex gap-2"><Badge variant="secondary"><Repeat /> Active patterns</Badge><Button size="sm" variant="outline" onClick={() => setManualOpen(true)}><Plus /> Add manually</Button></div>
           </CardAction>
         </CardHeader>
       </Card>
+
+      {unconfirmed[0] && <Alert>
+        <AlertTitle>Is {unconfirmed[0].payee} a recurring commitment?</AlertTitle>
+        <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+          <span>{formatCurrency(unconfirmed[0].avgAmount, currency)} · {unconfirmed[0].frequency.toLowerCase()} · detected from {unconfirmed[0].transactionCount} payments</span>
+          <span className="flex gap-2"><Button size="sm" onClick={() => confirm(unconfirmed[0])}><Check /> Confirm</Button><Button size="sm" variant="outline" onClick={() => handleIgnore(unconfirmed[0].payee)}>Not recurring</Button></span>
+        </AlertDescription>
+      </Alert>}
 
       {upcoming.length > 0 && (
         <Card className="animate-in stagger-1">
@@ -140,7 +177,7 @@ function RecurringPage() {
         </Card>
       ) : (
         <div className="flex flex-col gap-3">
-          <RecurringTable items={filtered} currency={currency} onIgnore={handleIgnore} />
+          <RecurringTable items={filtered} currency={currency} onIgnore={handleIgnore} confirmedPayees={confirmedPayees} />
 
           {inactive.length > 0 && (
             <section className="flex flex-col gap-2">
@@ -161,6 +198,7 @@ function RecurringPage() {
           )}
         </div>
       )}
+      <ManualCommitmentDialog open={manualOpen} onOpenChange={setManualOpen} categories={categories} currency={currency} onSaved={() => router.invalidate()} />
     </div>
   )
 }
@@ -178,12 +216,14 @@ function RecurringTable({
   dimmed,
   onIgnore,
   onUnignore,
+  confirmedPayees,
 }: {
   items: RecurringItem[]
   currency: string
   dimmed?: boolean
   onIgnore?: (payee: string) => void
   onUnignore?: (payee: string) => void
+  confirmedPayees?: Set<string>
 }) {
   const { sorted, sortKey, sortDir, toggle } = useSortable(items, "monthlyEquiv", "desc")
   const today = new Date()
@@ -224,7 +264,7 @@ function RecurringTable({
                       <span className="max-w-[110px] truncate">{item.categoryName}</span>
                     </span>
                   </TableCell>
-                  <TableCell><Badge variant="secondary">{item.frequency}</Badge></TableCell>
+                  <TableCell><div className="flex items-center gap-2"><Badge variant="secondary">{item.frequency}</Badge>{confirmedPayees?.has(item.payee) && <Badge variant="outline">Confirmed</Badge>}</div></TableCell>
                   <TableCell className="hidden text-center md:table-cell">
                     <span className={cn("text-xs", confidence === "High" ? "text-positive" : confidence === "Medium" ? "text-warning" : "text-muted-foreground")}>{confidence}</span>
                   </TableCell>
@@ -255,4 +295,40 @@ function RecurringTable({
       </CardContent>
     </Card>
   )
+}
+
+function ManualCommitmentDialog({ open, onOpenChange, categories, currency, onSaved }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  categories: Awaited<ReturnType<typeof getCategories>>
+  currency: string
+  onSaved: () => void
+}) {
+  const [payee, setPayee] = useState("")
+  const [amount, setAmount] = useState("")
+  const [cadence, setCadence] = useState<"daily" | "weekly" | "fortnightly" | "monthly" | "quarterly" | "annual">("monthly")
+  const [nextExpected, setNextExpected] = useState(new Date().toISOString().slice(0, 10))
+  const [categoryId, setCategoryId] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    if (!payee.trim() || Number(amount) <= 0) return
+    setSaving(true)
+    try {
+      await saveRecurringCommitment({ data: { payee: payee.trim(), amount: Number(amount), currency, cadence, nextExpected, categoryId: categoryId ? Number(categoryId) : null, source: "manual" } })
+      onSaved(); onOpenChange(false); setPayee(""); setAmount("")
+    } finally { setSaving(false) }
+  }
+
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent>
+    <DialogHeader><DialogTitle>Add recurring commitment</DialogTitle><DialogDescription>Add a commitment that cannot be detected from transaction history yet.</DialogDescription></DialogHeader>
+    <FieldGroup>
+      <Field><FieldLabel htmlFor="commitment-payee">Payee</FieldLabel><Input id="commitment-payee" value={payee} onChange={(event) => setPayee(event.target.value)} placeholder="Rent, insurance, membership…" /></Field>
+      <div className="grid grid-cols-2 gap-3"><Field><FieldLabel htmlFor="commitment-amount">Amount ({currency})</FieldLabel><Input id="commitment-amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} /></Field>
+        <Field><FieldLabel>Cadence</FieldLabel><Select value={cadence} onValueChange={(value) => value && setCadence(value as typeof cadence)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{["daily", "weekly", "fortnightly", "monthly", "quarterly", "annual"].map((value) => <SelectItem key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</SelectItem>)}</SelectGroup></SelectContent></Select></Field></div>
+      <Field><FieldLabel htmlFor="commitment-next">Next expected</FieldLabel><Input id="commitment-next" type="date" value={nextExpected} onChange={(event) => setNextExpected(event.target.value)} /></Field>
+      <Field><FieldLabel>Category</FieldLabel><Select value={categoryId || "none"} onValueChange={(value) => setCategoryId(value === "none" ? "" : value ?? "")}><SelectTrigger><SelectValue placeholder="Uncategorised" /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="none">Uncategorised</SelectItem>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+    </FieldGroup>
+    <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button onClick={save} disabled={saving || !payee.trim() || Number(amount) <= 0}>{saving ? "Saving…" : "Add commitment"}</Button></DialogFooter>
+  </DialogContent></Dialog>
 }

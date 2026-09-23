@@ -7,7 +7,7 @@ import {
   rulePatterns,
   transactions,
 } from "../../db/schema";
-import { eq, sql, inArray, type SQL } from "drizzle-orm";
+import { eq, sql, inArray, asc, desc, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { invalidateCategoryCache } from "../services/categoriser.server";
 import { log } from "../../lib/logger.server";
@@ -23,8 +23,12 @@ const MatchTypeSchema = z.enum(["contains", "exact", "startsWith"]);
 // ── Category Groups ───────────────────────────────────────────────────────────
 
 export const getCategoryGroups = createServerFn().handler(async () => {
-  return db.select().from(categoryGroups).orderBy(categoryGroups.name);
+  return db.select().from(categoryGroups).orderBy(asc(categoryGroups.position), asc(categoryGroups.name));
 });
+
+export const reorderCategoryGroups = createServerFn().inputValidator(z.object({ ids: z.array(z.number()) })).handler(async ({ data }) => {
+  await db.transaction(async (tx) => { for (const [position, id] of data.ids.entries()) await tx.update(categoryGroups).set({ position }).where(eq(categoryGroups.id, id)) })
+})
 
 export const createCategoryGroup = createServerFn()
   .inputValidator(
@@ -70,11 +74,11 @@ export const assignCategoryGroup = createServerFn()
 // ── Categories ────────────────────────────────────────────────────────────────
 
 export const getCategories = createServerFn().handler(async () => {
-  return db.select().from(categories).orderBy(categories.name);
+  return db.select().from(categories).orderBy(asc(categories.position), asc(categories.name));
 });
 
 export const getCategoriesWithRules = createServerFn().handler(async () => {
-  const cats = await db.select().from(categories).orderBy(categories.name);
+  const cats = await db.select().from(categories).orderBy(asc(categories.position), asc(categories.name));
   const groups = await db.select().from(categoryGroups);
   const allRules = await db.select().from(rules);
   const txCounts = await db
@@ -93,6 +97,11 @@ export const getCategoriesWithRules = createServerFn().handler(async () => {
     ),
   }));
 });
+
+export const reorderCategories = createServerFn().inputValidator(z.object({ ids: z.array(z.number()) })).handler(async ({ data }) => {
+  await db.transaction(async (tx) => { for (const [position, id] of data.ids.entries()) await tx.update(categories).set({ position }).where(eq(categories.id, id)) })
+  invalidateCategoryCache()
+})
 
 export const createCategory = createServerFn()
   .inputValidator(
@@ -142,7 +151,7 @@ export const deleteCategory = createServerFn()
 // ── Rules ─────────────────────────────────────────────────────────────────────
 
 export const getAllRules = createServerFn().handler(async () => {
-  const allRules = await db.select().from(rules).orderBy(rules.priority);
+  const allRules = await db.select().from(rules).orderBy(desc(rules.priority), asc(rules.id));
   const patterns = await db.select().from(rulePatterns);
   const cats = await db.select().from(categories);
   return allRules.map((r) => ({
@@ -151,6 +160,11 @@ export const getAllRules = createServerFn().handler(async () => {
     patterns: patterns.filter((p) => p.ruleId === r.id),
   }));
 });
+
+export const reorderRules = createServerFn().inputValidator(z.object({ ids: z.array(z.number()) })).handler(async ({ data }) => {
+  await db.transaction(async (tx) => { for (const [index, id] of data.ids.entries()) await tx.update(rules).set({ priority: data.ids.length - index }).where(eq(rules.id, id)) })
+  invalidateCategoryCache()
+})
 
 export const createRule = createServerFn()
   .inputValidator(
@@ -354,7 +368,7 @@ export const applyRuleToHistory = createServerFn()
 
     await db
       .update(transactions)
-      .set({ categoryId, categorisedBy: "rule" })
+      .set({ categoryId, categorisedBy: "rule", reviewedAt: new Date() })
       .where(
         inArray(
           transactions.id,

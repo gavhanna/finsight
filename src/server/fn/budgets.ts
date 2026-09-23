@@ -70,6 +70,18 @@ export const getBudgetVsActual = createServerFn()
     return getBudgetVsActualInternal(data.month)
   })
 
+export const getBudgetHistory = createServerFn()
+  .inputValidator(z.object({ endMonth: z.string(), months: z.number().int().min(1).max(24).default(12) }))
+  .handler(async ({ data }) => {
+    const { getBudgetVsActualInternal } = await import("../services/budgets.server")
+    const [year, month] = data.endMonth.split("-").map(Number)
+    const monthKeys = Array.from({ length: data.months }, (_, index) => {
+      const value = new Date(year, month - data.months + index, 1)
+      return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`
+    })
+    return Promise.all(monthKeys.map((key) => getBudgetVsActualInternal(key)))
+  })
+
 export const getBudgets = createServerFn().handler(async () => {
   const rows = await db.execute(sql`
     SELECT

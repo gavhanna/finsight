@@ -7,8 +7,9 @@ import {
   bankConnections,
   budgets,
   budgetOverrides,
+  transactionSplits,
 } from "../../db/schema"
-import { eq, and, gte, lte, desc, inArray, sql, lt, gt } from "drizzle-orm"
+import { eq, and, gte, lte, desc, inArray, sql, lt, gt, asc } from "drizzle-orm"
 import { z } from "zod"
 import { categorise } from "../services/categoriser.server"
 import { log } from "../../lib/logger.server"
@@ -20,6 +21,9 @@ const FiltersSchema = z.object({
   accountIds: z.array(z.string()).optional(),
   categoryId: z.number().optional(),
   amountSign: z.enum(["in", "out"]).optional(),
+  reviewState: z.enum(["needs-review", "reviewed"]).optional(),
+  categoryType: z.enum(["expense", "income", "transfer"]).optional(),
+  recurringOnly: z.boolean().optional(),
   search: z.string().optional(),
   page: z.number().default(1),
   pageSize: z.number().default(50),
@@ -41,6 +45,19 @@ function buildConditions(filters: z.infer<typeof StatsFiltersSchema>) {
   }
   if (filters.amountSign === "in") conditions.push(gt(transactions.amount, 0))
   if (filters.amountSign === "out") conditions.push(lt(transactions.amount, 0))
+  if (filters.reviewState === "needs-review") conditions.push(sql`${transactions.reviewedAt} IS NULL`)
+  if (filters.reviewState === "reviewed") conditions.push(sql`${transactions.reviewedAt} IS NOT NULL`)
+  if (filters.categoryType) {
+    conditions.push(sql`${transactions.categoryId} IN (SELECT ${categories.id} FROM ${categories} WHERE ${categories.type} = ${filters.categoryType})`)
+  }
+  if (filters.recurringOnly) {
+    conditions.push(sql`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, ${transactions.description}) IN (
+      SELECT COALESCE(t.creditor_name, t.debtor_name, t.description)
+      FROM transactions t
+      GROUP BY COALESCE(t.creditor_name, t.debtor_name, t.description)
+      HAVING count(*) >= 3
+    )`)
+  }
   if (filters.search) {
     const term = `%${filters.search}%`
     conditions.push(
@@ -115,8 +132,22 @@ export const getTransactions = createServerFn()
       .from(transactions)
       .where(conditions.length ? and(...conditions) : undefined)
 
+    const ids = rows.map((row) => row.transaction.id)
+    const splitRows = ids.length
+      ? await db
+          .select({ transactionId: transactionSplits.transactionId, count: sql<number>`cast(count(*) as int)` })
+          .from(transactionSplits)
+          .where(inArray(transactionSplits.transactionId, ids))
+          .groupBy(transactionSplits.transactionId)
+      : []
+    const splitCounts = new Map(splitRows.map((row) => [row.transactionId, row.count]))
+
     return {
-      transactions: rows.map((r) => ({ ...r.transaction, category: r.category })),
+      transactions: rows.map((r) => ({
+        ...r.transaction,
+        category: r.category,
+        splitCount: splitCounts.get(r.transaction.id) ?? 0,
+      })),
       total: Number(totalRows[0]?.count ?? 0),
       page: filters.page,
       pageSize: filters.pageSize,
@@ -276,6 +307,24 @@ export const getTransactionDetail = createServerFn()
       }
     }
 
+    const splits = await db
+      .select({
+        id: transactionSplits.id,
+        transactionId: transactionSplits.transactionId,
+        categoryId: transactionSplits.categoryId,
+        amount: transactionSplits.amount,
+        note: transactionSplits.note,
+        category: {
+          id: categories.id,
+          name: categories.name,
+          color: categories.color,
+        },
+      })
+      .from(transactionSplits)
+      .leftJoin(categories, eq(transactionSplits.categoryId, categories.id))
+      .where(eq(transactionSplits.transactionId, id))
+      .orderBy(asc(transactionSplits.id))
+
     return {
       ...row.transaction,
       category: row.category,
@@ -285,6 +334,7 @@ export const getTransactionDetail = createServerFn()
       merchant,
       merchantContext,
       rawDataText: row.transaction.rawData ?? null,
+      splits,
     }
   })
 
@@ -293,7 +343,11 @@ export const updateTransactionCategory = createServerFn()
   .handler(async ({ data: { id, categoryId } }) => {
     await db
       .update(transactions)
-      .set({ categoryId, categorisedBy: "manual" })
+      .set({
+        categoryId,
+        categorisedBy: "manual",
+        reviewedAt: categoryId === null ? null : new Date(),
+      })
       .where(eq(transactions.id, id))
     log.info("transaction.categorised.manual", { transactionId: id, categoryId })
   })
@@ -303,10 +357,94 @@ export const bulkCategorise = createServerFn()
   .handler(async ({ data: { ids, categoryId } }) => {
     await db
       .update(transactions)
-      .set({ categoryId, categorisedBy: "manual" })
+      .set({ categoryId, categorisedBy: "manual", reviewedAt: new Date() })
       .where(inArray(transactions.id, ids))
     log.info("transaction.categorised.bulk", { count: ids.length, categoryId })
   })
+
+export const getTransactionsExport = createServerFn()
+  .inputValidator(StatsFiltersSchema)
+  .handler(async ({ data: filters }) => {
+    const conditions = buildConditions(filters)
+    const rows = await db
+      .select({
+        bookingDate: transactions.bookingDate,
+        payee: sql<string>`COALESCE(${transactions.creditorName}, ${transactions.debtorName}, '')`,
+        description: transactions.description,
+        amount: transactions.amount,
+        currency: transactions.currency,
+        account: accounts.name,
+        category: categories.name,
+        reviewedAt: transactions.reviewedAt,
+      })
+      .from(transactions)
+      .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(transactions.bookingDate), desc(transactions.id))
+      .limit(10000)
+    return rows
+  })
+
+export const bulkMarkReviewed = createServerFn()
+  .inputValidator(z.object({ ids: z.array(z.string()).min(1) }))
+  .handler(async ({ data: { ids } }) => {
+    await db.update(transactions).set({ reviewedAt: new Date() }).where(inArray(transactions.id, ids))
+    log.info("transaction.reviewed.bulk", { count: ids.length })
+  })
+
+const SplitInputSchema = z.object({
+  transactionId: z.string(),
+  splits: z.array(z.object({
+    categoryId: z.number().nullable(),
+    amount: z.number().finite(),
+    note: z.string().trim().max(160).optional(),
+  })).min(2),
+})
+
+export const saveTransactionSplits = createServerFn()
+  .inputValidator(SplitInputSchema)
+  .handler(async ({ data }) => {
+    const [transaction] = await db
+      .select({ amount: transactions.amount })
+      .from(transactions)
+      .where(eq(transactions.id, data.transactionId))
+      .limit(1)
+    if (!transaction) throw new Error("Transaction not found")
+
+    const expectedCents = Math.round(transaction.amount * 100)
+    const actualCents = data.splits.reduce((sum, split) => sum + Math.round(split.amount * 100), 0)
+    if (expectedCents !== actualCents) {
+      throw new Error("Split amounts must add up to the original transaction amount")
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(transactionSplits).where(eq(transactionSplits.transactionId, data.transactionId))
+      await tx.insert(transactionSplits).values(data.splits.map((split) => ({
+        transactionId: data.transactionId,
+        categoryId: split.categoryId,
+        amount: split.amount,
+        note: split.note || null,
+      })))
+      await tx.update(transactions).set({ reviewedAt: new Date() }).where(eq(transactions.id, data.transactionId))
+    })
+    log.info("transaction.split.saved", { transactionId: data.transactionId, count: data.splits.length })
+  })
+
+export const clearTransactionSplits = createServerFn()
+  .inputValidator(z.object({ transactionId: z.string() }))
+  .handler(async ({ data }) => {
+    await db.delete(transactionSplits).where(eq(transactionSplits.transactionId, data.transactionId))
+    log.info("transaction.split.cleared", data)
+  })
+
+export const getNeedsReviewCount = createServerFn().handler(async () => {
+  const [{ count }] = await db
+    .select({ count: sql<number>`cast(count(*) as int)` })
+    .from(transactions)
+    .where(sql`${transactions.reviewedAt} IS NULL`)
+  return count
+})
 
 export const getUncategorisedTransactions = createServerFn().handler(async () => {
   const rows = await db
@@ -364,7 +502,7 @@ export const recategoriseAll = createServerFn().handler(async () => {
     if (categoryId !== tx.categoryId) {
       await db
         .update(transactions)
-        .set({ categoryId, categorisedBy })
+        .set({ categoryId, categorisedBy, reviewedAt: categoryId === null ? null : new Date() })
         .where(eq(transactions.id, tx.id))
       updated++
     }
