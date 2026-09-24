@@ -60,7 +60,7 @@ export function SplitTransactionDialog({ open, onOpenChange, transaction, catego
         <DialogDescription>Allocate {formatCurrency(absoluteTotal, transaction?.currency ?? "EUR")} across two or more categories without changing the imported bank transaction.</DialogDescription>
       </DialogHeader>
       <FieldGroup>
-        {splits.map((split, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_8rem_2rem] items-end gap-2">
+        {splits.map((split, index) => <div key={index} className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_2rem]">
           <Field>
             <FieldLabel>Category {index + 1}</FieldLabel>
             <Select value={split.categoryId || undefined} onValueChange={(value) => update(index, { categoryId: value ?? "" })}>
@@ -72,10 +72,10 @@ export function SplitTransactionDialog({ open, onOpenChange, transaction, catego
             <FieldLabel htmlFor={`split-${index}`}>Amount</FieldLabel>
             <Input id={`split-${index}`} inputMode="decimal" value={split.amount} onChange={(event) => update(index, { amount: event.target.value })} />
           </Field>
-          <Button variant="ghost" size="icon" aria-label={`Remove split ${index + 1}`} disabled={splits.length <= 2} onClick={() => setSplits((current) => current.filter((_, position) => position !== index))}><Trash2 /></Button>
+          <Button className="justify-self-end" variant="ghost" size="icon" aria-label={`Remove split ${index + 1}`} disabled={splits.length <= 2} onClick={() => setSplits((current) => current.filter((_, position) => position !== index))}><Trash2 /></Button>
         </div>)}
       </FieldGroup>
-      <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+      <div className="flex flex-col items-start gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
         <Button variant="ghost" size="sm" onClick={() => setSplits((current) => [...current, { categoryId: "", amount: "0.00", note: "" }])}><Plus /> Add split</Button>
         <span className={remaining === 0 ? "text-positive" : "text-muted-foreground"}>{remaining === 0 ? "Fully allocated" : `${formatCurrency(Math.abs(remaining), transaction?.currency ?? "EUR")} remaining`}</span>
       </div>

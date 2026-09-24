@@ -73,13 +73,13 @@ export function PatternRow({ pattern, onDelete, onRefresh }: {
 
   if (!editing) {
     return (
-      <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/40 group transition-colors">
-        <code className="text-xs font-mono font-semibold text-foreground">{pattern.pattern}</code>
+      <div className="group flex flex-wrap items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/40">
+        <code className="max-w-full truncate text-xs font-mono font-semibold text-foreground">{pattern.pattern}</code>
         <span className="text-muted-foreground/40 text-xs">·</span>
         <span className="text-xs text-muted-foreground">{fieldLabel(pattern.field)}</span>
         <span className="text-muted-foreground/40 text-xs">·</span>
         <span className="text-xs text-muted-foreground">{matchLabel(pattern.matchType)}</span>
-        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="ml-auto flex items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
           <Button variant="ghost" size="icon" className="size-6 text-muted-foreground hover:text-foreground"
             onClick={() => setEditing(true)}>
             <Pencil className="size-3" />
@@ -97,21 +97,21 @@ export function PatternRow({ pattern, onDelete, onRefresh }: {
 
   return (
     <div className="rounded-lg border bg-background p-3 space-y-3 my-1">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Input
-          className="font-mono text-sm flex-1"
+          className="min-w-0 flex-1 basis-full font-mono text-sm sm:basis-auto"
           value={form.pattern}
           onChange={e => setForm(f => ({ ...f, pattern: e.target.value }))}
           autoFocus
         />
         <Select value={form.field} onValueChange={v => v && setForm(f => ({ ...f, field: v as RulePattern["field"] }))}>
-          <SelectTrigger className="h-9 text-sm w-36"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 flex-1 text-sm sm:w-36 sm:flex-none"><SelectValue /></SelectTrigger>
           <SelectContent>
             {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={form.matchType} onValueChange={v => v && setForm(f => ({ ...f, matchType: v as RulePattern["matchType"] }))}>
-          <SelectTrigger className="h-9 text-sm w-28"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 flex-1 text-sm sm:w-28 sm:flex-none"><SelectValue /></SelectTrigger>
           <SelectContent>
             {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>
@@ -166,20 +166,20 @@ export function AddPatternRow({ ruleId, onSaved }: { ruleId: number; onSaved: ()
     <div className="rounded-lg border bg-background p-3 space-y-3 mt-1">
       <div className="flex gap-2 flex-wrap">
         <Input
-          className="font-mono text-sm flex-1 min-w-lg"
+          className="min-w-0 flex-1 basis-full font-mono text-sm sm:basis-auto"
           placeholder="e.g. ALDI"
           value={form.pattern}
           onChange={e => setForm(f => ({ ...f, pattern: e.target.value }))}
           autoFocus
         />
         <Select value={form.field} onValueChange={v => v && setForm(f => ({ ...f, field: v as RulePattern["field"] }))}>
-          <SelectTrigger className="h-9 text-sm w-36"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 flex-1 text-sm sm:w-36 sm:flex-none"><SelectValue /></SelectTrigger>
           <SelectContent>
             {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={form.matchType} onValueChange={v => v && setForm(f => ({ ...f, matchType: v as RulePattern["matchType"] }))}>
-          <SelectTrigger className="h-9 text-sm w-28"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 flex-1 text-sm sm:w-28 sm:flex-none"><SelectValue /></SelectTrigger>
           <SelectContent>
             {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>

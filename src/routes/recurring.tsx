@@ -106,13 +106,13 @@ function RecurringPage() {
   return (
     <div className="console-page flex flex-col gap-3.5">
       <Card className="animate-in">
-        <CardHeader>
+        <CardHeader className="has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
           <CardDescription className="section-label">Committed before you spend</CardDescription>
           <CardTitle className="max-w-4xl text-pretty text-xl font-medium leading-[1.45] tracking-[-0.015em] sm:text-[25px]">
             <span className="font-mono font-semibold">{formatCurrency(totalMonthly, currency)}</span> is already committed each month across <span className="font-mono font-semibold">{active.length}</span> recurring payments. That&rsquo;s <span className="font-mono font-semibold">{formatCurrency(totalAnnual, currency)}</span> a year.
           </CardTitle>
-          <CardAction>
-            <div className="flex gap-2"><Badge variant="secondary"><Repeat /> Active patterns</Badge><Button size="sm" variant="outline" onClick={() => setManualOpen(true)}><Plus /> Add manually</Button></div>
+          <CardAction className="col-start-1 row-span-1 row-start-auto justify-self-start sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:justify-self-end">
+            <div className="flex flex-wrap gap-2"><Badge variant="secondary"><Repeat /> Active patterns</Badge><Button size="sm" variant="outline" onClick={() => setManualOpen(true)}><Plus /> Add manually</Button></div>
           </CardAction>
         </CardHeader>
       </Card>

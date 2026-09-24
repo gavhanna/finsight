@@ -89,8 +89,8 @@ function RulesPage() {
       {/* Header */}
       <div className="animate-in flex flex-col gap-1">
         <p className="section-label">First match wins</p>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">Categorisation rules</h1>
             <PageHelp title="Categorisation Rules">
               <p>Rules automatically assign a category to transactions based on patterns matched against the payee name or description.</p>
@@ -99,12 +99,12 @@ function RulesPage() {
               <p><strong className="text-foreground">Apply to history</strong> — re-runs all rules over every transaction, updating categories in bulk. Manually set categories are preserved.</p>
             </PageHelp>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" onClick={handleApplyAll} disabled={applying}>
+          <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
+            <Button className="min-w-0 flex-1 sm:flex-none" size="sm" variant="outline" onClick={handleApplyAll} disabled={applying}>
               <RefreshCw data-icon="inline-start" className={cn(applying && "animate-spin")} />
               {applying ? "Applying…" : "Apply to history"}
             </Button>
-            <Button onClick={() => setShowNew(true)}>
+            <Button className="min-w-0 flex-1 sm:flex-none" size="sm" onClick={() => setShowNew(true)}>
               <Plus data-icon="inline-start" />
               New Rule
             </Button>
@@ -117,7 +117,7 @@ function RulesPage() {
 
       {/* Search + filter */}
       {(rules as RuleWithMeta[]).length > 3 && (
-        <div className="flex gap-2 mb-4">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
@@ -132,7 +132,7 @@ function RulesPage() {
               value={filterCatId !== null ? String(filterCatId) : "all"}
               onValueChange={v => setFilterCatId(v === "all" ? null : Number(v))}
             >
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-full sm:w-44">
                 <Filter className="size-3.5 text-muted-foreground mr-1" />
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>

@@ -92,7 +92,7 @@ function TransactionsPage() {
 
   return <div className="console-page flex flex-col gap-3.5">
     <div className="flex flex-wrap items-center gap-3">
-      <Tabs value={activeView} onValueChange={setBuiltInView}><TabsList>
+      <Tabs className="min-w-0 max-w-full overflow-x-auto" value={activeView} onValueChange={setBuiltInView}><TabsList className="w-max">
         <TabsTrigger value="all">All transactions</TabsTrigger><TabsTrigger value="needs-review">Needs review {needsReviewCount > 0 && <Badge className="ml-1" variant="secondary">{needsReviewCount}</Badge>}</TabsTrigger>
         <TabsTrigger value="uncategorised">Uncategorised</TabsTrigger><TabsTrigger value="transfers">Transfers</TabsTrigger><TabsTrigger value="recurring">Recurring only</TabsTrigger>
       </TabsList></Tabs>

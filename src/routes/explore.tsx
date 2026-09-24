@@ -40,7 +40,7 @@ function ExplorePage() {
 
   return <div className="console-page flex flex-col gap-4">
     <div className="flex flex-col gap-1"><p className="section-label">Explore</p><h1 className="text-2xl font-semibold tracking-tight">One workspace for every question</h1><p className="text-sm text-muted-foreground">Move between analyses without losing the surrounding context. Saved views stay at the top.</p></div>
-    <div className="grid min-h-[780px] gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="grid min-h-[780px] grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
       <aside className="flex flex-col gap-4">
         <div><div className="mb-2 flex items-center justify-between"><p className="section-label">Your saved views</p><Button variant="ghost" size="icon-sm" aria-label="Save current view" onClick={() => setSaveOpen(true)}><BookmarkPlus /></Button></div>
           <div className="flex flex-col gap-1">{savedViews.length === 0 ? <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">Save an analysis to keep it here.</p> : savedViews.map((view) => <Button key={view.id} variant="ghost" className="justify-start" onClick={() => navigate({ search: { view: String(view.definition.view ?? "categories") } })}>{view.name}</Button>)}</div>

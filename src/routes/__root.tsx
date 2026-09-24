@@ -215,7 +215,7 @@ function ConsoleShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-svh flex-col bg-background">
       <OfflineBanner />
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-xl">
-        <div className="hidden h-[52px] items-center gap-2 px-5 md:flex">
+        <div className="hidden h-[52px] items-center gap-2 px-5 lg:flex">
           <Link to="/" className="mr-1 flex items-center gap-2 border-r border-border pr-4">
             <img src="/icon.svg" alt="" className="size-5" />
             <span className="text-sm font-semibold tracking-tight">FinSight</span>
@@ -256,7 +256,7 @@ function ConsoleShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="flex h-12 items-center gap-2 px-4 md:hidden">
+        <div className="flex h-12 items-center gap-2 px-4 lg:hidden">
           <img src="/icon.svg" alt="FinSight" className="size-5" />
           <span className="text-sm font-semibold">{monthLabel}</span>
           <div className="ml-auto flex items-center gap-2">
@@ -295,9 +295,9 @@ function ConsoleShell({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
-      <main className="min-h-0 flex-1 pb-16 md:pb-0">{children}</main>
+      <main className="min-h-0 flex-1 pb-16 lg:pb-0">{children}</main>
 
-      <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-6 border-t border-border bg-background/95 backdrop-blur-xl md:hidden">
+      <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-6 border-t border-border bg-background/95 backdrop-blur-xl lg:hidden">
         {primaryNav.map((item) => {
           const Icon = item.icon
           const active = section === item.id
@@ -316,7 +316,7 @@ function ConsoleShell({ children }: { children: React.ReactNode }) {
                   <span className="absolute -right-2 -top-1 size-2 rounded-full bg-primary ring-2 ring-background" />
                 )}
               </span>
-              <span className="truncate">{item.label}</span>
+              <span className="w-full truncate px-0.5 text-center">{item.label}</span>
             </Link>
           )
         })}

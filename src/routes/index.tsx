@@ -871,8 +871,8 @@ function DashboardPage() {
               </Link>
             </CardAction>
           </CardHeader>
-          <CardContent className="px-0">
-            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.3fr] border-b border-border px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
+          <CardContent className="overflow-x-auto px-0">
+            <div className="grid min-w-[520px] grid-cols-[1fr_1fr_1fr_1fr_1.3fr] border-b border-border px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
               <span>Month</span>
               <span className="text-right">In</span>
               <span className="text-right">Out</span>
@@ -885,7 +885,7 @@ function DashboardPage() {
               return (
                 <div
                   key={month.month}
-                  className="grid grid-cols-[1fr_1fr_1fr_1fr_1.3fr] items-center border-b border-border/60 px-4 py-3 text-xs last:border-0"
+                  className="grid min-w-[520px] grid-cols-[1fr_1fr_1fr_1fr_1.3fr] items-center border-b border-border/60 px-4 py-3 text-xs last:border-0"
                 >
                   <span className="font-medium">{shortMonth(month.month)}</span>
                   <span className="text-right font-mono text-muted-foreground">

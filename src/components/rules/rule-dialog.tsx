@@ -24,7 +24,7 @@ export function RuleDialog({ open, onOpenChange, rule, draft, categories, onSave
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton className="sm:max-w-2xl max-h-[90dvh] flex flex-col gap-0 p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+        <DialogHeader className="shrink-0 border-b px-4 pb-4 pt-4 sm:px-6 sm:pt-6">
           <DialogTitle>{rule ? "Edit Rule" : "New Rule"}</DialogTitle>
           <DialogDescription>
             {rule
@@ -32,7 +32,7 @@ export function RuleDialog({ open, onOpenChange, rule, draft, categories, onSave
               : "Add a name, choose a category, then define one or more patterns to match against your transactions."}
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           <RuleForm
             key={rule?.id ?? `${draft?.pattern ?? "new"}-${open}`}
             rule={rule}
@@ -153,7 +153,7 @@ function RuleForm({ rule, draft, categories, onClose, onSaved }: {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Category</Label>
           <Select value={String(categoryId)} onValueChange={v => v && setCategoryId(Number(v))}>
@@ -194,21 +194,21 @@ function RuleForm({ rule, draft, categories, onClose, onSaved }: {
         </div>
         <div className="space-y-2">
           {visiblePatterns.map((p, visIdx) => (
-            <div key={p.id ?? `new-${visIdx}`} className="flex gap-2">
+            <div key={p.id ?? `new-${visIdx}`} className="flex flex-wrap gap-2">
               <Input
-                className="font-mono text-sm flex-1"
+                className="min-w-0 flex-1 basis-full font-mono text-sm sm:basis-auto"
                 value={p.pattern}
                 placeholder="e.g. ALDI"
                 onChange={e => updatePatternAt(visIdx, { pattern: e.target.value })}
               />
               <Select value={p.field} onValueChange={v => v && updatePatternAt(visIdx, { field: v as RulePattern["field"] })}>
-                <SelectTrigger className="h-9 text-sm w-36"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 flex-1 text-sm sm:w-36 sm:flex-none"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FIELDS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={p.matchType} onValueChange={v => v && updatePatternAt(visIdx, { matchType: v as RulePattern["matchType"] })}>
-                <SelectTrigger className="h-9 text-sm w-28"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 flex-1 text-sm sm:w-28 sm:flex-none"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {MATCH_TYPES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                 </SelectContent>
@@ -239,7 +239,7 @@ function RuleForm({ rule, draft, categories, onClose, onSaved }: {
 
       <Separator />
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button onClick={() => handleSave(false)} disabled={saving || !canSave}>
           {saving ? "Saving…" : isEdit ? "Save Changes" : "Future transactions only"}
         </Button>
